@@ -70,6 +70,73 @@ There is currently 17 properties you can configure. You can read more in depth e
 
 Be sure to populate your `appsettings.json` *"DiscordWebhookUrl"* property with your newly created Webhook
 
+#### Webhook Configuration Options
+
+You have two ways to configure your Discord webhook URL:
+
+**Option 1: Direct URL (Hardcoded)**
+```json
+{
+  "Instances": [
+    {
+      "Id": "Gaming News",
+      "DiscordWebhookUrl": "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN",
+      ...
+    }
+  ]
+}
+```
+
+**Option 2: Environment Variable (Recommended for Docker)**
+You can reference an environment variable using the `env:` prefix. This is useful for keeping sensitive webhook URLs out of your config files:
+
+```json
+{
+  "Instances": [
+    {
+      "Id": "Gaming News",
+      "DiscordWebhookUrl": "env:FEEDCORD_WEBHOOK_GAMING",
+      ...
+    },
+    {
+      "Id": "Tech News",
+      "DiscordWebhookUrl": "env:FEEDCORD_WEBHOOK_TECH",
+      ...
+    }
+  ]
+}
+```
+
+Then set the environment variables when running:
+
+**Docker:**
+```bash
+docker run --name FeedCord \
+  -v "/path/to/your/appsettings.json:/app/config/appsettings.json" \
+  -e FEEDCORD_WEBHOOK_GAMING="https://discord.com/api/webhooks/..." \
+  -e FEEDCORD_WEBHOOK_TECH="https://discord.com/api/webhooks/..." \
+  qolors/feedcord:latest
+```
+
+**Docker Compose:**
+```yaml
+services:
+  feedcord:
+    image: qolors/feedcord:latest
+    volumes:
+      - /path/to/your/appsettings.json:/app/config/appsettings.json
+    environment:
+      FEEDCORD_WEBHOOK_GAMING: "https://discord.com/api/webhooks/..."
+      FEEDCORD_WEBHOOK_TECH: "https://discord.com/api/webhooks/..."
+```
+
+**Local/Native:**
+```bash
+export FEEDCORD_WEBHOOK_GAMING="https://discord.com/api/webhooks/..."
+export FEEDCORD_WEBHOOK_TECH="https://discord.com/api/webhooks/..."
+dotnet run -- path/to/your/appsettings.json
+```
+
 Before you actually run FeedCord, make sure you have populated your `appsettings.json` with RSS and YouTube feeds.
 
 **RSS Feeds**

@@ -108,6 +108,9 @@ namespace FeedCord
             
             Console.WriteLine($"Number of configurations loaded: {configs.Count}");
 
+            // Resolve webhook URLs from environment variables if prefixed with "env:"
+            WebhookResolver.ResolveWebhooks(configs, msg => Console.WriteLine(msg));
+
             foreach (var c in configs)
             {
                 Console.WriteLine($"Validating & Registering Background Service {c.Id}");
