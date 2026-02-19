@@ -2,6 +2,7 @@
 using FeedCord.Core.Interfaces;
 using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace FeedCord.Services.Factories
 {
@@ -16,7 +17,10 @@ namespace FeedCord.Services.Factories
 
         public IFeedManager Create(Config config, ILogAggregator logAggregator)
         {
-            return ActivatorUtilities.CreateInstance<FeedManager>(_serviceProvider, config, logAggregator);
+            var logger = _serviceProvider.GetRequiredService<ILogger<PostFilterService>>();
+            var postFilterService = new PostFilterService(logger, config);
+            
+            return ActivatorUtilities.CreateInstance<FeedManager>(_serviceProvider, config, logAggregator, postFilterService);
         }
     }
 }

@@ -12,14 +12,13 @@ namespace FeedCord.Services
 {
     public class FeedManager : IFeedManager
     {
-        private readonly bool _hasAllFilter = false;
-        private readonly bool _hasFilterEnabled = false;
         private readonly Config _config;
         private readonly SemaphoreSlim _instancedConcurrentRequests;
         private readonly ICustomHttpClient _httpClient;
         private readonly ILogAggregator _logAggregator;
         private readonly ILogger<FeedManager> _logger;
         private readonly IRssParsingService _rssParsingService;
+        private readonly IPostFilterService _postFilterService;
         private readonly Dictionary<string, ReferencePost> _lastRunReference;
         private readonly ConcurrentDictionary<string, FeedState> _feedStates;
 
@@ -28,7 +27,8 @@ namespace FeedCord.Services
             ICustomHttpClient httpClient,
             IRssParsingService rssParsingService,
             ILogger<FeedManager> logger,
-            ILogAggregator logAggregator)
+            ILogAggregator logAggregator,
+            IPostFilterService postFilterService)
         {
             _config = config;
             _httpClient = httpClient;
@@ -36,16 +36,9 @@ namespace FeedCord.Services
             _rssParsingService = rssParsingService;
             _logger = logger;
             _logAggregator = logAggregator;
+            _postFilterService = postFilterService;
             _feedStates = new ConcurrentDictionary<string, FeedState>();
-            _hasFilterEnabled = config.PostFilters?.Any() ?? false;
             _instancedConcurrentRequests = new SemaphoreSlim(config.ConcurrentRequests);
-
-            //TODO --> this sets flag for 'all' in filters - this and all filter logic needs to be moved out of FeedManager and in to it's own helper/service
-            if (_hasFilterEnabled && _config.PostFilters != null)
-            {
-                if (_config.PostFilters.Any(wf => wf.Url == "all"))
-                    _hasAllFilter = true;
-            }
         }
         public async Task<List<Post>> CheckForNewPostsAsync()
         {
@@ -228,44 +221,7 @@ namespace FeedCord.Services
                         continue;
                     }
 
-                    //TODO --> Implement Filter checking in to a helper/service & remove from FeedManager
-                    if (_hasFilterEnabled && _config.PostFilters != null)
-                    {
-                        var filter = _config.PostFilters.FirstOrDefault(wf => wf.Url == url);
-                        if (filter != null)
-                        {
-                            var filterFound = FilterConfigs.GetFilterSuccess(post, filter.Filters.ToArray());
-
-                            if (filterFound)
-                            {
-                                newPosts.Add(post);
-                            }
-                            else
-                            {
-                                _logger.LogInformation(
-                                    "A new post was omitted because it does not comply to the set filter: {Url}", url);
-                            }
-                        }
-                        else if (_hasAllFilter)
-                        {
-                            var allFilter = _config.PostFilters.FirstOrDefault(wf => wf.Url == "all");
-                            if (allFilter != null)
-                            {
-                                var filterFound = FilterConfigs.GetFilterSuccess(post, allFilter.Filters.ToArray());
-
-                                if (filterFound)
-                                {
-                                    newPosts.Add(post);
-                                }
-                                else
-                                {
-                                    _logger.LogInformation(
-                                        "A new post was omitted because it does not comply to the set filter: {Url}", url);
-                                }
-                            }
-                        }
-                    }
-                    else
+                    if (_postFilterService.ShouldIncludePost(post, url))
                     {
                         newPosts.Add(post);
                     }
