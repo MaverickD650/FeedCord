@@ -19,6 +19,8 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
+    outputs:
+      repo: ${{ steps.downcase.outputs.repo }}
     permissions:
       contents: read
       packages: write
@@ -53,7 +55,8 @@ jobs:
         id: build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
-          context: .
+          context: ./FeedCord
+          file: FeedCord/Dockerfile
           platforms: ${{ matrix.platform }}
           tags: ghcr.io/${{ steps.downcase.outputs.repo}}
           labels: ${{ steps.meta.outputs.labels }}
