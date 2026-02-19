@@ -23,6 +23,13 @@ jobs:
       contents: read
       packages: write
     steps:
+      - name: Downcase Repo
+        id: downcase
+        run: |
+          repo=$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
+          echo "REPO=$repo" >> "$GITHUB_ENV"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -40,7 +47,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ steps.downcase.outputs.repo }}
 
       - name: Build and push Docker image
         id: build
@@ -48,7 +55,7 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
-          tags: ghcr.io/${{ github.repository }}
+          tags: ghcr.io/${{ steps.downcase.outputs.repo}}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
@@ -75,6 +82,13 @@ jobs:
     outputs:
       version: ${{ steps.meta.outputs.version }}
     steps:
+      - name: Downcase Repo
+        id: downcase
+        run: |
+          repo=$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
+          echo "REPO=$repo" >> "$GITHUB_ENV"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+
       - name: Download digests
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
@@ -96,7 +110,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ steps.downcase.outputs.repo }}
           tags: |-
             type=semver,pattern={{version}}
 
@@ -105,9 +119,9 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
+            $(printf 'ghcr.io/${{ steps.downcase.outputs.repo }}@sha256:%s ' *)
 
       - name: Inspect image
         if: github.event_name != 'pull_request'
         run: |
-          docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
+          docker buildx imagetools inspect ghcr.io/${{ steps.downcase.outputs.repo }}:${{ steps.meta.outputs.version }}

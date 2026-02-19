@@ -83,6 +83,13 @@ jobs:
       contents: read
       packages: write
     steps:
+      - name: Downcase Repo
+        id: downcase
+        run: |
+          repo=$(echo "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
+          echo "REPO=$repo" >> "$GITHUB_ENV"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+
       - name: Download digests
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
