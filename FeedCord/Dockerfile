@@ -1,5 +1,5 @@
 # Set the desired platform for the build stage
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY ["FeedCord.csproj", "./"]
 COPY ["src", "./src"]
@@ -9,7 +9,7 @@ RUN dotnet restore && \
     dotnet build -c Release -o /app/build && \
     dotnet publish -c Release -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/runtime:9.0 AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
