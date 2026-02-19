@@ -16,6 +16,10 @@ namespace FeedCord.Infrastructure.Http
         private readonly ILogger<CustomHttpClient> _logger;
         private readonly SemaphoreSlim _throttle;
         private readonly ConcurrentDictionary<string, string> _userAgentCache;
+        // Rate limiting fields
+        private readonly SemaphoreSlim _rateLimiter = new SemaphoreSlim(1, 1);
+        private DateTime _lastPostTime = DateTime.MinValue;
+        private readonly TimeSpan _minPostInterval = TimeSpan.FromSeconds(2);
         public CustomHttpClient(ILogger<CustomHttpClient> logger, HttpClient innerClient, SemaphoreSlim throttle)
         {
             _logger = logger;
@@ -71,19 +75,30 @@ namespace FeedCord.Infrastructure.Http
 
         public async Task PostAsyncWithFallback(string url, StringContent forumChannelContent, StringContent textChannelContent, bool isForum)
         {
+            await _rateLimiter.WaitAsync();
             try
             {
+                // Enforce 1 request per 2 seconds
+                var now = DateTime.UtcNow;
+                var waitTime = _minPostInterval - (now - _lastPostTime);
+                if (waitTime > TimeSpan.Zero)
+                {
+                    await Task.Delay(waitTime);
+                }
+                _lastPostTime = DateTime.UtcNow;
+
                 await _throttle.WaitAsync();
 
                 var response = await _innerClient.PostAsync(url, isForum ? forumChannelContent : textChannelContent);
-                
+
                 _throttle.Release();
 
                 if (response.StatusCode != HttpStatusCode.NoContent)
                 {
-                    await _throttle.WaitAsync();
+                    var responseBody = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Discord POST failed. Status: {StatusCode}, Body: {Body}", response.StatusCode, responseBody);
 
-                    _logger.LogError("Response Error: {ResponseError}", response.Content.ReadAsStringAsync().Result);
+                    await _throttle.WaitAsync();
 
                     response = await _innerClient.PostAsync(url, !isForum ? forumChannelContent : textChannelContent);
 
@@ -94,13 +109,14 @@ namespace FeedCord.Infrastructure.Http
                     }
                     else
                     {
-                        _logger.LogError("Failed to post to Discord Channel after fallback attempts");
+                        var fallbackResponseBody = await response.Content.ReadAsStringAsync();
+                        _logger.LogError("Failed to post to Discord Channel after fallback. Status: {StatusCode}, Body: {Body}", response.StatusCode, fallbackResponseBody);
                     }
                 }
             }
             finally
             {
-                _throttle.Release();
+                _rateLimiter.Release();
             }
         }
 

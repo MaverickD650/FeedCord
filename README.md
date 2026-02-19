@@ -1,10 +1,10 @@
 ﻿
-![FeedCord Banner](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/images/FeedCord.png)
+## ![FeedCord Banner](https://github.com/MaverickD650/FeedCord/blob/master/FeedCord/docs/images/FeedCord.png)
 ---
 
 # FeedCord: Self-hosted RSS Reader for Discord
 
-FeedCord is designed to be a 'turn key' automated RSS feed reader with the main focus on Discord Servers. 
+FeedCord is designed to be a 'turn key' automated RSS feed reader with the main focus on Discord Servers.
 
 Use it for increasing community engagement and activity or just for your own personal use. The combination of FeedCord and Discord's Forum Channels can really shine to make a vibrant news feed featuring gallery-style display alongside custom threads, creating an engaging space for your private community discussions.
 
@@ -18,7 +18,6 @@ Use it for increasing community engagement and activity or just for your own per
 
 A showing of one channel. Run as many of these as you want!
 
-
 ---
 
 ## Running FeedCord
@@ -30,10 +29,9 @@ FeedCord is very simple to get up and running. It only takes a few steps:
 
 Provided below is a quick guide to get up and running.
 
-
 ## Quick Setup
 
-### 1. Create a new folder with a new file named `appsettings.json` inside with the following content:
+### 1. Create a new folder with a new file named `appsettings.json` inside with the following content
 
 ```json
 {
@@ -59,14 +57,14 @@ Provided below is a quick guide to get up and running.
   "ConcurrentRequests": 40
 }
 ```
-There is currently 17 properties you can configure. You can read more in depth explanation of the file structure as well as view all properties and their purpose [here](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/reference.md)
+
+There is currently 17 properties you can configure. You can read more in depth explanation of the file structure as well as view all properties and their purpose [here](https://github.com/MaverickD650/FeedCord/blob/master/FeedCord/docs/reference.md)
 
 ---
 
 ### 2. Create a new Webhook in Discord (Visual Steps Provided)
 
-![Discord Webhook](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/images/webhooks.png)
-
+![Discord Webhook](https://github.com/MaverickD650/FeedCord/blob/master/FeedCord/docs/images/webhooks.png)
 
 ### Quick Note
 
@@ -165,7 +163,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details>
  <summary>[3.0.0] - 2025-02-10</summary>
 
-### Added
+## Added
 
 - Restart persistence to catch up on missed posts if it had shutdown
 - UserAgent cycling for failed get requests with retry attempts
@@ -190,132 +188,128 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <details>
  <summary>[2.1.1] - 2024-04-25</summary>
 
- ### Added
+### Added
 
- - Added author being sourced from feed items
- - Added GZIP support for feeds
- 
+- Added author being sourced from feed items
+- Added GZIP support for feeds
+
 </details>
-
 
 <details>
  <summary>[2.1.0] - 2024-02-28</summary>
 
- ### Added
- 
- - Added Support for grabbing multiple new posts if the feed has multiple new posts since the last check.
+### Added
 
- ### Changed
- 
- - Improved Documentation for easier setup and understanding
- - Improved Logging for better readability
- - Posting now has a hard-coded 10 second buffer so large feeds respect Discord's rate limits
+- Added Support for grabbing multiple new posts if the feed has multiple new posts since the last check.
+
+### Changed
+
+- Improved Documentation for easier setup and understanding
+- Improved Logging for better readability
+- Posting now has a hard-coded 10 second buffer so large feeds respect Discord's rate limits
 
 </details>
-
 
 <details>
   <summary>[2.0.1] - 2024-02-19</summary>
 
-  ### Added
+### Added
 
-  - Added Support for Reddit Feed & Better Atom Parsing Feeds
+- Added Support for Reddit Feed & Better Atom Parsing Feeds
 
 </details>
 
 <details>
   <summary>[2.0.0] - 2024-01-30</summary>
 
-  ### Added
+### Added
 
-  - Added Support for Multiple Webhook Urls & Configurations
-  - Added Support for Discord's Forum Channels
+- Added Support for Multiple Webhook Urls & Configurations
+- Added Support for Discord's Forum Channels
   
-  ### Changed
+### Changed
 
-  - Configuration File formatting has changed to support multiple Webhook URLs
-  - Slight improvements to Logging
-  - Some Configuration properties are now optional rather than required
+- Configuration File formatting has changed to support multiple Webhook URLs
+- Slight improvements to Logging
+- Some Configuration properties are now optional rather than required
 
 </details>
-
 
 <details>
   <summary>[1.3.0] - 2024-01-20</summary>
 
-  ### Added
+### Added
 
-  - Added Description Length Configuration
+- Added Description Length Configuration
 
-  ### Changed
+### Changed
 
-  - Improved RSS & ATOM Parsing with implementing [FeedReader](https://github.com/arminreiter/FeedReader) library
+- Improved RSS & ATOM Parsing with implementing [FeedReader](https://github.com/arminreiter/FeedReader) library
 
-  ### Fixed
+### Fixed
 
-  - RSS/ATOM Feeds returning errors because of parsing issues
+- RSS/ATOM Feeds returning errors because of parsing issues
 
 </details>
-
 
 <details>
   <summary>[1.2.1] - 2024-01-17</summary>
 
-  ### Changed
+### Changed
 
-  - Made Youtube URLs an optional addition rather than required
+- Made Youtube URLs an optional addition rather than required
 
 </details>
 
 <details>
   <summary>[1.2.0] - 2023-10-25</summary>
   
-  ### Added
+### Added
 
-  - Added Support for Youtube Channel Feeds in configuration file.
-  - Added an optional Auto Remove option in configuration file for bad URL Feeds to get booted out of the list after multiple failed attempts.
+- Added Support for Youtube Channel Feeds in configuration file.
+- Added an optional Auto Remove option in configuration file for bad URL Feeds to get booted out of the list after multiple failed attempts.
 
-  ### Changed
+### Changed
 
-  - Improved container logging messages for better readability.
+- Improved container logging messages for better readability.
 
-  ### Fixed
+### Fixed
 
-  - Color setting in configuration now properly works for the embed message
-  - Fixed the handling of errors and removed from logging to reduce spam.
-  - Fixed a known logging index error.
+- Color setting in configuration now properly works for the embed message
+- Fixed the handling of errors and removed from logging to reduce spam.
+- Fixed a known logging index error.
 
 </details>
 
 <details>
   <summary>[1.1.0] - 2023-10-16</summary>
   
-  ### Added
+### Added
 
-  - Broke up `RssProcessorService` class to follow SOLID principles, adding a new service class `OpenGraphService` to handle meta tags.
-  - Added `Helper` namespace & `StringHelper` class, which includes the `StripTags` method for potential reuse and improved organization.
+- Broke up `RssProcessorService` class to follow SOLID principles, adding a new service class `OpenGraphService` to handle meta tags.
+- Added `Helper` namespace & `StringHelper` class, which includes the `StripTags` method for potential reuse and improved organization.
 
-  ### Changed
+### Changed
 
-  - Enhanced the RSS feed background service for more efficient feed checks, reducing chances of delays.
-  - Customized the `HttpClient` to set default request headers, ensuring better compatibility with certain RSS feeds.
-  - Refined feed processing logic to include concurrent processing, beneficial for users with a large number of RSS feeds.
-  - ReadMe to show this change log and multiple OS images.
+- Enhanced the RSS feed background service for more efficient feed checks, reducing chances of delays.
+- Customized the `HttpClient` to set default request headers, ensuring better compatibility with certain RSS feeds.
+- Refined feed processing logic to include concurrent processing, beneficial for users with a large number of RSS feeds.
+- ReadMe to show this change log and multiple OS images.
 
-  ### Fixed
+### Fixed
 
-  - Improved RSS feed initialization, ensuring only valid feeds are added to the tracking list.
-  - Overhauled logs to not contain as much spam and allow for better readability.
+- Improved RSS feed initialization, ensuring only valid feeds are added to the tracking list.
+- Overhauled logs to not contain as much spam and allow for better readability.
 
 </details>
 
 <details>
   <summary>[1.0.0] - 2023-10-15</summary>
   
-  ### Added
-  - Initial Project Release
+### Added
+
+- Initial Project Release
 
 </details>
-
 
 ---

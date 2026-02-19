@@ -117,22 +117,27 @@ namespace FeedCord.Services
                 }
 
                 bool successfulAdd;
+                DateTime latestPublishDate;
 
                 if (isYoutube)
                 {
+                    var posts = await FetchYoutubeAsync(url);
+                    latestPublishDate = posts?.FirstOrDefault()?.PublishDate ?? DateTime.Now;
                     successfulAdd = _feedStates.TryAdd(url, new FeedState
                     {
                         IsYoutube = true,
-                        LastPublishDate = DateTime.Now,
+                        LastPublishDate = latestPublishDate,
                         ErrorCount = 0
                     });
                 }
                 else
                 {
+                    var posts = await FetchRssAsync(url, _config.DescriptionLimit);
+                    latestPublishDate = posts?.Max(p => p?.PublishDate) ?? DateTime.Now;
                     successfulAdd = _feedStates.TryAdd(url, new FeedState
                     {
                         IsYoutube = false,
-                        LastPublishDate = DateTime.Now,
+                        LastPublishDate = latestPublishDate,
                         ErrorCount = 0
                     });
                 }
@@ -140,6 +145,7 @@ namespace FeedCord.Services
                 if (successfulAdd)
                 {
                     successCount++;
+                    _logger.LogInformation("Successfully initialized URL: {Url}", url);
                 }
 
                 else

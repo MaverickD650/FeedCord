@@ -43,9 +43,12 @@ namespace FeedCord.Services
                 {
                     var rawXml = GetRawXmlForItem(post);
 
-                    var imageLink = await _imageParserService
-                        .TryExtractImageLink(post.Link, rawXml) 
-                                    ?? feed.ImageUrl;
+                    // Temporary, don't extract images from post url
+                    var imageLink = feed.ImageUrl;
+
+                    // var imageLink = await _imageParserService
+                    //     .TryExtractImageLink(post.Link, rawXml)
+                    //                 ?? feed.ImageUrl;
 
                     var builtPost = PostBuilder.TryBuildPost(post, feed, trim, imageLink);
 
@@ -65,10 +68,10 @@ namespace FeedCord.Services
         public async Task<Post?> ParseYoutubeFeedAsync(string channelUrl)
         {
             var youtubePost = await _youtubeParsingService.GetXmlUrlAndFeed(channelUrl);
-            
+
             if (youtubePost is null)
                 _logger.LogWarning("Failed to parse Youtube Feed from url: {ChannelUrl} - Try directly feeding the xml formatted Url, otherwise could be a malformed feed", channelUrl);
-            
+
             return youtubePost;
         }
 
