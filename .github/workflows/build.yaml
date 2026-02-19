@@ -120,22 +120,11 @@ jobs:
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests
         if: github.event_name != 'pull_request'
-        id: manifest
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf 'ghcr.io/${{ needs.build.outputs.repo }}@sha256:%s ' *)
-          digest=$(crane digest ghcr.io/${{ needs.build.outputs.repo }}:${{ steps.meta.outputs.version }})
-          echo "digest=$digest" >> $GITHUB_OUTPUT
 
       - name: Inspect image
         if: github.event_name != 'pull_request'
         run: |
           docker buildx imagetools inspect ghcr.io/${{ needs.build.outputs.repo }}:${{ steps.meta.outputs.version }}
-
-      - name: Attest
-        uses: actions/attest-build-provenance@v3
-        if: github.event_name != 'pull_request'
-        with:
-          subject-name: ghcr.io/${{ needs.build.outputs.repo }}
-          subject-digest: ${{ steps.manifest.outputs.digest }}
-          push-to-registry: true
