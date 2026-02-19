@@ -18,14 +18,14 @@ namespace FeedCord.Infrastructure.Parsers
 
         public async Task<string?> TryExtractImageLink(string pageUrl, string xmlSource)
         {
-            if (string.IsNullOrWhiteSpace(xmlSource)) 
+            if (string.IsNullOrWhiteSpace(xmlSource))
                 return await ScrapeImageFromWebpage(pageUrl);
-            
+
             var feedImageUrl = ExtractImageFromFeedXml(xmlSource);
-            
-            if (!IsValidImageUrl(feedImageUrl)) 
+
+            if (!IsValidImageUrl(feedImageUrl))
                 return await ScrapeImageFromWebpage(pageUrl);
-            
+
             feedImageUrl = MakeAbsoluteUrl(pageUrl, feedImageUrl);
             return feedImageUrl;
         }
@@ -35,7 +35,7 @@ namespace FeedCord.Infrastructure.Parsers
             try
             {
                 var xdoc = XDocument.Parse(xmlSource);
-                
+
                 var enclosureImage = xdoc.Descendants("enclosure")
                     .FirstOrDefault(e => e.Attribute("type") != null &&
                                          e.Attribute("type")!.Value.StartsWith("image/", StringComparison.OrdinalIgnoreCase));
@@ -44,7 +44,7 @@ namespace FeedCord.Infrastructure.Parsers
                     var url = enclosureImage.Attribute("url")?.Value;
                     if (!string.IsNullOrWhiteSpace(url)) return url;
                 }
-                
+
                 var mediaContent = xdoc.Descendants()
                     .FirstOrDefault(el =>
                         (el.Name.LocalName == "content" || el.Name.LocalName == "thumbnail") &&
@@ -56,7 +56,7 @@ namespace FeedCord.Infrastructure.Parsers
                     var url = mediaContent.Attribute("url")?.Value;
                     if (!string.IsNullOrWhiteSpace(url)) return url;
                 }
-                
+
                 var itunesImage = xdoc.Descendants().FirstOrDefault(el => el.Name.LocalName == "image" &&
                                                                           el.Name.NamespaceName.Contains("itunes") &&
                                                                           el.Attribute("href") != null);
@@ -65,10 +65,10 @@ namespace FeedCord.Infrastructure.Parsers
                     var url = itunesImage.Attribute("href")?.Value;
                     if (!string.IsNullOrWhiteSpace(url)) return url;
                 }
-                
+
                 var descNode = xdoc.Descendants("description").FirstOrDefault();
                 var contentNode = xdoc.Descendants().FirstOrDefault(n => n.Name.LocalName == "encoded");
-                
+
                 var descHtml = descNode?.Value ?? string.Empty;
                 var contentHtml = contentNode?.Value ?? string.Empty;
 
@@ -91,13 +91,13 @@ namespace FeedCord.Infrastructure.Parsers
 
             var doc = new HtmlDocument();
             doc.LoadHtml(html);
-            
+
             var imgNode = doc.DocumentNode.SelectSingleNode("//img[@src]");
-            if (imgNode == null) 
+            if (imgNode == null)
                 return string.Empty;
-            
-            var src = imgNode.GetAttributeValue("src", null);
-            
+
+            var src = imgNode.Attributes["src"]?.Value;
+
             return !string.IsNullOrWhiteSpace(src) ? src : string.Empty;
         }
 
@@ -112,7 +112,7 @@ namespace FeedCord.Infrastructure.Parsers
                 var response = await _httpClient.GetAsyncWithFallback(pageUrl);
 
                 if (response is null) return string.Empty;
-                
+
                 response.EnsureSuccessStatusCode();
                 var htmlContent = await response.Content.ReadAsStringAsync();
 
@@ -177,34 +177,34 @@ namespace FeedCord.Infrastructure.Parsers
                 url.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase))
                 return false;
 
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var parsedUri)) 
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var parsedUri))
                 return true;
-            
+
             return !parsedUri.Scheme.Equals("file", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string? GetMetaTagContent(HtmlDocument doc, string attributeKey, string attributeValue)
         {
             var metaNode = doc.DocumentNode.SelectSingleNode($"//meta[@{attributeKey}='{attributeValue}']");
-            return metaNode?.GetAttributeValue("content", null);
+            return metaNode?.Attributes["content"]?.Value;
         }
 
         private static string? GetLinkRel(HtmlDocument doc, string relValue)
         {
             var linkNode = doc.DocumentNode.SelectSingleNode($"//link[@rel='{relValue}']");
-            return linkNode?.GetAttributeValue("href", null);
+            return linkNode?.Attributes["href"]?.Value;
         }
 
         private static string? GetFirstImg(HtmlDocument doc)
         {
             var imgNode = doc.DocumentNode.SelectSingleNode("//img[@src]");
-            return imgNode?.GetAttributeValue("src", null);
+            return imgNode?.Attributes["src"]?.Value;
         }
 
         private static string? GetFirstImageWithAttribute(HtmlDocument doc, string attributeName)
         {
             var imgNode = doc.DocumentNode.SelectSingleNode($"//img[@{attributeName}]");
-            return imgNode?.GetAttributeValue(attributeName, null);
+            return imgNode?.Attributes[attributeName]?.Value;
         }
 
         private static string? GetElementById(HtmlDocument doc, string elementId)
@@ -212,10 +212,10 @@ namespace FeedCord.Infrastructure.Parsers
             var node = doc.GetElementbyId(elementId);
             if (node != null)
             {
-                var src = node.GetAttributeValue("src", null);
+                var src = node.Attributes["src"]?.Value;
                 if (!string.IsNullOrWhiteSpace(src))
                     return src;
-                src = node.GetAttributeValue("data-src", null);
+                src = node.Attributes["data-src"]?.Value;
                 return src;
             }
             return null;
