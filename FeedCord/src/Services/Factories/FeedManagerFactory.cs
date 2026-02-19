@@ -19,7 +19,7 @@ namespace FeedCord.Services.Factories
         {
             var logger = _serviceProvider.GetRequiredService<ILogger<PostFilterService>>();
             var postFilterService = new PostFilterService(logger, config);
-            
+
             return ActivatorUtilities.CreateInstance<FeedManager>(_serviceProvider, config, logAggregator, postFilterService);
         }
     }

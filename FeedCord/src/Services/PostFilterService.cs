@@ -19,7 +19,7 @@ namespace FeedCord.Services
             _hasFilterEnabled = config.PostFilters?.Any() ?? false;
 
             // Check if there's an "all" filter
-            _hasAllFilter = _hasFilterEnabled && _postFilters != null && 
+            _hasAllFilter = _hasFilterEnabled && _postFilters != null &&
                             _postFilters.Any(wf => wf.Url == "all");
         }
 
@@ -33,12 +33,12 @@ namespace FeedCord.Services
 
             // Try to find a URL-specific filter
             var filter = _postFilters.FirstOrDefault(wf => wf.Url == feedUrl);
-            
+
             if (filter != null)
             {
                 // URL has specific filters - check if post matches
                 var filterFound = FilterConfigs.GetFilterSuccess(post, filter.Filters.ToArray());
-                
+
                 if (filterFound)
                 {
                     return true;
@@ -58,7 +58,7 @@ namespace FeedCord.Services
                 if (allFilter != null)
                 {
                     var filterFound = FilterConfigs.GetFilterSuccess(post, allFilter.Filters.ToArray());
-                    
+
                     if (filterFound)
                     {
                         return true;
