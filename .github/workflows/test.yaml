@@ -44,6 +44,18 @@ jobs:
             --results-directory ./TestResults \
             --logger "trx;LogFileName=test-results.trx"
 
+      - name: Prepare coverage report for Codecov
+        if: always()
+        run: |
+          mkdir -p coverage
+          coverage_file=$(find ./TestResults -type f -name 'coverage.cobertura.xml' | head -n 1)
+          if [ -z "$coverage_file" ]; then
+            echo "No coverage.cobertura.xml found in ./TestResults"
+            exit 0
+          fi
+          cp "$coverage_file" ./coverage/coverage.cobertura.xml
+          echo "Prepared $coverage_file -> ./coverage/coverage.cobertura.xml"
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -64,7 +76,8 @@ jobs:
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
           use_oidc: true
-          files: './TestResults/**/coverage.cobertura.xml'
+          files: './coverage/coverage.cobertura.xml'
+          disable_search: true
           flags: unittests
           fail_ci_if_error: true
           verbose: true
