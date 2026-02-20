@@ -4,7 +4,7 @@ using FeedCord.Services.Interfaces;
 
 namespace FeedCord.Infrastructure.Notifiers
 {
-    internal class DiscordNotifier : INotifier
+    public class DiscordNotifier : INotifier
     {
         private readonly ICustomHttpClient _httpClient;
         private readonly IDiscordPayloadService _discordPayloadService;

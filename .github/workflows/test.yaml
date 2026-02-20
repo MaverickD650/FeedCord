@@ -12,9 +12,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dotnet-version: ['9.0', '10.0']
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -22,7 +19,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309 # v5
         with:
-          dotnet-version: ${{ matrix.dotnet-version }}
+          dotnet-version: '10.0'
 
       - name: Restore dependencies
         run: dotnet restore
@@ -37,7 +34,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: test-results-${{ matrix.dotnet-version }}
+          name: test-results-10.0
           path: '**/test-results.trx'
           if-no-files-found: warn
 
@@ -46,10 +43,10 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@27d65e188ec43221b20d26de30f4892fad91df2f # v2
         with:
           files: '**/test-results.trx'
-          check_name: Test Results (.NET ${{ matrix.dotnet-version }})
+          check_name: Test Results (.NET 10.0)
 
       - name: Upload coverage to Codecov
-        if: matrix.dotnet-version == '10.0' && always()
+        if: always()
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
           files: '**/coverage.opencover.xml'
