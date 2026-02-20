@@ -1,4 +1,4 @@
-# ![FeedCord Banner](https://github.com/MaverickD650/FeedCord/blob/master/FeedCord/docs/images/FeedCord.png)
+# ![FeedCord Banner](https://github.com/MaverickD650/FeedCord/blob/main/FeedCord/docs/images/FeedCord.png)
 
 ---
 
@@ -12,9 +12,9 @@ Use it for increasing community engagement and activity or just for your own per
 
 ---
 
-![FeedCord Gallery 1](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/images/gallery1.png)
+![FeedCord Gallery 1](https://github.com/Qolors/FeedCord/blob/main/FeedCord/docs/images/gallery1.png)
 
-![FeedCord Gallery 2](https://github.com/Qolors/FeedCord/blob/master/FeedCord/docs/images/gallery2.png)
+![FeedCord Gallery 2](https://github.com/Qolors/FeedCord/blob/main/FeedCord/docs/images/gallery2.png)
 
 A showing of one channel. Run as many of these as you want!
 
@@ -58,13 +58,13 @@ Provided below is a quick guide to get up and running.
 }
 ```
 
-There are currently 17 properties you can configure. You can read more in depth explanation of the file structure as well as view all properties and their purpose in the [reference documentation](https://github.com/MaverickD650/FeedCord/blob/master/FeedCord/docs/reference.md)
+There are currently 17 properties you can configure. You can read more in depth explanation of the file structure as well as view all properties and their purpose in the [reference documentation](https://github.com/MaverickD650/FeedCord/blob/main/FeedCord/docs/reference.md)
 
 ---
 
 ### 2. Create a new Webhook in Discord (Visual Steps Provided)
 
-![Discord Webhook](https://github.com/MaverickD650/FeedCord/blob/master/FeedCord/docs/images/webhooks.png)
+![Discord Webhook](https://github.com/MaverickD650/FeedCord/blob/main/FeedCord/docs/images/webhooks.png)
 
 ### Quick Note
 

@@ -66,7 +66,7 @@ dotnet watch test
 ### Test Workflow
 
 - **File**: `.github/workflows/test.yaml`
-- **Triggers**: Pull requests and pushes to `main` or `master`
+- **Triggers**: Pull requests and pushes to `main`
 - **Matrix**: Tests run on .NET 9.0 and 10.0
 - **Coverage**: Reports uploaded to Codecov
 
@@ -278,7 +278,7 @@ public class FeedWorkerTests
 
 Tests are automatically run on:
 
-- ✅ Push to `main` or `master`
+- ✅ Push to `main`
 - ✅ Pull requests (all numbers of .NET versions)
 - ✅ Before release build (blocks Docker image build if failing)
 
