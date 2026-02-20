@@ -5,11 +5,9 @@ on:
   pull_request:
     branches:
       - main
-      - master
   push:
     branches:
       - main
-      - master
 
 jobs:
   test:
@@ -60,3 +58,5 @@ jobs:
           files: '**/coverage.opencover.xml'
           flags: unittests
           fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
