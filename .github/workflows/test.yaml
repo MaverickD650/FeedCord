@@ -43,14 +43,14 @@ jobs:
 
       - name: Publish test results
         if: always()
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: EnricoMi/publish-unit-test-result-action@27d65e188ec43221b20d26de30f4892fad91df2f # v2
         with:
           files: '**/test-results.trx'
           check_name: Test Results (.NET ${{ matrix.dotnet-version }})
 
       - name: Upload coverage to Codecov
         if: matrix.dotnet-version == '10.0' && always()
-        uses: codecov/codecov-action@v5.5.2
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
           files: '**/coverage.opencover.xml'
           flags: unittests
