@@ -78,5 +78,6 @@ jobs:
           use_oidc: true
           files: './coverage/coverage.cobertura.xml'
           disable_search: true
+          flags: unittests
           fail_ci_if_error: true
           verbose: true
