@@ -6,66 +6,48 @@ namespace FeedCord.Tests.Helpers;
 
 public class WebhookResolverTests
 {
-    [Fact]
-    public void ResolveWebhooks_DirectWebhookUrl_NoResolutionNeeded()
+    public static IEnumerable<object?[]> EmptyConfigInputs()
     {
-        // Arrange
-        var configs = new List<Config>
-        {
-            new Config
-            {
-                Id = "test1",
-                DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-                RssUrls = new string[] { },
-                YoutubeUrls = new string[] { },
-                RssCheckIntervalMinutes = 30,
-                DescriptionLimit = 250,
-                Forum = false,
-                MarkdownFormat = false,
-                PersistenceOnShutdown = false
-            }
-        };
-        var loggedMessages = new List<string>();
+        yield return new object?[] { null };
+        yield return new object?[] { new List<Config>() };
+    }
 
-        // Act
-        WebhookResolver.ResolveWebhooks(configs, msg => loggedMessages.Add(msg));
-
-        // Assert
-        Assert.Equal("https://discord.com/api/webhooks/123/abc", configs[0].DiscordWebhookUrl);
-        Assert.Empty(loggedMessages);  // No environment variable resolution
+    [Theory]
+    [MemberData(nameof(EmptyConfigInputs))]
+    public void ResolveWebhooks_NullOrEmptyConfigs_DoesNotThrow(List<Config>? configs)
+    {
+        WebhookResolver.ResolveWebhooks(configs!);
     }
 
     [Fact]
-    public void ResolveWebhooks_EnvPrefixedUrl_ResolvesFromEnvironmentVariable()
+    public void ResolveWebhooks_DirectWebhookUrl_NoResolutionNeeded()
     {
-        // Arrange
-        const string envVarName = "TEST_WEBHOOK_URL_FOR_RESOLUTION_123";
+        var configs = new List<Config> { CreateConfig("test1", "https://discord.com/api/webhooks/123/abc") };
+        var loggedMessages = new List<string>();
+
+        WebhookResolver.ResolveWebhooks(configs, msg => loggedMessages.Add(msg));
+
+        Assert.Equal("https://discord.com/api/webhooks/123/abc", configs[0].DiscordWebhookUrl);
+        Assert.Empty(loggedMessages);
+    }
+
+    [Theory]
+    [InlineData("env:{0}")]
+    [InlineData("env:  {0}  ")]
+    [InlineData("ENV:{0}")]
+    public void ResolveWebhooks_EnvPrefixedUrl_ResolvesFromEnvironmentVariable(string envReferencePattern)
+    {
+        var envVarName = $"TEST_WEBHOOK_URL_{Guid.NewGuid():N}";
         const string expectedUrl = "https://discord.com/api/webhooks/999/xyz";
 
         Environment.SetEnvironmentVariable(envVarName, expectedUrl);
         try
         {
-            var configs = new List<Config>
-            {
-                new Config
-                {
-                    Id = "test1",
-                    DiscordWebhookUrl = $"env:{envVarName}",
-                    RssUrls = new string[] { },
-                    YoutubeUrls = new string[] { },
-                    RssCheckIntervalMinutes = 30,
-                    DescriptionLimit = 250,
-                    Forum = false,
-                    MarkdownFormat = false,
-                    PersistenceOnShutdown = false
-                }
-            };
+            var configs = new List<Config> { CreateConfig("test1", string.Format(envReferencePattern, envVarName)) };
             var loggedMessages = new List<string>();
 
-            // Act
             WebhookResolver.ResolveWebhooks(configs, msg => loggedMessages.Add(msg));
 
-            // Assert
             Assert.Equal(expectedUrl, configs[0].DiscordWebhookUrl);
             Assert.Single(loggedMessages);
             Assert.Contains(envVarName, loggedMessages[0]);
@@ -77,109 +59,19 @@ public class WebhookResolverTests
         }
     }
 
-    [Fact]
-    public void ResolveWebhooks_EnvPrefixWithWhitespace_ResolvesCorrectly()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ResolveWebhooks_MissingOrEmptyEnvironmentVariable_ThrowsInvalidOperationException(string? envValue)
     {
-        // Arrange
-        const string envVarName = "TEST_WEBHOOK_WITH_SPACES_123";
-        const string expectedUrl = "https://discord.com/api/webhooks/888/def";
-
-        Environment.SetEnvironmentVariable(envVarName, expectedUrl);
+        var envVarName = $"TEST_WEBHOOK_MISSING_{Guid.NewGuid():N}";
+        Environment.SetEnvironmentVariable(envVarName, envValue);
         try
         {
-            var configs = new List<Config>
-            {
-                new Config
-                {
-                    Id = "test1",
-                    DiscordWebhookUrl = $"env:  {envVarName}  ",  // Extra whitespace
-                    RssUrls = new string[] { },
-                    YoutubeUrls = new string[] { },
-                    RssCheckIntervalMinutes = 30,
-                    DescriptionLimit = 250,
-                    Forum = false,
-                    MarkdownFormat = false,
-                    PersistenceOnShutdown = false
-                }
-            };
+            var configs = new List<Config> { CreateConfig("test1", $"env:{envVarName}") };
 
-            // Act
-            WebhookResolver.ResolveWebhooks(configs);
-
-            // Assert
-            Assert.Equal(expectedUrl, configs[0].DiscordWebhookUrl);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(envVarName, null);
-        }
-    }
-
-    [Fact]
-    public void ResolveWebhooks_EnvPrefixCaseInsensitive_ResolvesCorrectly()
-    {
-        // Arrange
-        const string envVarName = "TEST_WEBHOOK_CASE_INSENSITIVE_123";
-        const string expectedUrl = "https://discord.com/api/webhooks/777/ghi";
-
-        Environment.SetEnvironmentVariable(envVarName, expectedUrl);
-        try
-        {
-            var configs = new List<Config>
-            {
-                new Config
-                {
-                    Id = "test1",
-                    DiscordWebhookUrl = $"ENV:{envVarName}",  // Uppercase ENV
-                    RssUrls = new string[] { },
-                    YoutubeUrls = new string[] { },
-                    RssCheckIntervalMinutes = 30,
-                    DescriptionLimit = 250,
-                    Forum = false,
-                    MarkdownFormat = false,
-                    PersistenceOnShutdown = false
-                }
-            };
-
-            // Act
-            WebhookResolver.ResolveWebhooks(configs);
-
-            // Assert
-            Assert.Equal(expectedUrl, configs[0].DiscordWebhookUrl);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(envVarName, null);
-        }
-    }
-
-    [Fact]
-    public void ResolveWebhooks_EmptyEnvironmentVariable_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        const string envVarName = "TEST_WEBHOOK_EMPTY_123";
-        Environment.SetEnvironmentVariable(envVarName, "");  // Empty but set
-        try
-        {
-            var configs = new List<Config>
-            {
-                new Config
-                {
-                    Id = "test1",
-                    DiscordWebhookUrl = $"env:{envVarName}",
-                    RssUrls = new string[] { },
-                    YoutubeUrls = new string[] { },
-                    RssCheckIntervalMinutes = 30,
-                    DescriptionLimit = 250,
-                    Forum = false,
-                    MarkdownFormat = false,
-                    PersistenceOnShutdown = false
-                }
-            };
-
-            // Act & Assert
-            var ex = Assert.Throws<InvalidOperationException>(() =>
-                WebhookResolver.ResolveWebhooks(configs));
+            var ex = Assert.Throws<InvalidOperationException>(() => WebhookResolver.ResolveWebhooks(configs));
             Assert.Contains(envVarName, ex.Message);
             Assert.Contains("not set or is empty", ex.Message);
         }
@@ -189,139 +81,34 @@ public class WebhookResolverTests
         }
     }
 
-    [Fact]
-    public void ResolveWebhooks_UndefinedEnvironmentVariable_ThrowsInvalidOperationException()
+    [Theory]
+    [InlineData("env:")]
+    [InlineData("env:   ")]
+    public void ResolveWebhooks_MalformedEnvPrefix_ThrowsInvalidOperationException(string malformedReference)
     {
-        // Arrange
-        const string undefinedVar = "UNDEFINED_WEBHOOK_VAR_12345678";
-        Environment.SetEnvironmentVariable(undefinedVar, null);  // Ensure it doesn't exist
+        var configs = new List<Config> { CreateConfig("test1", malformedReference) };
 
-        var configs = new List<Config>
-        {
-            new Config
-            {
-                Id = "test1",
-                DiscordWebhookUrl = $"env:{undefinedVar}",
-                RssUrls = new string[] { },
-                YoutubeUrls = new string[] { },
-                RssCheckIntervalMinutes = 30,
-                DescriptionLimit = 250,
-                Forum = false,
-                MarkdownFormat = false,
-                PersistenceOnShutdown = false
-            }
-        };
-
-        // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            WebhookResolver.ResolveWebhooks(configs));
-        Assert.Contains(undefinedVar, ex.Message);
-        Assert.Contains("not set or is empty", ex.Message);
-    }
-
-    [Fact]
-    public void ResolveWebhooks_MalformedEnvPrefix_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        var configs = new List<Config>
-        {
-            new Config
-            {
-                Id = "test1",
-                DiscordWebhookUrl = "env:",  // No variable name
-                RssUrls = new string[] { },
-                YoutubeUrls = new string[] { },
-                RssCheckIntervalMinutes = 30,
-                DescriptionLimit = 250,
-                Forum = false,
-                MarkdownFormat = false,
-                PersistenceOnShutdown = false
-            }
-        };
-
-        // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            WebhookResolver.ResolveWebhooks(configs));
+        var ex = Assert.Throws<InvalidOperationException>(() => WebhookResolver.ResolveWebhooks(configs));
         Assert.Contains("malformed webhook reference", ex.Message);
-        Assert.Contains("env:", ex.Message);
     }
 
-    [Fact]
-    public void ResolveWebhooks_MissingWebhookUrl_ThrowsInvalidOperationException()
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ResolveWebhooks_MissingWebhookUrl_ThrowsInvalidOperationException(string webhookUrl)
     {
-        // Arrange
-        var configs = new List<Config>
-        {
-            new Config
-            {
-                Id = "test1",
-                DiscordWebhookUrl = "",  // Empty webhook URL
-                RssUrls = new string[] { },
-                YoutubeUrls = new string[] { },
-                RssCheckIntervalMinutes = 30,
-                DescriptionLimit = 250,
-                Forum = false,
-                MarkdownFormat = false,
-                PersistenceOnShutdown = false
-            }
-        };
+        var configs = new List<Config> { CreateConfig("test1", webhookUrl) };
 
-        // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            WebhookResolver.ResolveWebhooks(configs));
+        var ex = Assert.Throws<InvalidOperationException>(() => WebhookResolver.ResolveWebhooks(configs));
         Assert.Contains("no DiscordWebhookUrl configured", ex.Message);
         Assert.Contains("test1", ex.Message);
     }
 
     [Fact]
-    public void ResolveWebhooks_WhitespaceOnlyWebhookUrl_ThrowsInvalidOperationException()
+    public void ResolveWebhooks_MultipleConfigs_ResolvesMixedReferences()
     {
-        // Arrange
-        var configs = new List<Config>
-        {
-            new Config
-            {
-                Id = "test1",
-                DiscordWebhookUrl = "   ",  // Only whitespace
-                RssUrls = new string[] { },
-                YoutubeUrls = new string[] { },
-                RssCheckIntervalMinutes = 30,
-                DescriptionLimit = 250,
-                Forum = false,
-                MarkdownFormat = false,
-                PersistenceOnShutdown = false
-            }
-        };
-
-        // Act & Assert
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-            WebhookResolver.ResolveWebhooks(configs));
-        Assert.Contains("no DiscordWebhookUrl configured", ex.Message);
-    }
-
-    [Fact]
-    public void ResolveWebhooks_NullConfigs_DoesNotThrow()
-    {
-        // Arrange & Act & Assert - should not throw
-        WebhookResolver.ResolveWebhooks(null!);
-    }
-
-    [Fact]
-    public void ResolveWebhooks_EmptyConfigsList_DoesNotThrow()
-    {
-        // Arrange
-        var configs = new List<Config>();
-
-        // Act & Assert - should not throw
-        WebhookResolver.ResolveWebhooks(configs);
-    }
-
-    [Fact]
-    public void ResolveWebhooks_MultipleConfigs_ResolvesAll()
-    {
-        // Arrange
-        const string env1 = "TEST_WEBHOOK_MULTI_1";
-        const string env2 = "TEST_WEBHOOK_MULTI_2";
+        var env1 = $"TEST_WEBHOOK_MULTI_1_{Guid.NewGuid():N}";
+        var env2 = $"TEST_WEBHOOK_MULTI_2_{Guid.NewGuid():N}";
         const string url1 = "https://discord.com/api/webhooks/111/aaa";
         const string url2 = "https://discord.com/api/webhooks/222/bbb";
 
@@ -331,48 +118,13 @@ public class WebhookResolverTests
         {
             var configs = new List<Config>
             {
-                new Config
-                {
-                    Id = "config1",
-                    DiscordWebhookUrl = $"env:{env1}",
-                    RssUrls = new string[] { },
-                    YoutubeUrls = new string[] { },
-                    RssCheckIntervalMinutes = 30,
-                    DescriptionLimit = 250,
-                    Forum = false,
-                    MarkdownFormat = false,
-                    PersistenceOnShutdown = false
-                },
-                new Config
-                {
-                    Id = "config2",
-                    DiscordWebhookUrl = $"env:{env2}",
-                    RssUrls = new string[] { },
-                    YoutubeUrls = new string[] { },
-                    RssCheckIntervalMinutes = 30,
-                    DescriptionLimit = 250,
-                    Forum = false,
-                    MarkdownFormat = false,
-                    PersistenceOnShutdown = false
-                },
-                new Config
-                {
-                    Id = "config3",
-                    DiscordWebhookUrl = "https://direct.webhook.url",  // Direct URL
-                    RssUrls = new string[] { },
-                    YoutubeUrls = new string[] { },
-                    RssCheckIntervalMinutes = 30,
-                    DescriptionLimit = 250,
-                    Forum = false,
-                    MarkdownFormat = false,
-                    PersistenceOnShutdown = false
-                }
+                CreateConfig("config1", $"env:{env1}"),
+                CreateConfig("config2", $"env:{env2}"),
+                CreateConfig("config3", "https://direct.webhook.url")
             };
 
-            // Act
             WebhookResolver.ResolveWebhooks(configs);
 
-            // Assert
             Assert.Equal(url1, configs[0].DiscordWebhookUrl);
             Assert.Equal(url2, configs[1].DiscordWebhookUrl);
             Assert.Equal("https://direct.webhook.url", configs[2].DiscordWebhookUrl);
@@ -387,34 +139,17 @@ public class WebhookResolverTests
     [Fact]
     public void ResolveWebhooks_WithLoggingAction_CallsLogOnResolvedWebhook()
     {
-        // Arrange
-        const string envVarName = "TEST_WEBHOOK_LOG_123";
+        var envVarName = $"TEST_WEBHOOK_LOG_{Guid.NewGuid():N}";
         const string expectedUrl = "https://discord.com/api/webhooks/555/jkl";
 
         Environment.SetEnvironmentVariable(envVarName, expectedUrl);
         try
         {
-            var configs = new List<Config>
-            {
-                new Config
-                {
-                    Id = "test1",
-                    DiscordWebhookUrl = $"env:{envVarName}",
-                    RssUrls = new string[] { },
-                    YoutubeUrls = new string[] { },
-                    RssCheckIntervalMinutes = 30,
-                    DescriptionLimit = 250,
-                    Forum = false,
-                    MarkdownFormat = false,
-                    PersistenceOnShutdown = false
-                }
-            };
+            var configs = new List<Config> { CreateConfig("test1", $"env:{envVarName}") };
             var loggedMessages = new List<string>();
 
-            // Act
             WebhookResolver.ResolveWebhooks(configs, msg => loggedMessages.Add(msg));
 
-            // Assert
             Assert.Single(loggedMessages);
             Assert.Contains("test1", loggedMessages[0]);
             Assert.Contains(envVarName, loggedMessages[0]);
@@ -429,30 +164,14 @@ public class WebhookResolverTests
     [Fact]
     public void ResolveWebhooks_WithoutLoggingAction_DoesNotThrow()
     {
-        // Arrange
-        const string envVarName = "TEST_WEBHOOK_NOLOG_123";
+        var envVarName = $"TEST_WEBHOOK_NOLOG_{Guid.NewGuid():N}";
         const string expectedUrl = "https://discord.com/api/webhooks/666/mno";
 
         Environment.SetEnvironmentVariable(envVarName, expectedUrl);
         try
         {
-            var configs = new List<Config>
-            {
-                new Config
-                {
-                    Id = "test1",
-                    DiscordWebhookUrl = $"env:{envVarName}",
-                    RssUrls = new string[] { },
-                    YoutubeUrls = new string[] { },
-                    RssCheckIntervalMinutes = 30,
-                    DescriptionLimit = 250,
-                    Forum = false,
-                    MarkdownFormat = false,
-                    PersistenceOnShutdown = false
-                }
-            };
+            var configs = new List<Config> { CreateConfig("test1", $"env:{envVarName}") };
 
-            // Act & Assert - should not throw when logAction is null
             WebhookResolver.ResolveWebhooks(configs, null);
             Assert.Equal(expectedUrl, configs[0].DiscordWebhookUrl);
         }
@@ -460,5 +179,21 @@ public class WebhookResolverTests
         {
             Environment.SetEnvironmentVariable(envVarName, null);
         }
+    }
+
+    private static Config CreateConfig(string id, string webhookUrl)
+    {
+        return new Config
+        {
+            Id = id,
+            DiscordWebhookUrl = webhookUrl,
+            RssUrls = Array.Empty<string>(),
+            YoutubeUrls = Array.Empty<string>(),
+            RssCheckIntervalMinutes = 30,
+            DescriptionLimit = 250,
+            Forum = false,
+            MarkdownFormat = false,
+            PersistenceOnShutdown = false
+        };
     }
 }

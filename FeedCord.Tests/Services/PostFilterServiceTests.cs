@@ -15,94 +15,148 @@ public class PostFilterServiceTests
         _mockLogger = new Mock<ILogger<PostFilterService>>();
     }
 
-    [Fact]
-    public void ShouldIncludePost_NoFiltersConfigured_AlwaysTrue()
+    public static IEnumerable<object?[]> NoFilterConfigurations()
     {
-        // Arrange
-        var config = CreateMinimalConfig(postFilters: null);
-        var service = new PostFilterService(_mockLogger.Object, config);
-        var post = CreateTestPost("Test Post");
+        yield return new object?[] { null };
+        yield return new object?[] { new List<PostFilters>() };
+    }
 
-        // Act
-        var result = service.ShouldIncludePost(post, "http://example.com/rss");
+    [Theory]
+    [MemberData(nameof(NoFilterConfigurations))]
+    public void ShouldIncludePost_NoActiveFilters_AlwaysReturnsTrue(List<PostFilters>? postFilters)
+    {
+        var service = new PostFilterService(_mockLogger.Object, CreateMinimalConfig(postFilters));
 
-        // Assert
+        var result = service.ShouldIncludePost(CreateTestPost("Any title"), "http://example.com/rss");
+
         Assert.True(result);
     }
 
     [Fact]
-    public void ShouldIncludePost_EmptyFiltersConfigured_AlwaysTrue()
+    public void ShouldIncludePost_UrlSpecificFilter_MatchingPost_ReturnsTrue()
     {
-        // Arrange
-        var config = CreateMinimalConfig(postFilters: new List<PostFilters>());
-        var service = new PostFilterService(_mockLogger.Object, config);
-        var post = CreateTestPost("Test Post");
+        var filters = new List<PostFilters>
+        {
+            new() { Url = "http://example.com/rss", Filters = new[] { "breaking" } }
+        };
+        var service = new PostFilterService(_mockLogger.Object, CreateMinimalConfig(filters));
 
-        // Act
-        var result = service.ShouldIncludePost(post, "http://example.com/rss");
+        var result = service.ShouldIncludePost(CreateTestPost("Breaking: update"), "http://example.com/rss");
 
-        // Assert
         Assert.True(result);
     }
 
     [Fact]
-    public void ShouldIncludePost_NoUrlMatch_NoAllFilter_IncludePost()
+    public void ShouldIncludePost_UrlSpecificFilter_NonMatchingPost_ReturnsFalse()
     {
-        // Arrange - filter for specific URL that doesn't match
         var filters = new List<PostFilters>
         {
-            new PostFilters { Url = "http://other.com/rss", Filters = new[] { "tech" } }
+            new() { Url = "http://example.com/rss", Filters = new[] { "breaking" } }
         };
-        var config = CreateMinimalConfig(postFilters: filters);
-        var service = new PostFilterService(_mockLogger.Object, config);
-        var post = CreateTestPost("Test Post");
+        var service = new PostFilterService(_mockLogger.Object, CreateMinimalConfig(filters));
 
-        // Act
-        var result = service.ShouldIncludePost(post, "http://example.com/rss");
+        var result = service.ShouldIncludePost(CreateTestPost("Daily digest"), "http://example.com/rss");
 
-        // Assert - different URL, no "all" filter, should include
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void ShouldIncludePost_NoUrlSpecificFilter_AllFilterMatches_ReturnsTrue()
+    {
+        var filters = new List<PostFilters>
+        {
+            new() { Url = "all", Filters = new[] { "important" } }
+        };
+        var service = new PostFilterService(_mockLogger.Object, CreateMinimalConfig(filters));
+
+        var result = service.ShouldIncludePost(CreateTestPost("Important release notes"), "http://unmatched.com/rss");
+
         Assert.True(result);
     }
 
     [Fact]
-    public void ShouldIncludePost_HasAllFilter_AppliesGlobally()
+    public void ShouldIncludePost_NoUrlSpecificFilter_AllFilterDoesNotMatch_ReturnsFalse()
     {
-        // Arrange - "all" filter that applies to any URL
         var filters = new List<PostFilters>
         {
-            new PostFilters { Url = "all", Filters = new[] { "important" } }
+            new() { Url = "all", Filters = new[] { "important" } }
         };
-        var config = CreateMinimalConfig(postFilters: filters);
-        var service = new PostFilterService(_mockLogger.Object, config);
-        var post = CreateTestPost("Test Post");
+        var service = new PostFilterService(_mockLogger.Object, CreateMinimalConfig(filters));
 
-        // Act
-        var result = service.ShouldIncludePost(post, "http://any-url.com/rss");
+        var result = service.ShouldIncludePost(CreateTestPost("General post"), "http://unmatched.com/rss");
 
-        // Assert - should apply "all" filter
-        // Note: Actual filter matching logic in FilterConfigs.GetFilterSuccess
-        // This test documents expected behavior
-        Assert.IsType<bool>(result);
+        Assert.False(result);
     }
 
     [Fact]
-    public void ShouldIncludePost_UrlSpecificFilter_OverridesAllFilter()
+    public void ShouldIncludePost_UrlSpecificFilter_DoesNotFallBackToAllFilter()
     {
-        // Arrange - both URL-specific and "all" filters
         var filters = new List<PostFilters>
         {
-            new PostFilters { Url = "http://example.com/rss", Filters = new[] { "specific" } },
-            new PostFilters { Url = "all", Filters = new[] { "global" } }
+            new() { Url = "http://example.com/rss", Filters = new[] { "specific" } },
+            new() { Url = "all", Filters = new[] { "global" } }
         };
-        var config = CreateMinimalConfig(postFilters: filters);
-        var service = new PostFilterService(_mockLogger.Object, config);
-        var post = CreateTestPost("Test Post");
+        var service = new PostFilterService(_mockLogger.Object, CreateMinimalConfig(filters));
 
-        // Act
-        var result = service.ShouldIncludePost(post, "http://example.com/rss");
+        var result = service.ShouldIncludePost(CreateTestPost("Global announcement"), "http://example.com/rss");
 
-        // Assert - URL-specific filter should be checked, not "all"
-        Assert.IsType<bool>(result);
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void ShouldIncludePost_NoMatchingSpecificAndNoAllFilter_ReturnsTrue()
+    {
+        var filters = new List<PostFilters>
+        {
+            new() { Url = "http://other.com/rss", Filters = new[] { "breaking" } }
+        };
+        var service = new PostFilterService(_mockLogger.Object, CreateMinimalConfig(filters));
+
+        var result = service.ShouldIncludePost(CreateTestPost("Any title"), "http://example.com/rss");
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ShouldIncludePost_UrlSpecificLabelFilter_MatchingLabel_ReturnsTrue()
+    {
+        var filters = new List<PostFilters>
+        {
+            new() { Url = "http://example.com/rss", Filters = new[] { "label:breaking" } }
+        };
+        var service = new PostFilterService(_mockLogger.Object, CreateMinimalConfig(filters));
+
+        var labeledPost = new Post(
+            Title: "Daily digest",
+            ImageUrl: "http://example.com/image.jpg",
+            Description: "Summary",
+            Link: "http://example.com/post",
+            Tag: "news",
+            PublishDate: DateTime.Now,
+            Author: "Author",
+            Labels: new[] { "breaking", "release" }
+        );
+
+        var result = service.ShouldIncludePost(labeledPost, "http://example.com/rss");
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ShouldIncludePost_AllFilterRemovedAfterInitialization_ReturnsTrueWhenNoApplicableFiltersRemain()
+    {
+        var filters = new List<PostFilters>
+        {
+            new() { Url = "all", Filters = new[] { "important" } }
+        };
+
+        var service = new PostFilterService(_mockLogger.Object, CreateMinimalConfig(filters));
+
+        filters.Clear();
+
+        var result = service.ShouldIncludePost(CreateTestPost("General post"), "http://unmatched.com/rss");
+
+        Assert.True(result);
     }
 
     // Helper methods
@@ -123,7 +177,7 @@ public class PostFilterServiceTests
         };
     }
 
-    private Post CreateTestPost(string title)
+    private static Post CreateTestPost(string title)
     {
         return new Post(
             Title: title,
