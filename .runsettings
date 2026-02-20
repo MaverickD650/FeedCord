@@ -2,15 +2,14 @@
 <RunSettings>
   <DataCollectionRunSettings>
     <DataCollectors>
-      <DataCollector friendlyName="XPlat code coverage">
+      <DataCollector friendlyName="XPlat Code Coverage">
         <Configuration>
           <Format>opencover</Format>
-          <Exclude>[xunit*]*,[*.Tests]*</Exclude>
+          <Exclude>[*.Tests]*</Exclude>
           <ExcludeByAttribute>*.ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
           <IncludeTestAssembly>false</IncludeTestAssembly>
           <SingleHit>false</SingleHit>
           <UseSourceLink>true</UseSourceLink>
-          <IncludeDirectory>**/FeedCord/bin/Release/net10.0/**</IncludeDirectory>
         </Configuration>
       </DataCollector>
     </DataCollectors>
