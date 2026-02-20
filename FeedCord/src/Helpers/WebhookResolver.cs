@@ -53,7 +53,7 @@ namespace FeedCord.Helpers
 
                     config.DiscordWebhookUrl = envValue;
                     logAction?.Invoke(
-                        $"Resolved webhook for configuration '{config.Id}' from environment variable '{envVarName}'");
+                        $"Resolved webhook for configuration '{config.Id}' from environment variable '{envVarName}' (URL masked for security)");
                 }
             }
         }

@@ -21,15 +21,26 @@ namespace FeedCord.Infrastructure.Notifiers
         {
             foreach (var post in newPosts)
             {
-                // TODO --> This is to dynamically handle users setting the forum flag to true or false incorrectly
-                // May revisit when config setup is more robust
-                var forumChannelContent = _discordPayloadService.BuildForumWithPost(post);
-                var textChannelContent = _discordPayloadService.BuildPayloadWithPost(post);
+                try
+                {
+                    // Build appropriate payload based on configured channel type
+                    // CustomHttpClient.PostAsyncWithFallback handles fallback to opposite type if needed
+                    var primaryPayload = _forum
+                        ? _discordPayloadService.BuildForumWithPost(post)
+                        : _discordPayloadService.BuildPayloadWithPost(post);
 
-                await _httpClient.PostAsyncWithFallback(_webhook, forumChannelContent, textChannelContent, _forum);
+                    var fallbackPayload = _forum
+                        ? _discordPayloadService.BuildPayloadWithPost(post)
+                        : _discordPayloadService.BuildForumWithPost(post);
 
-                // TODO --> This is to prevent rate limiting from Discord API - Simple but eventually want to handle this in our CustomHttpClient
-                await Task.Delay(10000);
+                    await _httpClient.PostAsyncWithFallback(_webhook, primaryPayload, fallbackPayload, _forum);
+                }
+                catch (Exception ex)
+                {
+                    // Log failure but continue processing remaining posts
+                    // CustomHttpClient logs specific Discord API errors; this catches any transport/serialization issues
+                    throw new InvalidOperationException($"Failed to send notification for post: {post.Title}", ex);
+                }
             }
         }
     }

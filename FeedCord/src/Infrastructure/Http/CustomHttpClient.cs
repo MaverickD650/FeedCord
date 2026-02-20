@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using FeedCord.Services.Interfaces;
 using System.Collections.Concurrent;
+using FeedCord.Helpers;
 
 namespace FeedCord.Infrastructure.Http
 {
@@ -31,7 +32,7 @@ namespace FeedCord.Infrastructure.Http
         public async Task<HttpResponseMessage?> GetAsyncWithFallback(string url)
         {
             await _throttle.WaitAsync();
-            
+
             HttpResponseMessage? response = null;
 
             try
@@ -42,7 +43,7 @@ namespace FeedCord.Infrastructure.Http
                 {
                     request.Headers.UserAgent.ParseAdd(_userAgentCache.GetValueOrDefault(url, ""));
                 }
-                
+
                 response = await _innerClient.SendAsync(request);
 
                 if (!response.IsSuccessStatusCode)
@@ -54,15 +55,15 @@ namespace FeedCord.Infrastructure.Http
             }
             catch (TaskCanceledException ex)
             {
-                _logger.LogWarning("Request to {Url} was canceled: {Ex}", url, ex);
+                _logger.LogWarning("Request to {Url} was canceled: {Ex}", url, SensitiveDataMasker.MaskException(ex));
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogWarning("Operation was canceled for {Url}: {Ex}", url, ex);
+                _logger.LogWarning("Operation was canceled for {Url}: {Ex}", url, SensitiveDataMasker.MaskException(ex));
             }
             catch (Exception ex)
             {
-                _logger.LogError("An error occurred while processing the request for {Url}: {Ex}", url, ex);
+                _logger.LogError("An error occurred while processing the request for {Url}: {Ex}", url, SensitiveDataMasker.MaskException(ex));
             }
             finally
             {
@@ -157,7 +158,7 @@ namespace FeedCord.Infrastructure.Http
                 //USERAGENT SCRAPE
                 var robotsUrl = new Uri(new Uri(baseUrl), "/robots.txt").AbsoluteUri;
                 var userAgents = await GetRobotsUserAgentsAsync(robotsUrl);
-            
+
                 if (userAgents.Count > 0)
                 {
                     foreach (var userAgent in userAgents)
@@ -178,7 +179,7 @@ namespace FeedCord.Infrastructure.Http
             }
             catch (Exception e)
             {
-                _logger.LogError("Failed to fetch RSS Feed after fallback attempts: {Url} - {E}", url, e);
+                _logger.LogError("Failed to fetch RSS Feed after fallback attempts: {Url} - {E}", url, SensitiveDataMasker.MaskException(e));
             }
             finally
             {
@@ -210,9 +211,9 @@ namespace FeedCord.Infrastructure.Http
 
             var robotsContent = await FetchRobotsContentAsync(url);
 
-            if (robotsContent == string.Empty) 
+            if (robotsContent == string.Empty)
                 return userAgents.OrderByDescending(x => x).Distinct().ToList();
-            
+
             var pattern = @"User-agent:\s*(?<agent>.+)";
             var regex = new Regex(pattern);
 

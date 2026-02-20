@@ -1,6 +1,7 @@
 using System.Text;
 using System.Threading.Tasks.Dataflow;
 using FeedCord.Core.Interfaces;
+using FeedCord.Helpers;
 using Microsoft.Extensions.Logging;
 
 namespace FeedCord.Core;
@@ -14,14 +15,14 @@ public class BatchLogger : IBatchLogger
     public BatchLogger(ILogger<BatchLogger> logger)
     {
         _logger = logger;
-        
+
         _bufferBlock = new BufferBlock<LogAggregator>();
-        
-        _processingBlock = new ActionBlock<LogAggregator>(ProcessLogItem, new ExecutionDataflowBlockOptions 
-        { 
+
+        _processingBlock = new ActionBlock<LogAggregator>(ProcessLogItem, new ExecutionDataflowBlockOptions
+        {
             MaxDegreeOfParallelism = 1 // Ensures logs print sequentially
         });
-        
+
         _bufferBlock.LinkTo(_processingBlock, new DataflowLinkOptions { PropagateCompletion = true });
     }
 
@@ -35,13 +36,13 @@ public class BatchLogger : IBatchLogger
         var batchSummary = new StringBuilder();
         batchSummary.AppendLine($"> Batch Run for {logItem.InstanceId} finished:");
         batchSummary.AppendLine($"> Started At: {logItem.StartTime} | Finished At: {logItem.EndTime}");
-    
+
         if (!logItem.UrlStatuses.IsEmpty)
         {
             int totalUrls = logItem.UrlStatuses.Count;
             int failedCount = logItem.UrlStatuses.Count(kvp => kvp.Value != 200);
             batchSummary.AppendLine($"> {totalUrls} URLs tested with {failedCount} failed responses.");
-        
+
             if (failedCount > 0)
             {
                 batchSummary.AppendLine("> The following URLs had bad responses:");
@@ -52,7 +53,7 @@ public class BatchLogger : IBatchLogger
                 }
             }
         }
-    
+
         if (logItem.NewPostCount == 0)
         {
             batchSummary.AppendLine("> No new posts found. Posts extracted from feeds:");
@@ -65,9 +66,9 @@ public class BatchLogger : IBatchLogger
         {
             batchSummary.AppendLine($"> {logItem.NewPostCount} new posts found in the feed - posting to Discord Hook..");
         }
-        
+
         _logger.LogInformation(batchSummary.ToString());
-    
+
         logItem.Reset();
     }
 

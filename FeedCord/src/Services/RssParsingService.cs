@@ -3,6 +3,7 @@ using CodeHollow.FeedReader;
 using FeedCord.Common;
 using FeedCord.Services.Helpers;
 using FeedCord.Services.Interfaces;
+using FeedCord.Helpers;
 
 namespace FeedCord.Services
 {
@@ -60,7 +61,7 @@ namespace FeedCord.Services
             }
             catch (Exception ex)
             {
-                _logger.LogWarning("An unexpected error occurred while parsing the RSS feed: {Ex}", ex);
+                _logger.LogWarning("An unexpected error occurred while parsing the RSS feed: {Ex}", SensitiveDataMasker.MaskException(ex));
                 return new List<Post?>();
             }
         }
