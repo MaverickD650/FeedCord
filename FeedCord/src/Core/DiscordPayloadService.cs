@@ -1,12 +1,12 @@
 ﻿using FeedCord.Common;
 using FeedCord.Core.Interfaces;
+using FeedCord.Core.Models;
 using System.Text;
 using System.Text.Json;
 using System.Net.Http;
 
 namespace FeedCord.Core
 {
-    //TODO --> Eventually Define data classes
     public class DiscordPayloadService : IDiscordPayloadService
     {
         private Config _config;
@@ -20,36 +20,13 @@ namespace FeedCord.Core
         {
             if (_config.MarkdownFormat)
                 return GenerateMarkdown(post);
-            
-            var payload = new
+
+            var embed = BuildEmbed(post);
+            var payload = new DiscordPayload
             {
-                username = _config.Username ?? "FeedCord",
-                avatar_url = _config.AvatarUrl ?? "",
-                embeds = new[]
-                {
-                    new
-                    {
-                        title = post.Title,
-                        author = new
-                        {
-                            name = _config.AuthorName ?? post.Author,
-                            url = _config.AuthorUrl ?? "",
-                            icon_url = _config.AuthorIcon ?? ""
-                        },
-                        url = post.Link,
-                        description = post.Description,
-                        image = new
-                        {
-                            url = string.IsNullOrEmpty(post.ImageUrl) ? _config.FallbackImage ?? "" : post.ImageUrl,
-                        },
-                        footer = new
-                        {
-                            text = $"{post.Tag} - {post.PublishDate:MM/dd/yyyy h:mm tt}",
-                            icon_url = _config.FooterImage ?? ""
-                        },
-                        color = _config.Color,
-                    }
-                }
+                Username = _config.Username ?? "FeedCord",
+                AvatarUrl = _config.AvatarUrl,
+                Embeds = new[] { embed }
             };
 
             var payloadJson = JsonSerializer.Serialize(payload, new JsonSerializerOptions
@@ -65,38 +42,13 @@ namespace FeedCord.Core
         {
             if (_config.MarkdownFormat)
                 return GenerateMarkdown(post);
-            
-            object? payload = null;
-            
-            payload = new
+
+            var embed = BuildEmbed(post);
+            var payload = new DiscordForumPayload
             {
-                content = post.Tag,
-                embeds = new[]
-                {
-                    new
-                    {
-                        title = post.Title,
-                        author = new
-                        {
-                            name = post.Author,
-                            url = _config.AuthorUrl ?? "",
-                            icon_url = _config.AuthorIcon ?? ""
-                        },
-                        url = post.Link,
-                        description = post.Description,
-                        image = new
-                        {
-                            url = string.IsNullOrEmpty(post.ImageUrl) ? _config.FallbackImage ?? "" : post.ImageUrl,
-                        },
-                        footer = new
-                        {
-                            text = $"{post.Tag} - {post.PublishDate:MM/dd/yyyy h:mm tt}",
-                            icon_url = _config.FooterImage ?? ""
-                        },
-                        color = _config.Color,
-                    }
-                },
-                thread_name = post.Title.Length > 100 ? post.Title[..99] : post.Title
+                Content = post.Tag,
+                Embeds = new[] { embed },
+                ThreadName = post.Title.Length > 100 ? post.Title[..99] : post.Title
             };
 
             var payloadJson = JsonSerializer.Serialize(payload, new JsonSerializerOptions
@@ -107,14 +59,40 @@ namespace FeedCord.Core
 
             return new StringContent(payloadJson, Encoding.UTF8, "application/json");
         }
-        
+
+        private DiscordEmbed BuildEmbed(Post post)
+        {
+            return new DiscordEmbed
+            {
+                Title = post.Title,
+                Author = new DiscordAuthor
+                {
+                    Name = _config.AuthorName ?? post.Author,
+                    Url = _config.AuthorUrl,
+                    IconUrl = _config.AuthorIcon
+                },
+                Url = post.Link,
+                Description = post.Description,
+                Image = new DiscordImage
+                {
+                    Url = string.IsNullOrEmpty(post.ImageUrl) ? _config.FallbackImage : post.ImageUrl
+                },
+                Footer = new DiscordFooter
+                {
+                    Text = $"{post.Tag} - {post.PublishDate:MM/dd/yyyy h:mm tt}",
+                    IconUrl = _config.FooterImage
+                },
+                Color = _config.Color
+            };
+        }
+
         private StringContent GenerateMarkdown(Post post)
         {
             var markdownPost = $"""
                                 # {post.Title}
 
-                                > **Published**: {post.PublishDate:MMMM dd, yyyy}  
-                                > **Author**: {post.Author}  
+                                > **Published**: {post.PublishDate:MMMM dd, yyyy}
+                                > **Author**: {post.Author}
                                 > **Feed**: {post.Tag}
 
                                 {post.Description}
@@ -122,32 +100,19 @@ namespace FeedCord.Core
                                 [Source]({post.Link})
 
                                 """;
-            object? payload = null;
-            
-            if (_config.Forum)
+
+            DiscordMarkdownPayload payload = new()
             {
-                payload = new
-                {
-                    content = markdownPost,
-                    thread_name = post.Title.Length > 100 ? 
-                        post.Title[..99] : 
-                        post.Title
-                };
-            }
-            else
-            {
-                payload = new
-                {
-                    content = markdownPost
-                };
-            }
-            
+                Content = markdownPost,
+                ThreadName = _config.Forum ? (post.Title.Length > 100 ? post.Title[..99] : post.Title) : null
+            };
+
             var payloadJson = JsonSerializer.Serialize(payload, new JsonSerializerOptions
             {
                 DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
-            
+
             return new StringContent(payloadJson, Encoding.UTF8, "application/json");
         }
     }
