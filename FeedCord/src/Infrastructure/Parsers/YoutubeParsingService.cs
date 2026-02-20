@@ -5,6 +5,7 @@ using FeedCord.Services.Interfaces;
 using System.Xml.Linq;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
+using FeedCord.Helpers;
 
 namespace FeedCord.Infrastructure.Parsers
 {
@@ -24,7 +25,7 @@ namespace FeedCord.Infrastructure.Parsers
             {
                 return await GetRecentPost(xml);
             }
-                
+
 
             var doc = new HtmlDocument();
             doc.LoadHtml(xml);
@@ -53,7 +54,7 @@ namespace FeedCord.Infrastructure.Parsers
                 var response = await _httpClient.GetAsyncWithFallback(xmlUrl);
 
                 if (response is null) return null;
-                
+
                 response.EnsureSuccessStatusCode();
 
                 var xmlContent = await response.Content.ReadAsStringAsync();
@@ -77,13 +78,13 @@ namespace FeedCord.Infrastructure.Parsers
                 var videoThumbnail = videoEntry.Element(mediaNs + "group")?.Element(mediaNs + "thumbnail")?.Attribute("url")?.Value ?? string.Empty;
                 var videoPublished = DateTime.Parse(videoEntry.Element(atomNs + "published")?.Value ?? DateTime.MinValue.ToString(CultureInfo.CurrentCulture));
                 var videoAuthor = videoEntry.Element(atomNs + "author")?.Element(atomNs + "name")?.Value ?? string.Empty;
-                
+
 
                 return new Post(videoTitle, videoThumbnail, string.Empty, videoLink, channelTitle, videoPublished, videoAuthor, Array.Empty<string>());
             }
             catch (Exception ex)
             {
-                _logger.LogError("Error retrieving RSS feed from URL: {Ex}", ex);
+                _logger.LogError("Error retrieving RSS feed from URL: {Ex}", SensitiveDataMasker.MaskException(ex));
                 return null;
             }
         }

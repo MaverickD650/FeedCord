@@ -2,6 +2,7 @@
 using FeedCord.Services.Interfaces;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
+using FeedCord.Helpers;
 
 namespace FeedCord.Infrastructure.Parsers
 {

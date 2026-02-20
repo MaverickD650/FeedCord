@@ -301,12 +301,12 @@ namespace FeedCord.Services
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: {Ex}", url, ex);
+                _logger.LogWarning("Failed to fetch or process the RSS feed from {Url}: {Ex}", url, SensitiveDataMasker.MaskException(ex));
             }
             catch (Exception ex)
             {
                 _logger.LogWarning("An unexpected error occurred while checking the RSS feed from {Url}: {Ex}", url,
-                    ex);
+                    SensitiveDataMasker.MaskException(ex));
             }
             finally
             {
