@@ -1,6 +1,7 @@
 ﻿using FeedCord.Common;
 using FeedCord.Core.Interfaces;
 using FeedCord.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace FeedCord.Infrastructure.Notifiers
 {
@@ -8,19 +9,23 @@ namespace FeedCord.Infrastructure.Notifiers
     {
         private readonly ICustomHttpClient _httpClient;
         private readonly IDiscordPayloadService _discordPayloadService;
+        private readonly ILogger<DiscordNotifier>? _logger;
         private readonly string _webhook;
         private readonly bool _forum;
-        public DiscordNotifier(Config config, ICustomHttpClient httpClient, IDiscordPayloadService discordPayloadService)
+        public DiscordNotifier(Config config, ICustomHttpClient httpClient, IDiscordPayloadService discordPayloadService, ILogger<DiscordNotifier>? logger = null)
         {
             _httpClient = httpClient;
             _discordPayloadService = discordPayloadService;
+            _logger = logger;
             _webhook = config.DiscordWebhookUrl;
             _forum = config.Forum;
         }
-        public async Task SendNotificationsAsync(List<Post> newPosts)
+        public async Task SendNotificationsAsync(List<Post> newPosts, CancellationToken cancellationToken = default)
         {
             foreach (var post in newPosts)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 try
                 {
                     // Build appropriate payload based on configured channel type
@@ -33,13 +38,15 @@ namespace FeedCord.Infrastructure.Notifiers
                         ? _discordPayloadService.BuildPayloadWithPost(post)
                         : _discordPayloadService.BuildForumWithPost(post);
 
-                    await _httpClient.PostAsyncWithFallback(_webhook, primaryPayload, fallbackPayload, _forum);
+                    await _httpClient.PostAsyncWithFallback(_webhook, primaryPayload, fallbackPayload, _forum, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
-                    // Log failure but continue processing remaining posts
-                    // CustomHttpClient logs specific Discord API errors; this catches any transport/serialization issues
-                    throw new InvalidOperationException($"Failed to send notification for post: {post.Title}", ex);
+                    _logger?.LogError(ex, "Failed to send notification for post: {PostTitle}", post.Title);
                 }
             }
         }

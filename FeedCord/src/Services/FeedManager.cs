@@ -32,7 +32,8 @@ namespace FeedCord.Services
         {
             _config = config;
             _httpClient = httpClient;
-            _lastRunReference = CsvReader.LoadReferencePosts("feed_dump.csv");
+            var feedDumpPath = Path.Combine(AppContext.BaseDirectory, "feed_dump.csv");
+            _lastRunReference = CsvReader.LoadReferencePosts(feedDumpPath);
             _rssParsingService = rssParsingService;
             _logger = logger;
             _logAggregator = logAggregator;
@@ -40,12 +41,12 @@ namespace FeedCord.Services
             _feedStates = new ConcurrentDictionary<string, FeedState>();
             _instancedConcurrentRequests = new SemaphoreSlim(config.ConcurrentRequests);
         }
-        public async Task<List<Post>> CheckForNewPostsAsync()
+        public async Task<List<Post>> CheckForNewPostsAsync(CancellationToken cancellationToken = default)
         {
             ConcurrentBag<Post> allNewPosts = new();
 
             var tasks = _feedStates.Select(async (feed) =>
-                await CheckSingleFeedAsync(feed.Key, feed.Value, allNewPosts, _config.DescriptionLimit));
+                await CheckSingleFeedAsync(feed.Key, feed.Value, allNewPosts, _config.DescriptionLimit, cancellationToken));
 
             await Task.WhenAll(tasks);
 
@@ -53,7 +54,7 @@ namespace FeedCord.Services
 
             return allNewPosts.ToList();
         }
-        public async Task InitializeUrlsAsync()
+        public async Task InitializeUrlsAsync(CancellationToken cancellationToken = default)
         {
             var id = _config.Id;
             var validRssUrls = _config.RssUrls
@@ -64,8 +65,8 @@ namespace FeedCord.Services
                 .Where(url => !string.IsNullOrWhiteSpace(url))
                 .ToArray();
 
-            var rssCount = await GetSuccessCount(validRssUrls, false);
-            var youtubeCount = await GetSuccessCount(validYoutubeUrls, true);
+            var rssCount = await GetSuccessCount(validRssUrls, false, cancellationToken);
+            var youtubeCount = await GetSuccessCount(validYoutubeUrls, true, cancellationToken);
             var successCount = rssCount + youtubeCount;
 
             var totalUrls = validRssUrls.Length + validYoutubeUrls.Length;
@@ -77,7 +78,7 @@ namespace FeedCord.Services
         {
             return _feedStates;
         }
-        private async Task<int> GetSuccessCount(string[] urls, bool isYoutube)
+        private async Task<int> GetSuccessCount(string[] urls, bool isYoutube, CancellationToken cancellationToken)
         {
             var successCount = 0;
 
@@ -88,7 +89,7 @@ namespace FeedCord.Services
 
             foreach (var url in urls)
             {
-                var isSuccess = await TestUrlAsync(url);
+                var isSuccess = await TestUrlAsync(url, cancellationToken);
 
                 if (!isSuccess)
                 {
@@ -114,7 +115,7 @@ namespace FeedCord.Services
 
                 if (isYoutube)
                 {
-                    var posts = await FetchYoutubeAsync(url);
+                    var posts = await FetchYoutubeAsync(url, cancellationToken);
                     latestPublishDate = posts?.FirstOrDefault()?.PublishDate ?? DateTime.Now;
                     successfulAdd = _feedStates.TryAdd(url, new FeedState
                     {
@@ -125,7 +126,7 @@ namespace FeedCord.Services
                 }
                 else
                 {
-                    var posts = await FetchRssAsync(url, _config.DescriptionLimit);
+                    var posts = await FetchRssAsync(url, _config.DescriptionLimit, cancellationToken);
                     latestPublishDate = posts?.Max(p => p?.PublishDate) ?? DateTime.Now;
                     successfulAdd = _feedStates.TryAdd(url, new FeedState
                     {
@@ -149,13 +150,13 @@ namespace FeedCord.Services
 
             return successCount;
         }
-        private async Task<bool> TestUrlAsync(string url)
+        private async Task<bool> TestUrlAsync(string url, CancellationToken cancellationToken)
         {
             try
             {
-                await _instancedConcurrentRequests.WaitAsync();
+            await _instancedConcurrentRequests.WaitAsync(cancellationToken);
 
-                var response = await _httpClient.GetAsyncWithFallback(url);
+            var response = await _httpClient.GetAsyncWithFallback(url, cancellationToken);
 
                 if (response is null)
                 {
@@ -184,17 +185,17 @@ namespace FeedCord.Services
 
             return false;
         }
-        private async Task CheckSingleFeedAsync(string url, FeedState feedState, ConcurrentBag<Post> newPosts, int trim)
+        private async Task CheckSingleFeedAsync(string url, FeedState feedState, ConcurrentBag<Post> newPosts, int trim, CancellationToken cancellationToken)
         {
             List<Post?> posts;
 
             try
             {
-                await _instancedConcurrentRequests.WaitAsync();
+                await _instancedConcurrentRequests.WaitAsync(cancellationToken);
 
                 posts = feedState.IsYoutube ?
-                    await FetchYoutubeAsync(url) :
-                    await FetchRssAsync(url, trim);
+                    await FetchYoutubeAsync(url, cancellationToken) :
+                    await FetchRssAsync(url, trim, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -233,7 +234,7 @@ namespace FeedCord.Services
             }
 
         }
-        private async Task<List<Post?>> FetchYoutubeAsync(string url)
+        private async Task<List<Post?>> FetchYoutubeAsync(string url, CancellationToken cancellationToken)
         {
             try
             {
@@ -248,7 +249,7 @@ namespace FeedCord.Services
                     return post == null ? new List<Post?>() : new List<Post?> { post };
                 }
 
-                var response = await _httpClient.GetAsyncWithFallback(url);
+                var response = await _httpClient.GetAsyncWithFallback(url, cancellationToken);
 
                 if (response is null)
                 {
@@ -257,7 +258,7 @@ namespace FeedCord.Services
 
                 response!.EnsureSuccessStatusCode();
 
-                var xmlContent = await GetResponseContentAsync(response);
+                var xmlContent = await GetResponseContentAsync(response, cancellationToken);
 
                 post = await _rssParsingService.ParseYoutubeFeedAsync(xmlContent);
 
@@ -280,12 +281,12 @@ namespace FeedCord.Services
             return new List<Post?>();
         }
 
-        private async Task<List<Post?>> FetchRssAsync(string url, int trim)
+        private async Task<List<Post?>> FetchRssAsync(string url, int trim, CancellationToken cancellationToken)
         {
             try
             {
 
-                var response = await _httpClient.GetAsyncWithFallback(url);
+            var response = await _httpClient.GetAsyncWithFallback(url, cancellationToken);
 
                 if (response is null)
                 {
@@ -294,7 +295,7 @@ namespace FeedCord.Services
 
                 response.EnsureSuccessStatusCode();
 
-                var xmlContent = await GetResponseContentAsync(response);
+                var xmlContent = await GetResponseContentAsync(response, cancellationToken);
 
                 return await _rssParsingService.ParseRssFeedAsync(xmlContent, trim);
 
@@ -315,17 +316,17 @@ namespace FeedCord.Services
 
             return new List<Post?>();
         }
-        private async Task<string> GetResponseContentAsync(HttpResponseMessage response)
+        private async Task<string> GetResponseContentAsync(HttpResponseMessage response, CancellationToken cancellationToken)
         {
             if (response.Content.Headers.ContentEncoding.Contains("gzip"))
             {
-                await using var decompressedStream = new GZipStream(await response.Content.ReadAsStreamAsync(), CompressionMode.Decompress);
+                await using var decompressedStream = new GZipStream(await response.Content.ReadAsStreamAsync(cancellationToken), CompressionMode.Decompress);
                 using var reader = new StreamReader(decompressedStream, Encoding.UTF8);
                 return await reader.ReadToEndAsync();
             }
             else
             {
-                var bytes = await response.Content.ReadAsByteArrayAsync();
+                var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
                 return EncodingExtractor.ConvertBytesByComparing(bytes, response.Content.Headers);
             }
         }

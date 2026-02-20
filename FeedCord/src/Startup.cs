@@ -70,6 +70,11 @@ namespace FeedCord
 
             var concurrentRequests = ctx.Configuration.GetValue("ConcurrentRequests", 20);
 
+            if (concurrentRequests < 1 || concurrentRequests > 200)
+            {
+                throw new InvalidOperationException("Top-level ConcurrentRequests must be between 1 and 200.");
+            }
+
             if (concurrentRequests != 20)
             {
                 Console.WriteLine($"Blanket Concurrent Requests set to: {concurrentRequests}");

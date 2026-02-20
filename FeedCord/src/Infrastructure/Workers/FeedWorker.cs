@@ -3,6 +3,7 @@ using FeedCord.Core.Interfaces;
 using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 
 namespace FeedCord.Infrastructure.Workers
 {
@@ -18,7 +19,7 @@ namespace FeedCord.Infrastructure.Workers
         private readonly string _id;
         private readonly int _delayTime;
         private bool _isInitialized;
-        
+
 
         public FeedWorker(
             IHostApplicationLifetime lifetime,
@@ -44,55 +45,61 @@ namespace FeedCord.Infrastructure.Workers
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-
             _lifetime.ApplicationStopping.Register(OnShutdown);
 
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
-                _logAggregator.SetStartTime(DateTime.Now);
-
-                try
+                while (!stoppingToken.IsCancellationRequested)
                 {
-                    await RunRoutineBackgroundProcessAsync();
+                    _logAggregator.SetStartTime(DateTime.Now);
+
+                    try
+                    {
+                        await RunRoutineBackgroundProcessAsync(stoppingToken);
+                    }
+                    catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogCritical("Critical Error in Background Process: {E}", e);
+                        throw;
+                    }
+
+                    _logAggregator.SetEndTime(DateTime.Now);
+                    await _logAggregator.SendToBatchAsync();
+                    await Task.Delay(TimeSpan.FromMinutes(_delayTime), stoppingToken);
                 }
-                catch (Exception e)
-                {
-                    _logger.LogCritical("Critical Error in Background Process: {E}", e);
-                    throw;
-                }
-
-                
-
-                _logAggregator.SetEndTime(DateTime.Now);
-
-                await _logAggregator.SendToBatchAsync();
-
-                await Task.Delay(TimeSpan.FromMinutes(_delayTime), stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                _logger.LogInformation("{id}: Feed worker stopped gracefully.", _id);
             }
         }
 
-        private async Task RunRoutineBackgroundProcessAsync()
+        private async Task RunRoutineBackgroundProcessAsync(CancellationToken stoppingToken)
         {
             if (!_isInitialized)
             {
                 _logger.LogInformation("{id}: Initializing Url Checks..", _id);
-                await _feedManager.InitializeUrlsAsync();
+                await _feedManager.InitializeUrlsAsync(stoppingToken);
                 _isInitialized = true;
             }
 
-            var posts = await _feedManager.CheckForNewPostsAsync();
+            var posts = await _feedManager.CheckForNewPostsAsync(stoppingToken);
 
             if (posts.Count > 0)
             {
                 _logger.LogInformation("{id}: Found {PostCount} new posts..", _id, posts.Count);
-                await _notifier.SendNotificationsAsync(posts);
+                await _notifier.SendNotificationsAsync(posts, stoppingToken);
             }
         }
 
         private void OnShutdown()
         {
             if (!_persistent) return;
-            
+
             var data = _feedManager.GetAllFeedData();
             SaveDataToCsv(data);
         }
@@ -100,11 +107,11 @@ namespace FeedCord.Infrastructure.Workers
         private void SaveDataToCsv(IReadOnlyDictionary<string, FeedState> data)
         {
             var filePath = Path.Combine(AppContext.BaseDirectory, "feed_dump.csv");
-            using var writer = new StreamWriter(filePath, append: true);
+            using var writer = new StreamWriter(filePath, append: false);
 
             foreach (var (key, value) in data)
             {
-                writer.WriteLine($"{key},{value.IsYoutube},{DateTime.Now}");
+                writer.WriteLine($"{key},{value.IsYoutube},{value.LastPublishDate.ToString("O", CultureInfo.InvariantCulture)}");
             }
         }
     }

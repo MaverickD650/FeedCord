@@ -29,10 +29,8 @@ namespace FeedCord.Infrastructure.Http
             _userAgentCache = new ConcurrentDictionary<string, string>();
         }
 
-        public async Task<HttpResponseMessage?> GetAsyncWithFallback(string url)
+        public async Task<HttpResponseMessage?> GetAsyncWithFallback(string url, CancellationToken cancellationToken = default)
         {
-            await _throttle.WaitAsync();
-
             HttpResponseMessage? response = null;
 
             try
@@ -44,14 +42,18 @@ namespace FeedCord.Infrastructure.Http
                     request.Headers.UserAgent.ParseAdd(_userAgentCache.GetValueOrDefault(url, ""));
                 }
 
-                response = await _innerClient.SendAsync(request);
+                response = await SendGetAsync(request, cancellationToken);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    response = await TryAlternativeAsync(url, response);
+                    response = await TryAlternativeAsync(url, response, cancellationToken);
                 }
 
                 return response;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (TaskCanceledException ex)
             {
@@ -65,18 +67,14 @@ namespace FeedCord.Infrastructure.Http
             {
                 _logger.LogError("An error occurred while processing the request for {Url}: {Ex}", url, SensitiveDataMasker.MaskException(ex));
             }
-            finally
-            {
-                _throttle.Release();
-            }
 
             return response;
         }
 
 
-        public async Task PostAsyncWithFallback(string url, StringContent forumChannelContent, StringContent textChannelContent, bool isForum)
+        public async Task PostAsyncWithFallback(string url, StringContent forumChannelContent, StringContent textChannelContent, bool isForum, CancellationToken cancellationToken = default)
         {
-            await _rateLimiter.WaitAsync();
+            await _rateLimiter.WaitAsync(cancellationToken);
             try
             {
                 // Enforce 1 request per 2 seconds
@@ -84,24 +82,18 @@ namespace FeedCord.Infrastructure.Http
                 var waitTime = _minPostInterval - (now - _lastPostTime);
                 if (waitTime > TimeSpan.Zero)
                 {
-                    await Task.Delay(waitTime);
+                    await Task.Delay(waitTime, cancellationToken);
                 }
                 _lastPostTime = DateTime.UtcNow;
 
-                await _throttle.WaitAsync();
-
-                var response = await _innerClient.PostAsync(url, isForum ? forumChannelContent : textChannelContent);
-
-                _throttle.Release();
+                var response = await PostWithThrottleAsync(url, isForum ? forumChannelContent : textChannelContent, cancellationToken);
 
                 if (response.StatusCode != HttpStatusCode.NoContent)
                 {
                     var responseBody = await response.Content.ReadAsStringAsync();
                     _logger.LogError("Discord POST failed. Status: {StatusCode}, Body: {Body}", response.StatusCode, responseBody);
 
-                    await _throttle.WaitAsync();
-
-                    response = await _innerClient.PostAsync(url, !isForum ? forumChannelContent : textChannelContent);
+                    response = await PostWithThrottleAsync(url, !isForum ? forumChannelContent : textChannelContent, cancellationToken);
 
                     if (response.StatusCode == HttpStatusCode.NoContent)
                     {
@@ -121,7 +113,7 @@ namespace FeedCord.Infrastructure.Http
             }
         }
 
-        private async Task<HttpResponseMessage> TryAlternativeAsync(string url, HttpResponseMessage oldResponse)
+        private async Task<HttpResponseMessage> TryAlternativeAsync(string url, HttpResponseMessage oldResponse, CancellationToken cancellationToken)
         {
             var uri = new Uri(url);
             var baseUrl = uri.GetLeftPart(UriPartial.Authority);
@@ -132,32 +124,27 @@ namespace FeedCord.Infrastructure.Http
 
             try
             {
-                await _throttle.WaitAsync();
-
-                var response = await _innerClient.SendAsync(request);
+                var response = await SendGetAsync(request, cancellationToken);
                 if (response.IsSuccessStatusCode)
                 {
                     _userAgentCache.AddOrUpdate(url, USER_MIMICK, (_, _) => USER_MIMICK);
-                    _throttle.Release();
                     return response;
                 }
 
                 //GOOGLE FEED FETCHER
                 request = new HttpRequestMessage(HttpMethod.Get, url);
                 request.Headers.UserAgent.ParseAdd(GOOGLE_FEED_FETCHER);
-                await _throttle.WaitAsync();
-                response = await _innerClient.SendAsync(request);
+                response = await SendGetAsync(request, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {
                     _userAgentCache.AddOrUpdate(url, GOOGLE_FEED_FETCHER, (_, _) => GOOGLE_FEED_FETCHER);
-                    _throttle.Release();
                     return response;
                 }
 
                 //USERAGENT SCRAPE
                 var robotsUrl = new Uri(new Uri(baseUrl), "/robots.txt").AbsoluteUri;
-                var userAgents = await GetRobotsUserAgentsAsync(robotsUrl);
+                var userAgents = await GetRobotsUserAgentsAsync(robotsUrl, cancellationToken);
 
                 if (userAgents.Count > 0)
                 {
@@ -166,12 +153,10 @@ namespace FeedCord.Infrastructure.Http
                         request = new HttpRequestMessage(HttpMethod.Get, url);
                         request.Headers.UserAgent.ParseAdd(userAgent);
                         request.Headers.Add("Accept", "*/*");
-                        await _throttle.WaitAsync();
-                        response = await _innerClient.SendAsync(request);
+                        response = await SendGetAsync(request, cancellationToken);
                         if (response.IsSuccessStatusCode)
                         {
                             _userAgentCache.AddOrUpdate(url, userAgent, (_, _) => userAgent);
-                            _throttle.Release();
                             return response;
                         }
                     }
@@ -181,19 +166,15 @@ namespace FeedCord.Infrastructure.Http
             {
                 _logger.LogError("Failed to fetch RSS Feed after fallback attempts: {Url} - {E}", url, SensitiveDataMasker.MaskException(e));
             }
-            finally
-            {
-                _throttle.Release();
-            }
             return oldResponse;
         }
 
-        private async Task<string> FetchRobotsContentAsync(string url)
+        private async Task<string> FetchRobotsContentAsync(string url, CancellationToken cancellationToken)
         {
             try
             {
-                await _throttle.WaitAsync();
-                return await _innerClient.GetStringAsync(url);
+                await _throttle.WaitAsync(cancellationToken);
+                return await _innerClient.GetStringAsync(url, cancellationToken);
             }
             catch
             {
@@ -205,11 +186,37 @@ namespace FeedCord.Infrastructure.Http
             }
         }
 
-        private async Task<List<string>> GetRobotsUserAgentsAsync(string url)
+        private async Task<HttpResponseMessage> SendGetAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            await _throttle.WaitAsync(cancellationToken);
+            try
+            {
+                return await _innerClient.SendAsync(request, cancellationToken);
+            }
+            finally
+            {
+                _throttle.Release();
+            }
+        }
+
+        private async Task<HttpResponseMessage> PostWithThrottleAsync(string url, StringContent content, CancellationToken cancellationToken)
+        {
+            await _throttle.WaitAsync(cancellationToken);
+            try
+            {
+                return await _innerClient.PostAsync(url, content, cancellationToken);
+            }
+            finally
+            {
+                _throttle.Release();
+            }
+        }
+
+        private async Task<List<string>> GetRobotsUserAgentsAsync(string url, CancellationToken cancellationToken)
         {
             var userAgents = new List<string>();
 
-            var robotsContent = await FetchRobotsContentAsync(url);
+            var robotsContent = await FetchRobotsContentAsync(url, cancellationToken);
 
             if (robotsContent == string.Empty)
                 return userAgents.OrderByDescending(x => x).Distinct().ToList();

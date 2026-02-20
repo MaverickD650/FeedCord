@@ -36,7 +36,7 @@ namespace FeedCord.Helpers
                         continue;
                     }
 
-                    if (!DateTime.TryParse(parts[2], CultureInfo.InvariantCulture, DateTimeStyles.None, out var lastRunDate))
+                    if (!DateTime.TryParse(parts[2], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var lastRunDate))
                     {
                         continue;
                     }

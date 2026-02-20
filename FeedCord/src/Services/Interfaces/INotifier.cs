@@ -4,6 +4,6 @@ namespace FeedCord.Services.Interfaces
 {
     public interface INotifier
     {
-        Task SendNotificationsAsync(List<Post> newPosts);
+        Task SendNotificationsAsync(List<Post> newPosts, CancellationToken cancellationToken = default);
     }
 }

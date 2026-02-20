@@ -30,7 +30,7 @@ public class FeedWorkerTests
             RssCheckIntervalMinutes = 1,
             PersistenceOnShutdown = false
         };
-        mockFeedManager.Setup(x => x.InitializeUrlsAsync()).Returns(Task.CompletedTask);
+        mockFeedManager.Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         var worker = new FeedWorker(
             mockLifetime.Object,
             mockLogger.Object,
@@ -47,6 +47,6 @@ public class FeedWorkerTests
         await Task.Delay(200); // Allow background loop to run
         cts.Cancel();
         try { await startTask; } catch { /* ignore cancellation */ }
-        mockFeedManager.Verify(x => x.InitializeUrlsAsync(), Times.AtLeastOnce);
+        mockFeedManager.Verify(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
     }
 }
