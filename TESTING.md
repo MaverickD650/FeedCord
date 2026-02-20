@@ -67,7 +67,7 @@ dotnet watch test
 
 - **File**: `.github/workflows/test.yaml`
 - **Triggers**: Pull requests and pushes to `main`
-- **Matrix**: Tests run on .NET 9.0 and 10.0
+- **Runtime**: Tests run on .NET 10.0
 - **Coverage**: Reports uploaded to Codecov
 
 ### Release Workflow
@@ -75,6 +75,7 @@ dotnet watch test
 - **File**: `.github/workflows/release.yaml`
 - **Requirement**: Tests must pass before Docker build
 - **Dependency**: Release build depends on `test` job completing successfully
+- **Matrix**: Release validation runs tests on .NET 10.0
 
 ### GitHub Actions Features
 
@@ -134,6 +135,7 @@ Tests the core feed management logic:
 - Empty URL filtering
 - Post filtering application
 - Concurrent request management
+- Direct YouTube feed URL handling
 
 **Key Dependencies**: Mocks for 5 different interfaces
 
@@ -241,7 +243,7 @@ public class FeedWorkerTests
         // Arrange
         var mockFeedManager = new Mock<IFeedManager>();
         mockFeedManager
-            .Setup(x => x.InitializeUrlsAsync())
+                    .Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         var worker = new FeedWorker(
@@ -257,7 +259,7 @@ public class FeedWorkerTests
         await worker.ExecuteAsync(cts.Token);
 
         // Assert
-        mockFeedManager.Verify(x => x.InitializeUrlsAsync(), Times.Once);
+        mockFeedManager.Verify(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 }
 ```
@@ -270,9 +272,9 @@ public class FeedWorkerTests
 | PostFilterService | 90%+ | ✅ Tests created |
 | RssParsingService | 85%+ | ✅ Tests created |
 | FeedManager | 80%+ | ✅ Tests created |
-| DiscordNotifier | 75%+ | ⏳ TODO |
-| CustomHttpClient | 80%+ | ⏳ TODO |
-| FeedWorker | 70%+ | ⏳ TODO |
+| DiscordNotifier | 75%+ | ✅ Tests created |
+| CustomHttpClient | 80%+ | ✅ Tests created |
+| FeedWorker | 70%+ | ✅ Tests created |
 
 ## Continuous Integration Status
 
@@ -310,6 +312,11 @@ View results:
 - Ensure .NET SDK version matches GH Actions matrix
 - Check for path separators (`\` vs `/`) in file operations
 - Watch for timezone-dependent tests
+
+### Test discovery shows 0 tests
+
+- Build errors in either project can prevent test discovery.
+- Run `dotnet build` first, then rerun `dotnet test`.
 
 ## References
 

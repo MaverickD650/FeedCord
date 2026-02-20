@@ -5,6 +5,7 @@ using FeedCord.Common;
 using FeedCord.Services.Interfaces;
 using FeedCord.Core.Interfaces;
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace FeedCord.Tests.Services;
 
@@ -35,7 +36,7 @@ public class FeedManagerTests
         );
 
         _mockHttpClient
-            .Setup(x => x.GetAsyncWithFallback(It.IsAny<string>()))
+            .Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HttpResponseMessage { StatusCode = System.Net.HttpStatusCode.OK });
 
         var manager = new FeedManager(
@@ -73,7 +74,7 @@ public class FeedManagerTests
         );
 
         _mockHttpClient
-            .Setup(x => x.GetAsyncWithFallback(It.IsAny<string>()))
+            .Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HttpResponseMessage { StatusCode = System.Net.HttpStatusCode.OK });
 
         var manager = new FeedManager(
@@ -92,6 +93,85 @@ public class FeedManagerTests
         // Note: Each URL may be called multiple times due to retry logic/fallback attempts
         var calls = _mockHttpClient.Invocations.Where(i => i.Method.Name == "GetAsyncWithFallback").ToList();
         Assert.NotEmpty(calls);
+    }
+
+    [Fact]
+    public async Task InitializeUrlsAsync_UsesDirectYouTubeFeedUrlWithoutInitialHttpFetch()
+    {
+        var youtubeFeedUrl = $"https://www.youtube.com/feeds/videos.xml?channel_id=UC{Guid.NewGuid():N}";
+        var config = CreateTestConfig(youtubeUrls: new[] { youtubeFeedUrl });
+
+        var post = new Post(
+            Title: "Video",
+            ImageUrl: "img",
+            Description: "desc",
+            Link: "link",
+            Tag: "tag",
+            PublishDate: DateTime.Now,
+            Author: "author"
+        );
+
+        _mockRssParser
+            .Setup(x => x.ParseYoutubeFeedAsync(youtubeFeedUrl))
+            .ReturnsAsync(post);
+
+        _mockHttpClient
+            .Setup(x => x.GetAsyncWithFallback(youtubeFeedUrl, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK });
+
+        var manager = new FeedManager(
+            config,
+            _mockHttpClient.Object,
+            _mockRssParser.Object,
+            _mockLogger.Object,
+            _mockAggregator.Object,
+            _mockFilterService.Object
+        );
+
+        await manager.InitializeUrlsAsync();
+
+        _mockHttpClient.Verify(
+            x => x.GetAsyncWithFallback(youtubeFeedUrl, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
+        _mockRssParser.Verify(x => x.ParseYoutubeFeedAsync(youtubeFeedUrl), Times.Once);
+    }
+
+    [Fact]
+    public async Task InitializeUrlsAsync_FetchesHtmlForNonFeedYouTubeUrl()
+    {
+        var youtubeChannelUrl = "https://www.youtube.com/@somechannel";
+        var html = "<html><head></head><body></body></html>";
+        var config = CreateTestConfig(youtubeUrls: new[] { youtubeChannelUrl });
+
+        _mockHttpClient
+            .Setup(x => x.GetAsyncWithFallback(youtubeChannelUrl, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(html)
+            });
+
+        _mockRssParser
+            .Setup(x => x.ParseYoutubeFeedAsync(It.IsAny<string>()))
+            .ReturnsAsync((Post?)null);
+
+        var manager = new FeedManager(
+            config,
+            _mockHttpClient.Object,
+            _mockRssParser.Object,
+            _mockLogger.Object,
+            _mockAggregator.Object,
+            _mockFilterService.Object
+        );
+
+        await manager.InitializeUrlsAsync();
+
+        _mockHttpClient.Verify(
+            x => x.GetAsyncWithFallback(youtubeChannelUrl, It.IsAny<CancellationToken>()),
+            Times.Exactly(2)
+        );
+        _mockRssParser.Verify(x => x.ParseYoutubeFeedAsync(html), Times.Once);
     }
 
     [Fact]

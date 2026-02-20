@@ -60,6 +60,13 @@ Provided below is a quick guide to get up and running.
 
 There are currently 17 properties you can configure. You can read more in depth explanation of the file structure as well as view all properties and their purpose in the [reference documentation](https://github.com/MaverickD650/FeedCord/blob/main/FeedCord/docs/reference.md)
 
+### Validation Notes
+
+- Top-level `ConcurrentRequests` must be between `1` and `200`.
+- Instance `ConcurrentRequests` must be between `1` and `200`.
+- `RssCheckIntervalMinutes` must be between `1` and `1440`.
+- `DescriptionLimit` must be between `1` and `4000`.
+
 ---
 
 ### 2. Create a new Webhook in Discord (Visual Steps Provided)
@@ -178,6 +185,12 @@ You can use online web tools like [tunepocket](https://www.tunepocket.com/youtub
        "https://www.youtube.com/feeds/videos.xml?channel_id={YOUR_CHANNEL_ID_HERE}"
      ]
 ```
+
+FeedCord supports direct YouTube feed URLs such as:
+
+- `https://www.youtube.com/feeds/videos.xml?channel_id=...`
+- `https://www.youtube.com/feeds/videos.xml?playlist_id=...`
+- `https://www.youtube.com/feeds/videos.xml?user=...`
 
 ### Running FeedCord
 

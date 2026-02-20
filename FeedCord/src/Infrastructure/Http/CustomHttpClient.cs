@@ -9,24 +9,36 @@ namespace FeedCord.Infrastructure.Http
 {
     public class CustomHttpClient : ICustomHttpClient
     {
-        // TODO --> Eventually move these to a config file
-        private const string USER_MIMICK = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36";
-        private const string GOOGLE_FEED_FETCHER = "FeedFetcher-Google";
+        private static readonly string[] DefaultFallbackUserAgents =
+        {
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36",
+            "FeedFetcher-Google"
+        };
 
         private readonly HttpClient _innerClient;
         private readonly ILogger<CustomHttpClient> _logger;
         private readonly SemaphoreSlim _throttle;
         private readonly ConcurrentDictionary<string, string> _userAgentCache;
+        private readonly IReadOnlyList<string> _fallbackUserAgents;
         // Rate limiting fields
         private readonly SemaphoreSlim _rateLimiter = new SemaphoreSlim(1, 1);
         private DateTime _lastPostTime = DateTime.MinValue;
         private readonly TimeSpan _minPostInterval = TimeSpan.FromSeconds(2);
-        public CustomHttpClient(ILogger<CustomHttpClient> logger, HttpClient innerClient, SemaphoreSlim throttle)
+        public CustomHttpClient(
+            ILogger<CustomHttpClient> logger,
+            HttpClient innerClient,
+            SemaphoreSlim throttle,
+            IEnumerable<string>? fallbackUserAgents = null)
         {
             _logger = logger;
             _throttle = throttle;
             _innerClient = innerClient;
             _userAgentCache = new ConcurrentDictionary<string, string>();
+            _fallbackUserAgents = (fallbackUserAgents ?? DefaultFallbackUserAgents)
+                .Where(ua => !string.IsNullOrWhiteSpace(ua))
+                .Select(ua => ua.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
         }
 
         public async Task<HttpResponseMessage?> GetAsyncWithFallback(string url, CancellationToken cancellationToken = default)
@@ -118,31 +130,27 @@ namespace FeedCord.Infrastructure.Http
             var uri = new Uri(url);
             var baseUrl = uri.GetLeftPart(UriPartial.Authority);
 
-            //USER MIMICK
-            var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.UserAgent.ParseAdd(USER_MIMICK);
+            HttpRequestMessage request;
+            HttpResponseMessage response;
 
             try
             {
-                var response = await SendGetAsync(request, cancellationToken);
-                if (response.IsSuccessStatusCode)
+                foreach (var fallbackUserAgent in _fallbackUserAgents)
                 {
-                    _userAgentCache.AddOrUpdate(url, USER_MIMICK, (_, _) => USER_MIMICK);
+                    request = new HttpRequestMessage(HttpMethod.Get, url);
+                    request.Headers.UserAgent.ParseAdd(fallbackUserAgent);
+
+                    response = await SendGetAsync(request, cancellationToken);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        continue;
+                    }
+
+                    _userAgentCache.AddOrUpdate(url, fallbackUserAgent, (_, _) => fallbackUserAgent);
                     return response;
                 }
 
-                //GOOGLE FEED FETCHER
-                request = new HttpRequestMessage(HttpMethod.Get, url);
-                request.Headers.UserAgent.ParseAdd(GOOGLE_FEED_FETCHER);
-                response = await SendGetAsync(request, cancellationToken);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    _userAgentCache.AddOrUpdate(url, GOOGLE_FEED_FETCHER, (_, _) => GOOGLE_FEED_FETCHER);
-                    return response;
-                }
-
-                //USERAGENT SCRAPE
                 var robotsUrl = new Uri(new Uri(baseUrl), "/robots.txt").AbsoluteUri;
                 var userAgents = await GetRobotsUserAgentsAsync(robotsUrl, cancellationToken);
 
@@ -162,6 +170,10 @@ namespace FeedCord.Infrastructure.Http
                     }
                 }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception e)
             {
                 _logger.LogError("Failed to fetch RSS Feed after fallback attempts: {Url} - {E}", url, SensitiveDataMasker.MaskException(e));
@@ -175,6 +187,10 @@ namespace FeedCord.Infrastructure.Http
             {
                 await _throttle.WaitAsync(cancellationToken);
                 return await _innerClient.GetStringAsync(url, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch
             {

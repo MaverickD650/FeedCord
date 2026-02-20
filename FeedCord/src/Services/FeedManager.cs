@@ -152,11 +152,13 @@ namespace FeedCord.Services
         }
         private async Task<bool> TestUrlAsync(string url, CancellationToken cancellationToken)
         {
+            var acquired = false;
             try
             {
-            await _instancedConcurrentRequests.WaitAsync(cancellationToken);
+                await _instancedConcurrentRequests.WaitAsync(cancellationToken);
+                acquired = true;
 
-            var response = await _httpClient.GetAsyncWithFallback(url, cancellationToken);
+                var response = await _httpClient.GetAsyncWithFallback(url, cancellationToken);
 
                 if (response is null)
                 {
@@ -170,6 +172,10 @@ namespace FeedCord.Services
 
                 return true;
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (HttpRequestException ex)
             {
                 _logAggregator.AddUrlResponse(url, (int)(ex.StatusCode ?? System.Net.HttpStatusCode.BadRequest));
@@ -180,7 +186,10 @@ namespace FeedCord.Services
             }
             finally
             {
-                _instancedConcurrentRequests.Release();
+                if (acquired)
+                {
+                    _instancedConcurrentRequests.Release();
+                }
             }
 
             return false;
@@ -188,14 +197,20 @@ namespace FeedCord.Services
         private async Task CheckSingleFeedAsync(string url, FeedState feedState, ConcurrentBag<Post> newPosts, int trim, CancellationToken cancellationToken)
         {
             List<Post?> posts;
+            var acquired = false;
 
             try
             {
                 await _instancedConcurrentRequests.WaitAsync(cancellationToken);
+                acquired = true;
 
                 posts = feedState.IsYoutube ?
                     await FetchYoutubeAsync(url, cancellationToken) :
                     await FetchRssAsync(url, trim, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -204,7 +219,10 @@ namespace FeedCord.Services
             }
             finally
             {
-                _instancedConcurrentRequests.Release();
+                if (acquired)
+                {
+                    _instancedConcurrentRequests.Release();
+                }
             }
 
             var freshlyFetched = posts.Where(p => p?.PublishDate > feedState.LastPublishDate).ToList();
@@ -240,12 +258,9 @@ namespace FeedCord.Services
             {
                 Post? post;
 
-                //TODO --> BETTER HANDLING - TEMP FIX FOR INSERTING XML LINKS IN TO YOUTUBE - WE SKIP PARSING HTML
-                if (url.Contains("xml"))
+                if (IsDirectYoutubeFeedUrl(url))
                 {
-
                     post = await _rssParsingService.ParseYoutubeFeedAsync(url);
-
                     return post == null ? new List<Post?>() : new List<Post?> { post };
                 }
 
@@ -253,7 +268,8 @@ namespace FeedCord.Services
 
                 if (response is null)
                 {
-                    throw new Exception();
+                    _logger.LogWarning("Failed to fetch YouTube feed from {Url}: No response returned.", url);
+                    return new List<Post?>();
                 }
 
                 response!.EnsureSuccessStatusCode();
@@ -264,6 +280,10 @@ namespace FeedCord.Services
 
                 return post == null ? new List<Post?>() : new List<Post?> { post };
 
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (HttpRequestException ex)
             {
@@ -281,16 +301,40 @@ namespace FeedCord.Services
             return new List<Post?>();
         }
 
+        private static bool IsDirectYoutubeFeedUrl(string url)
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                return false;
+            }
+
+            if (!uri.Host.Contains("youtube.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (uri.AbsolutePath.Equals("/feeds/videos.xml", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            var query = uri.Query;
+            return query.Contains("channel_id=", StringComparison.OrdinalIgnoreCase)
+                || query.Contains("playlist_id=", StringComparison.OrdinalIgnoreCase)
+                || query.Contains("user=", StringComparison.OrdinalIgnoreCase);
+        }
+
         private async Task<List<Post?>> FetchRssAsync(string url, int trim, CancellationToken cancellationToken)
         {
             try
             {
 
-            var response = await _httpClient.GetAsyncWithFallback(url, cancellationToken);
+                var response = await _httpClient.GetAsyncWithFallback(url, cancellationToken);
 
                 if (response is null)
                 {
-                    throw new Exception();
+                    _logger.LogWarning("Failed to fetch RSS feed from {Url}: No response returned.", url);
+                    return new List<Post?>();
                 }
 
                 response.EnsureSuccessStatusCode();
@@ -299,6 +343,10 @@ namespace FeedCord.Services
 
                 return await _rssParsingService.ParseRssFeedAsync(xmlContent, trim);
 
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (HttpRequestException ex)
             {

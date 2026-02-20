@@ -70,7 +70,6 @@ Here is an example of running two news channels:
 			"PersistenceOnShutdown": false
 		}
 	],
-	
 }
 
 ```
@@ -112,6 +111,10 @@ Let's take a look here for example. This is outside of your instance. This contr
 	"ConcurrentRequests": 5
 }
 ```
+
+### HTTP Fallback User-Agents (Advanced / Optional)
+
+`HttpFallbackUserAgents` is an optional top-level array for advanced troubleshooting only. Most setups should leave this unset and use the built-in defaults.
 
 Now for this example we will show a `ConcurrentRequest` inside of an instance. This will only throttle the YouTube & RSS Urls in that instance. So a `ConcurrentRequests` value of 1 here says that we only allow one request to be made at any given time for the `Gaming` instance. This is if you want to have control only for certain urls/domains. Useful if you need to respect a websites policy or to not spam a domain:
 
@@ -261,6 +264,13 @@ Luckily you can simply do this to do a filter for all feeds - set `Url` equal to
 - **MarkdownFormat**: If set true, will post feed item in markdown instead of an Embed.
 - **PersistenceOnShutdown**: If set true, will store the last run date when restart or shutdown to catch missed posts.
 
+### Validation Ranges
+
+- **RssCheckIntervalMinutes**: must be between `1` and `1440`.
+- **DescriptionLimit**: must be between `1` and `4000`.
+- **ConcurrentRequests (Top-level)**: must be between `1` and `200`.
+- **ConcurrentRequests (Inside Instance)**: must be between `1` and `200`.
+
 ### Optional
 
 
@@ -273,6 +283,7 @@ Luckily you can simply do this to do a filter for all feeds - set `Url` equal to
 - **FallbackImage**: FeedCord always attempts to grab the webpage's image from metadata. If for some reason this fails, it will display this image instead.
 - **ConcurrentRequests**: How many requests FeedCord can have going at once.
 - **ConcurrentRequests (Inside Instance)**: How many requests the instance itself can have going at once.
+- **HttpFallbackUserAgents**: Advanced optional top-level override for fallback user-agents when initial feed requests fail. Usually not needed.
 - **PostFilters**: A collection of phrases/words that are used to filter out RSS Items (filters the Title & Content)
 
 ---

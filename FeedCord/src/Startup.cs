@@ -94,8 +94,11 @@ namespace FeedCord
                 var httpClient = httpClientFactory.CreateClient("Default");
                 var logger = sp.GetRequiredService<ILogger<CustomHttpClient>>();
                 var throttle = sp.GetRequiredService<SemaphoreSlim>();
+                var fallbackUserAgents = ctx.Configuration
+                    .GetSection("HttpFallbackUserAgents")
+                    .Get<string[]>();
 
-                return new CustomHttpClient(logger, httpClient, throttle);
+                return new CustomHttpClient(logger, httpClient, throttle, fallbackUserAgents);
             });
 
             services.AddTransient<ILogAggregatorFactory, LogAggregatorFactory>();
