@@ -30,8 +30,8 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
-      - name: Run tests
-        run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+      - name: Run tests with coverage
+        run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverageResultsDirectory=${{ github.workspace }}/coverage /p:UseSourceLink=true
 
       - name: Upload test results
         if: always()
@@ -48,14 +48,11 @@ jobs:
           files: '**/test-results.trx'
           check_name: Test Results (.NET ${{ matrix.dotnet-version }})
 
-      - name: Generate coverage report
-        run: dotnet test --configuration Release --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
-
       - name: Upload coverage to Codecov
-        if: matrix.dotnet-version == '10.0'
+        if: matrix.dotnet-version == '10.0' && always()
         uses: codecov/codecov-action@v5.5.2
         with:
-          files: '**/coverage.opencover.xml'
+          files: ${{ github.workspace }}/coverage/coverage.opencover.xml
           flags: unittests
           fail_ci_if_error: false
         env:
