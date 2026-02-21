@@ -1,4 +1,3 @@
-using System.Globalization;
 using FeedCord.Common;
 using FeedCord.Infrastructure.Http;
 using FeedCord.Services.Interfaces;
@@ -76,7 +75,10 @@ namespace FeedCord.Infrastructure.Parsers
                 var videoTitle = videoEntry.Element(atomNs + "title")?.Value ?? string.Empty;
                 var videoLink = videoEntry.Element(atomNs + "link")?.Attribute("href")?.Value ?? string.Empty;
                 var videoThumbnail = videoEntry.Element(mediaNs + "group")?.Element(mediaNs + "thumbnail")?.Attribute("url")?.Value ?? string.Empty;
-                var videoPublished = DateTime.Parse(videoEntry.Element(atomNs + "published")?.Value ?? DateTime.MinValue.ToString(CultureInfo.CurrentCulture));
+                var publishedRaw = videoEntry.Element(atomNs + "published")?.Value;
+                var videoPublished = DateTime.TryParse(publishedRaw, out var parsedPublished)
+                    ? parsedPublished
+                    : DateTime.MinValue;
                 var videoAuthor = videoEntry.Element(atomNs + "author")?.Element(atomNs + "name")?.Value ?? string.Empty;
 
 

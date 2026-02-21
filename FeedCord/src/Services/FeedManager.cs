@@ -35,7 +35,7 @@ namespace FeedCord.Services
             _config = config;
             _httpClient = httpClient;
             var feedDumpPath = Path.Combine(AppContext.BaseDirectory, "feed_dump.json");
-            _referencePostStore = referencePostStore ?? new JsonReferencePostStore(feedDumpPath);
+            _referencePostStore = referencePostStore ?? new JsonReferencePostStore(feedDumpPath, null);
             _lastRunReference = _referencePostStore.LoadReferencePosts();
             _rssParsingService = rssParsingService;
             _logger = logger;

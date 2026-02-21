@@ -250,6 +250,27 @@ namespace FeedCord.Tests.Services
             Assert.NotNull(result.Title);
         }
 
+        [Fact]
+        public void TryBuildPost_WithNullItemId_DoesNotThrowAndBuildsPost()
+        {
+            // Arrange
+            var feed = CreateMockFeed("General Feed", "https://example.com/feed");
+            var item = new FeedItem
+            {
+                Id = null,
+                Title = "Regular Post",
+                Description = "Description",
+                Link = "https://example.com/post"
+            };
+
+            // Act
+            var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("Regular Post", result.Title);
+        }
+
         #endregion
 
         #region Date Handling Tests

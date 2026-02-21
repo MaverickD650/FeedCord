@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text.RegularExpressions;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using FeedCord.Services.Interfaces;
 using System.Collections.Concurrent;
@@ -220,12 +221,51 @@ namespace FeedCord.Infrastructure.Http
             await _throttle.WaitAsync(cancellationToken);
             try
             {
-                return await _innerClient.PostAsync(url, content, cancellationToken);
+                using var request = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = await CloneStringContentAsync(content, cancellationToken)
+                };
+
+                return await _innerClient.SendAsync(request, cancellationToken);
             }
             finally
             {
                 _throttle.Release();
             }
+        }
+
+        private static async Task<StringContent> CloneStringContentAsync(StringContent content, CancellationToken cancellationToken)
+        {
+            var payload = await content.ReadAsStringAsync(cancellationToken);
+            var mediaType = content.Headers.ContentType?.MediaType ?? "application/json";
+
+            var charset = content.Headers.ContentType?.CharSet;
+            Encoding encoding;
+
+            try
+            {
+                encoding = string.IsNullOrWhiteSpace(charset)
+                    ? Encoding.UTF8
+                    : Encoding.GetEncoding(charset);
+            }
+            catch
+            {
+                encoding = Encoding.UTF8;
+            }
+
+            var clone = new StringContent(payload, encoding, mediaType);
+
+            foreach (var header in content.Headers)
+            {
+                if (header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+
+            return clone;
         }
 
         private async Task<List<string>> GetRobotsUserAgentsAsync(string url, CancellationToken cancellationToken)

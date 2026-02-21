@@ -44,7 +44,7 @@ namespace FeedCord
         private static void SetupConfiguration(HostBuilderContext ctx, IConfigurationBuilder builder, string[] args)
         {
             builder.SetBasePath(AppDomain.CurrentDomain.BaseDirectory);
-            builder.AddJsonFile(args.Length == 1 ? args[0] : "config/appsettings.json", optional: false,
+            builder.AddJsonFile(args.Length >= 1 ? args[0] : "config/appsettings.json", optional: false,
                 reloadOnChange: true);
         }
 
@@ -117,10 +117,11 @@ namespace FeedCord
             services.AddTransient<IImageParserService, ImageParserService>();
             services.AddTransient<IYoutubeParsingService, YoutubeParsingService>();
             services.AddTransient<IDiscordPayloadService, DiscordPayloadService>();
-            services.AddSingleton<IReferencePostStore>(_ =>
+            services.AddSingleton<IReferencePostStore>(sp =>
             {
                 var path = Path.Combine(AppContext.BaseDirectory, "feed_dump.json");
-                return new JsonReferencePostStore(path);
+                var logger = sp.GetRequiredService<ILogger<JsonReferencePostStore>>();
+                return new JsonReferencePostStore(path, logger);
             });
 
             var configs = ctx.Configuration.GetSection("Instances")

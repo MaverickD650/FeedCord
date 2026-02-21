@@ -47,11 +47,11 @@ public class LogAggregator : ILogAggregator
 
     public void AddLatestUrlPost(string url, Post? post)
     {
-        LatestPosts.TryAdd(url, post);
+        LatestPosts[url] = post;
     }
     public void AddUrlResponse(string url, int response)
     {
-        UrlStatuses.TryAdd(url, response);
+        UrlStatuses[url] = response;
     }
 
     public ConcurrentDictionary<string, int> GetUrlResponses()

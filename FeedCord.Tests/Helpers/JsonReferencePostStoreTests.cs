@@ -1,5 +1,7 @@
 using FeedCord.Common;
 using FeedCord.Helpers;
+using Microsoft.Extensions.Logging;
+using Moq;
 using System.Text.Json;
 using Xunit;
 
@@ -117,6 +119,30 @@ public class JsonReferencePostStoreTests : IDisposable
         Assert.Contains("\"Version\"", fileContent);
         Assert.DoesNotContain("legacy-content", fileContent);
         Assert.False(File.Exists($"{_testFilePath}.tmp"));
+    }
+
+    [Fact]
+    public void LoadReferencePosts_WithDeserializationError_LogsWarningAndReturnsEmpty()
+    {
+        // Arrange
+        File.WriteAllText(_testFilePath, "{ bad json without close brace");
+        var mockLogger = new Mock<ILogger<JsonReferencePostStore>>();
+        var store = new JsonReferencePostStore(_testFilePath, mockLogger.Object);
+
+        // Act
+        var result = store.LoadReferencePosts();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("Failed to load reference posts")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     public void Dispose()

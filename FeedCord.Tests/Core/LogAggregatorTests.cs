@@ -198,7 +198,7 @@ public class LogAggregatorTests
 
         // Assert
         Assert.Single(aggregator.UrlStatuses);
-        Assert.Equal(200, aggregator.UrlStatuses[url]);  // Original value preserved
+        Assert.Equal(404, aggregator.UrlStatuses[url]);  // Latest value updated
     }
 
     [Fact]
@@ -361,5 +361,41 @@ public class LogAggregatorTests
         Assert.Equal(2, aggregator.LatestPosts.Count);
         Assert.Equal(200, aggregator.UrlStatuses["http://feed1.com"]);
         Assert.Equal(404, aggregator.UrlStatuses["http://feed2.com"]);
+    }
+
+    [Fact]
+    public void AddUrlResponse_WithRepeatedCall_UpdatesValue()
+    {
+        // Arrange
+        var config = CreateTestConfig();
+        var aggregator = new LogAggregator(_mockBatchLogger.Object, config);
+        var url = "http://example.com";
+
+        // Act
+        aggregator.AddUrlResponse(url, 200);
+        aggregator.AddUrlResponse(url, 500);  // Update same URL with different status
+
+        // Assert
+        Assert.Single(aggregator.UrlStatuses);
+        Assert.Equal(500, aggregator.UrlStatuses[url]);  // Should reflect the latest value
+    }
+
+    [Fact]
+    public void AddLatestUrlPost_WithRepeatedCall_UpdatesValue()
+    {
+        // Arrange
+        var config = CreateTestConfig();
+        var aggregator = new LogAggregator(_mockBatchLogger.Object, config);
+        var url = "http://example.com";
+        var post1 = CreateTestPost("First Post");
+        var post2 = CreateTestPost("Second Post");
+
+        // Act
+        aggregator.AddLatestUrlPost(url, post1);
+        aggregator.AddLatestUrlPost(url, post2);  // Update same URL with different post
+
+        // Assert
+        Assert.Single(aggregator.LatestPosts);
+        Assert.Equal("Second Post", aggregator.LatestPosts[url]?.Title);  // Should reflect the latest value
     }
 }

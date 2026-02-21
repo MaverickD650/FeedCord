@@ -326,7 +326,7 @@ namespace FeedCord.Tests
         }
 
         [Fact]
-        public void ConfigPath_WithMultipleArguments_DefaultsToConfigAppsettings()
+        public void ConfigPath_WithMultipleArguments_UsesFirstProvidedPath()
         {
             // Arrange
             var args = new[] { "arg1", "arg2", "arg3" };
@@ -335,7 +335,7 @@ namespace FeedCord.Tests
             var selectedPath = SelectConfigPath(args);
 
             // Assert
-            Assert.Equal("config/appsettings.json", selectedPath);
+            Assert.Equal("arg1", selectedPath);
         }
 
         [Theory]
@@ -346,7 +346,7 @@ namespace FeedCord.Tests
             var selectedPath = SelectConfigPath(args);
 
             // Assert
-            var expected = args.Length == 1 ? args[0] : "config/appsettings.json";
+            var expected = args.Length >= 1 ? args[0] : "config/appsettings.json";
             Assert.Equal(expected, selectedPath);
         }
 
@@ -367,7 +367,7 @@ namespace FeedCord.Tests
 
         private static string SelectConfigPath(string[] args)
         {
-            return args.Length == 1 ? args[0] : "config/appsettings.json";
+            return args.Length >= 1 ? args[0] : "config/appsettings.json";
         }
 
         #endregion
@@ -482,7 +482,7 @@ namespace FeedCord.Tests
         }
 
         [Fact]
-        public void SetupConfiguration_WithMultipleArguments_UsesDefaultPath()
+        public void SetupConfiguration_WithMultipleArguments_UsesFirstProvidedPath()
         {
             var context = new HostBuilderContext(new Dictionary<object, object>());
             var builder = new ConfigurationBuilder();
@@ -490,7 +490,7 @@ namespace FeedCord.Tests
             InvokeStartupPrivateMethod("SetupConfiguration", context, builder, new[] { "one", "two" });
 
             var jsonSource = Assert.IsType<JsonConfigurationSource>(builder.Sources.Last());
-            Assert.Equal("config/appsettings.json", jsonSource.Path);
+            Assert.Equal("one", jsonSource.Path);
         }
 
         [Fact]

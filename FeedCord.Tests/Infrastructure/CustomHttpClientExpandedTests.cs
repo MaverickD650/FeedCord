@@ -217,6 +217,42 @@ namespace FeedCord.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task PostAsyncWithFallback_OnRetry_UsesNewRequestContentInstance()
+        {
+            // Arrange
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+            var callCount = 0;
+            var sentContents = new List<HttpContent?>();
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+
+            handler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
+                {
+                    callCount++;
+                    sentContents.Add(request.Content);
+
+                    return Task.FromResult(new HttpResponseMessage(callCount == 1 ? HttpStatusCode.BadRequest : HttpStatusCode.NoContent));
+                });
+
+            var httpClient = new HttpClient(handler.Object);
+            var throttle = new SemaphoreSlim(1, 1);
+            var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
+
+            var content = new StringContent("{\"message\":\"hello\"}");
+
+            // Act
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", content, content, false);
+
+            // Assert
+            Assert.Equal(2, callCount);
+            Assert.Equal(2, sentContents.Count);
+            Assert.NotNull(sentContents[0]);
+            Assert.NotNull(sentContents[1]);
+            Assert.NotSame(sentContents[0], sentContents[1]);
+        }
+
+        [Fact]
         public async Task PostAsyncWithFallback_EnforcesRateLimiting()
         {
             // Arrange

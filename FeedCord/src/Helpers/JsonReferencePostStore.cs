@@ -1,5 +1,6 @@
 using FeedCord.Common;
 using FeedCord.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace FeedCord.Helpers
@@ -8,10 +9,12 @@ namespace FeedCord.Helpers
     {
         private const int CurrentVersion = 1;
         private readonly string _filePath;
+        private readonly ILogger<JsonReferencePostStore>? _logger;
 
-        public JsonReferencePostStore(string filePath)
+        public JsonReferencePostStore(string filePath, ILogger<JsonReferencePostStore>? logger = null)
         {
             _filePath = filePath;
+            _logger = logger;
         }
 
         public Dictionary<string, ReferencePost> LoadReferencePosts()
@@ -52,8 +55,10 @@ namespace FeedCord.Helpers
                     };
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                _logger?.LogWarning("Failed to load reference posts from {FilePath}: {Exception}",
+                    _filePath, SensitiveDataMasker.MaskException(ex));
                 return dictionary;
             }
 

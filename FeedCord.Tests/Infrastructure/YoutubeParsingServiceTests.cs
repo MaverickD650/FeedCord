@@ -369,6 +369,40 @@ namespace FeedCord.Tests.Infrastructure
             Assert.InRange(result.PublishDate, expectedDate.AddSeconds(-1), expectedDate.AddSeconds(1));
         }
 
+        [Fact]
+        public async Task GetRecentPost_WithInvalidPublishedDate_UsesMinValueWithoutThrowing()
+        {
+            // Arrange
+            var xmlUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxxx";
+            var feed = @"<?xml version='1.0'?>
+<feed xmlns='http://www.w3.org/2005/Atom' xmlns:media='http://search.yahoo.com/mrss/'>
+    <title>Test Channel</title>
+    <entry>
+        <title>Test Video</title>
+        <link href='https://www.youtube.com/watch?v=test'/>
+        <published>not-a-valid-date</published>
+        <author><name>Test Author</name></author>
+        <media:group>
+            <media:thumbnail url='https://example.com/thumb.jpg'/>
+        </media:group>
+    </entry>
+</feed>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(feed)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(DateTime.MinValue, result.PublishDate);
+        }
+
         #endregion
 
         // Helper method to create a valid Atom feed
