@@ -12,7 +12,7 @@ public class PostFilterServiceTests
 
     public PostFilterServiceTests()
     {
-        _mockLogger = new Mock<ILogger<PostFilterService>>();
+        _mockLogger = new Mock<ILogger<PostFilterService>>(MockBehavior.Loose);
     }
 
     public static IEnumerable<object?[]> NoFilterConfigurations()

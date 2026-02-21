@@ -21,11 +21,11 @@ namespace FeedCord.Tests.Infrastructure
         public void Constructor_InitializesWithConfig()
         {
             // Arrange
-            var mockLifetime = new Mock<IHostApplicationLifetime>();
-            var mockLogger = new Mock<ILogger<FeedWorker>>();
-            var mockFeedManager = new Mock<IFeedManager>();
-            var mockNotifier = new Mock<INotifier>();
-            var mockLogAggregator = new Mock<ILogAggregator>();
+            var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+            var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
+            var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
+            var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
+            var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
 
             var config = new Config
             {
@@ -65,11 +65,11 @@ namespace FeedCord.Tests.Infrastructure
         public void Constructor_WithDifferentIntervals_LogsCorrectInterval()
         {
             // Arrange
-            var mockLifetime = new Mock<IHostApplicationLifetime>();
-            var mockLogger = new Mock<ILogger<FeedWorker>>();
-            var mockFeedManager = new Mock<IFeedManager>();
-            var mockNotifier = new Mock<INotifier>();
-            var mockLogAggregator = new Mock<ILogAggregator>();
+            var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+            var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
+            var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
+            var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
+            var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
 
             var config = new Config
             {
@@ -103,11 +103,11 @@ namespace FeedCord.Tests.Infrastructure
         public async Task ExecuteAsync_ChecksForNewPostsAndNotifies()
         {
             // Arrange
-            var mockLifetime = new Mock<IHostApplicationLifetime>();
-            var mockLogger = new Mock<ILogger<FeedWorker>>();
-            var mockFeedManager = new Mock<IFeedManager>();
-            var mockNotifier = new Mock<INotifier>();
-            var mockLogAggregator = new Mock<ILogAggregator>();
+            var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+            var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
+            var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
+            var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
+            var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
 
             var newPost = new Post(
                 Title: "Test Post",
@@ -122,7 +122,7 @@ namespace FeedCord.Tests.Infrastructure
             mockFeedManager.Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
             mockFeedManager.Setup(x => x.CheckForNewPostsAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<Post> { newPost });
+                .Returns(Task.FromResult<List<Post>>(new List<Post> { newPost }));
             mockNotifier.Setup(x => x.SendNotificationsAsync(It.IsAny<List<Post>>(), It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
@@ -165,11 +165,11 @@ namespace FeedCord.Tests.Infrastructure
         public async Task ExecuteAsync_NotifiesWhenPostsFound()
         {
             // Arrange
-            var mockLifetime = new Mock<IHostApplicationLifetime>();
-            var mockLogger = new Mock<ILogger<FeedWorker>>();
-            var mockFeedManager = new Mock<IFeedManager>();
-            var mockNotifier = new Mock<INotifier>();
-            var mockLogAggregator = new Mock<ILogAggregator>();
+            var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+            var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
+            var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
+            var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
+            var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
 
             var posts = new List<Post>
             {
@@ -180,7 +180,7 @@ namespace FeedCord.Tests.Infrastructure
             mockFeedManager.Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
             mockFeedManager.Setup(x => x.CheckForNewPostsAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(posts);
+                .Returns(Task.FromResult<List<Post>>(posts));
             mockNotifier.Setup(x => x.SendNotificationsAsync(posts, It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
 
@@ -223,16 +223,16 @@ namespace FeedCord.Tests.Infrastructure
         public async Task ExecuteAsync_DoesNotNotifyWhenNoPostsFound()
         {
             // Arrange
-            var mockLifetime = new Mock<IHostApplicationLifetime>();
-            var mockLogger = new Mock<ILogger<FeedWorker>>();
-            var mockFeedManager = new Mock<IFeedManager>();
-            var mockNotifier = new Mock<INotifier>();
-            var mockLogAggregator = new Mock<ILogAggregator>();
+            var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+            var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
+            var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
+            var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
+            var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
 
             mockFeedManager.Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
             mockFeedManager.Setup(x => x.CheckForNewPostsAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<Post>());
+                .Returns(Task.FromResult<List<Post>>(new List<Post>()));
 
             var config = new Config
             {
@@ -277,11 +277,11 @@ namespace FeedCord.Tests.Infrastructure
         public void SaveDataToCsv_WithPersistenceEnabled_SavesToFile()
         {
             // Arrange
-            var mockLifetime = new Mock<IHostApplicationLifetime>();
-            var mockLogger = new Mock<ILogger<FeedWorker>>();
-            var mockFeedManager = new Mock<IFeedManager>();
-            var mockNotifier = new Mock<INotifier>();
-            var mockLogAggregator = new Mock<ILogAggregator>();
+            var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+            var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
+            var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
+            var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
+            var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
 
             var feedData = new Dictionary<string, FeedState>
             {
@@ -326,11 +326,11 @@ namespace FeedCord.Tests.Infrastructure
         public void NoShutdownAction_WhenPersistenceDisabled_DoesNotSave()
         {
             // Arrange
-            var mockLifetime = new Mock<IHostApplicationLifetime>();
-            var mockLogger = new Mock<ILogger<FeedWorker>>();
-            var mockFeedManager = new Mock<IFeedManager>();
-            var mockNotifier = new Mock<INotifier>();
-            var mockLogAggregator = new Mock<ILogAggregator>();
+            var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+            var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
+            var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
+            var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
+            var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
 
             var config = new Config
             {
@@ -364,16 +364,16 @@ namespace FeedCord.Tests.Infrastructure
         public async Task ExecuteAsync_SetsBatchLoggerStartAndEndTime()
         {
             // Arrange
-            var mockLifetime = new Mock<IHostApplicationLifetime>();
-            var mockLogger = new Mock<ILogger<FeedWorker>>();
-            var mockFeedManager = new Mock<IFeedManager>();
-            var mockNotifier = new Mock<INotifier>();
-            var mockLogAggregator = new Mock<ILogAggregator>();
+            var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+            var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
+            var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
+            var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
+            var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
 
             mockFeedManager.Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.CompletedTask);
             mockFeedManager.Setup(x => x.CheckForNewPostsAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<Post>());
+                .Returns(Task.FromResult<List<Post>>(new List<Post>()));
             mockLogAggregator.Setup(x => x.SendToBatchAsync()).Returns(Task.CompletedTask);
 
             var config = new Config
@@ -425,11 +425,11 @@ namespace FeedCord.Tests.Infrastructure
         public void Constructor_AcceptsVariousIntervals(int minutes)
         {
             // Arrange
-            var mockLifetime = new Mock<IHostApplicationLifetime>();
-            var mockLogger = new Mock<ILogger<FeedWorker>>();
-            var mockFeedManager = new Mock<IFeedManager>();
-            var mockNotifier = new Mock<INotifier>();
-            var mockLogAggregator = new Mock<ILogAggregator>();
+            var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+            var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
+            var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
+            var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
+            var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
 
             var config = new Config
             {

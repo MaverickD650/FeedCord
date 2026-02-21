@@ -15,8 +15,8 @@ public class CustomHttpClientTests
     public async Task GetAsyncWithFallback_ReturnsResponseOnSuccess()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-        var handler = new Mock<HttpMessageHandler>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage(System.Net.HttpStatusCode.OK));
@@ -35,11 +35,11 @@ public class CustomHttpClientTests
     [Fact]
     public async Task GetAsyncWithFallback_UsesConfiguredFallbackUserAgent()
     {
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
         var observedUserAgents = new List<string>();
         var callCount = 0;
 
-        var handler = new Mock<HttpMessageHandler>();
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
             .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
@@ -66,11 +66,11 @@ public class CustomHttpClientTests
     [Fact]
     public async Task GetAsyncWithFallback_UsesDefaultFallbackUserAgentsWhenConfigMissing()
     {
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
         var observedUserAgents = new List<string>();
         var callCount = 0;
 
-        var handler = new Mock<HttpMessageHandler>();
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
             .Returns<HttpRequestMessage, CancellationToken>((request, _) =>

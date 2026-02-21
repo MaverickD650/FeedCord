@@ -16,8 +16,8 @@ namespace FeedCord.Tests.Infrastructure
 
         public YoutubeParsingServiceTests()
         {
-            _mockHttpClient = new Mock<ICustomHttpClient>();
-            _mockLogger = new Mock<ILogger<YoutubeParsingService>>();
+            _mockHttpClient = new Mock<ICustomHttpClient>(MockBehavior.Loose);
+            _mockLogger = new Mock<ILogger<YoutubeParsingService>>(MockBehavior.Loose);
             _youtubeParsingService = new YoutubeParsingService(_mockHttpClient.Object, _mockLogger.Object);
         }
 
@@ -35,7 +35,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(validFeed)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
@@ -70,10 +70,10 @@ namespace FeedCord.Tests.Infrastructure
             };
 
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(channelUrl, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(htmlResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(htmlResponse));
 
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback("https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxxx", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(feedResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(feedResponse));
 
             // Act
             var result = await _youtubeParsingService.GetXmlUrlAndFeed(html);
@@ -122,7 +122,7 @@ namespace FeedCord.Tests.Infrastructure
             // Arrange
             var xml = "https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxxx";
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xml, It.IsAny<CancellationToken>()))
-                .ReturnsAsync((HttpResponseMessage)null!);
+                .Returns(Task.FromResult<HttpResponseMessage?>((HttpResponseMessage)null!));
 
             // Act
             var result = await _youtubeParsingService.GetXmlUrlAndFeed(xml);
@@ -147,7 +147,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(validFeed)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
@@ -181,7 +181,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(feedWithMissingFields)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
@@ -208,7 +208,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(feedWithoutEntry)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
@@ -229,7 +229,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(malformedXml)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
@@ -247,7 +247,7 @@ namespace FeedCord.Tests.Infrastructure
             // Arrange
             var xmlUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxxx";
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
-                .ReturnsAsync((HttpResponseMessage)null!);
+                .Returns(Task.FromResult<HttpResponseMessage?>((HttpResponseMessage)null!));
 
             // Act
             var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
@@ -263,7 +263,7 @@ namespace FeedCord.Tests.Infrastructure
             var xmlUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxxx";
             var mockResponse = new HttpResponseMessage(HttpStatusCode.NotFound);
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
@@ -297,7 +297,7 @@ namespace FeedCord.Tests.Infrastructure
             var exception = new HttpRequestException("Network error");
 
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
-                .ThrowsAsync(exception);
+                .Returns(Task.FromException<HttpResponseMessage?>(exception));
 
             // Act
             var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
@@ -321,7 +321,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(emptyXml)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
@@ -359,7 +359,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(feed)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);

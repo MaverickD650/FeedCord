@@ -15,8 +15,8 @@ public class FeedManagerFactoryTests
     public void Create_ReturnsFeedManagerInstance()
     {
         var services = new ServiceCollection();
-        var httpClientMock = new Mock<ICustomHttpClient>();
-        var rssParserMock = new Mock<IRssParsingService>();
+        var httpClientMock = new Mock<ICustomHttpClient>(MockBehavior.Loose);
+        var rssParserMock = new Mock<IRssParsingService>(MockBehavior.Loose);
 
         services.AddLogging();
         services.AddSingleton(httpClientMock.Object);
@@ -35,7 +35,7 @@ public class FeedManagerFactoryTests
             RssCheckIntervalMinutes = 10
         };
 
-        var aggregatorMock = new Mock<ILogAggregator>();
+        var aggregatorMock = new Mock<ILogAggregator>(MockBehavior.Loose);
 
         var feedManager = sut.Create(config, aggregatorMock.Object);
 
