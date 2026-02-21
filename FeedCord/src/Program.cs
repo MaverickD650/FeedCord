@@ -2,8 +2,10 @@
 
 public class Program
 {
+    internal static Action<string[]> StartupEntryPoint { get; set; } = Startup.Initialize;
+
     public static void Main(string[] args)
     {
-        Startup.Initialize(args);
+        StartupEntryPoint(args);
     }
 }

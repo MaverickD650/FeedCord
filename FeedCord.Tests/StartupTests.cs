@@ -1,7 +1,17 @@
 using Xunit;
 using FeedCord.Common;
 using System.ComponentModel.DataAnnotations;
+using System.Reflection;
+using System.Runtime.ExceptionServices;
+using FeedCord.Helpers;
+using FeedCord.Services.Interfaces;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Console;
+using Microsoft.Extensions.Options;
 
 namespace FeedCord.Tests
 {
@@ -446,5 +456,230 @@ namespace FeedCord.Tests
         }
 
         #endregion
+    }
+
+    public class StartupPrivateMethodCoverageTests
+    {
+        [Fact]
+        public void CreateHostBuilder_WithArgs_ReturnsHostBuilder()
+        {
+            var result = InvokeStartupPrivateMethod("CreateHostBuilder", (object)Array.Empty<string>());
+
+            Assert.NotNull(result);
+            Assert.IsAssignableFrom<IHostBuilder>(result);
+        }
+
+        [Fact]
+        public void SetupConfiguration_WithSingleArgument_UsesProvidedPath()
+        {
+            var context = new HostBuilderContext(new Dictionary<object, object>());
+            var builder = new ConfigurationBuilder();
+
+            InvokeStartupPrivateMethod("SetupConfiguration", context, builder, new[] { "custom-config.json" });
+
+            var jsonSource = Assert.IsType<JsonConfigurationSource>(builder.Sources.Last());
+            Assert.Equal("custom-config.json", jsonSource.Path);
+        }
+
+        [Fact]
+        public void SetupConfiguration_WithMultipleArguments_UsesDefaultPath()
+        {
+            var context = new HostBuilderContext(new Dictionary<object, object>());
+            var builder = new ConfigurationBuilder();
+
+            InvokeStartupPrivateMethod("SetupConfiguration", context, builder, new[] { "one", "two" });
+
+            var jsonSource = Assert.IsType<JsonConfigurationSource>(builder.Sources.Last());
+            Assert.Equal("config/appsettings.json", jsonSource.Path);
+        }
+
+        [Fact]
+        public void SetupLogging_ConfiguresCustomFormatterAndFilters()
+        {
+            var loggingBuilder = new TestLoggingBuilder();
+            var context = new HostBuilderContext(new Dictionary<object, object>());
+
+            InvokeStartupPrivateMethod("SetupLogging", context, loggingBuilder);
+
+            using var provider = loggingBuilder.Services.BuildServiceProvider();
+            var consoleOptions = provider.GetRequiredService<IOptions<ConsoleLoggerOptions>>().Value;
+            var filterOptions = provider.GetRequiredService<IOptions<LoggerFilterOptions>>().Value;
+
+            Assert.Equal("customlogsformatter", consoleOptions.FormatterName);
+            Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft" && r.LogLevel == LogLevel.Information);
+            Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft.Hosting" && r.LogLevel == LogLevel.Warning);
+            Assert.Contains(filterOptions.Rules, r => r.CategoryName == "System" && r.LogLevel == LogLevel.Information);
+            Assert.Contains(filterOptions.Rules, r => r.CategoryName == "System.Net.Http.HttpClient" && r.LogLevel == LogLevel.Warning);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(201)]
+        public void SetupServices_WithInvalidConcurrentRequests_Throws(int concurrentRequests)
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["ConcurrentRequests"] = concurrentRequests.ToString(),
+            });
+
+            var services = new ServiceCollection();
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                InvokeStartupPrivateMethod("SetupServices", context, services));
+
+            Assert.Contains("ConcurrentRequests", exception.Message);
+        }
+
+        [Fact]
+        public void SetupServices_RegistersSemaphoreAndReferenceStore()
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["ConcurrentRequests"] = "12",
+            });
+
+            var services = new ServiceCollection();
+
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            using var provider = services.BuildServiceProvider();
+            var semaphore = provider.GetRequiredService<SemaphoreSlim>();
+            var referencePostStore = provider.GetRequiredService<IReferencePostStore>();
+
+            Assert.Equal(12, semaphore.CurrentCount);
+            Assert.IsType<JsonReferencePostStore>(referencePostStore);
+        }
+
+        [Fact]
+        public void SetupServices_WithValidInstance_RegistersHostedServiceFactory()
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["Instances:0:Id"] = "test-feed",
+                ["Instances:0:RssUrls:0"] = "https://example.com/rss",
+                ["Instances:0:YoutubeUrls:0"] = "https://youtube.com/channel/example",
+                ["Instances:0:DiscordWebhookUrl"] = "https://discord.com/api/webhooks/123/abc",
+                ["Instances:0:RssCheckIntervalMinutes"] = "30",
+                ["Instances:0:DescriptionLimit"] = "250",
+                ["Instances:0:Forum"] = "false",
+                ["Instances:0:MarkdownFormat"] = "false",
+                ["Instances:0:PersistenceOnShutdown"] = "false",
+            });
+
+            var services = new ServiceCollection();
+
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            Assert.Equal(1, services.Count(sd => sd.ServiceType == typeof(IHostedService)));
+        }
+
+        [Fact]
+        public void ValidateConfiguration_WithInvalidConfig_ThrowsDetailedMessage()
+        {
+            var invalidConfig = new Config
+            {
+                Id = null!,
+                RssUrls = Array.Empty<string>(),
+                YoutubeUrls = Array.Empty<string>(),
+                DiscordWebhookUrl = null!,
+                RssCheckIntervalMinutes = 0,
+                DescriptionLimit = 0,
+                Forum = false,
+                MarkdownFormat = false,
+                PersistenceOnShutdown = false,
+            };
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                InvokeStartupPrivateMethod("ValidateConfiguration", invalidConfig));
+
+            Assert.Contains("Invalid config entry", exception.Message);
+        }
+
+        private static HostBuilderContext CreateHostBuilderContext(Dictionary<string, string?> values)
+        {
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(values)
+                .Build();
+
+            return new HostBuilderContext(new Dictionary<object, object>())
+            {
+                Configuration = configuration
+            };
+        }
+
+        private static object? InvokeStartupPrivateMethod(string methodName, params object[] parameters)
+        {
+            var method = typeof(Startup).GetMethod(methodName, BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.NotNull(method);
+
+            try
+            {
+                return method!.Invoke(null, parameters);
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException is not null)
+            {
+                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                throw;
+            }
+        }
+
+        private sealed class TestLoggingBuilder : ILoggingBuilder
+        {
+            public IServiceCollection Services { get; } = new ServiceCollection();
+        }
+    }
+
+    [CollectionDefinition("StartupInitializeNonParallel", DisableParallelization = true)]
+    public class StartupInitializeNonParallelCollection
+    {
+    }
+
+    [Collection("StartupInitializeNonParallel")]
+    public class StartupInitializeExecutionTests
+    {
+        [Fact]
+        public void Initialize_BuildsAndRunsHost_UsingInjectedDelegates()
+        {
+            var buildHostProperty = typeof(Startup).GetProperty(
+                "BuildHost",
+                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic
+            );
+            var runHostProperty = typeof(Startup).GetProperty(
+                "RunHost",
+                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic
+            );
+
+            Assert.NotNull(buildHostProperty);
+            Assert.NotNull(runHostProperty);
+
+            var originalBuildHost = (Func<string[], IHost>)buildHostProperty!.GetValue(null)!;
+            var originalRunHost = (Action<IHost>)runHostProperty!.GetValue(null)!;
+
+            var expectedHost = new Moq.Mock<IHost>(Moq.MockBehavior.Strict).Object;
+            string[]? capturedArgs = null;
+            IHost? capturedHost = null;
+
+            try
+            {
+                buildHostProperty.SetValue(null, (Func<string[], IHost>)(args =>
+                {
+                    capturedArgs = args;
+                    return expectedHost;
+                }));
+
+                runHostProperty.SetValue(null, (Action<IHost>)(host => capturedHost = host));
+
+                var args = new[] { "config/appsettings.json" };
+                Startup.Initialize(args);
+
+                Assert.Same(args, capturedArgs);
+                Assert.Same(expectedHost, capturedHost);
+            }
+            finally
+            {
+                buildHostProperty.SetValue(null, originalBuildHost);
+                runHostProperty.SetValue(null, originalRunHost);
+            }
+        }
     }
 }
