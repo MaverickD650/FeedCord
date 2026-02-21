@@ -64,6 +64,12 @@ Provided below is a quick guide to get up and running.
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36",
       "FeedFetcher-Google"
     ]
+  },
+  "Observability": {
+    "Urls": "http://0.0.0.0:9090",
+    "MetricsPath": "/metrics",
+    "LivenessPath": "/health/live",
+    "ReadinessPath": "/health/ready"
   }
 }
 ```
@@ -81,6 +87,26 @@ There are currently 17 properties you can configure. You can read more in depth 
 
 - When `PersistenceOnShutdown` is `true`, FeedCord persists feed state to `feed_dump.json`.
 - `feed_dump.json` is the persistence format.
+
+### Metrics & Health Endpoints
+
+- Prometheus scrape endpoint: `/metrics`
+- Kubernetes liveness endpoint: `/health/live`
+- Kubernetes readiness endpoint: `/health/ready`
+
+Kubernetes probes example:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 9090
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 9090
+```
 
 ---
 

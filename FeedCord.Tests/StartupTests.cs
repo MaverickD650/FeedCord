@@ -655,6 +655,46 @@ namespace FeedCord.Tests
         }
 
         [Theory]
+        [InlineData("metrics")]
+        [InlineData("health/live")]
+        public void SetupServices_WithInvalidObservabilityMetricsPath_Throws(string metricsPath)
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "20",
+                ["Observability:MetricsPath"] = metricsPath,
+            });
+
+            var services = new ServiceCollection();
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                InvokeStartupPrivateMethod("SetupServices", context, services));
+
+            Assert.Contains("Invalid observability configuration", exception.Message);
+            Assert.Contains("MetricsPath", exception.Message);
+        }
+
+        [Theory]
+        [InlineData("health/live")]
+        [InlineData("live")]
+        public void SetupServices_WithInvalidObservabilityLivenessPath_Throws(string livenessPath)
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "20",
+                ["Observability:LivenessPath"] = livenessPath,
+            });
+
+            var services = new ServiceCollection();
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                InvokeStartupPrivateMethod("SetupServices", context, services));
+
+            Assert.Contains("Invalid observability configuration", exception.Message);
+            Assert.Contains("LivenessPath", exception.Message);
+        }
+
+        [Theory]
         [InlineData(1)]
         [InlineData(10)]
         [InlineData(25)]

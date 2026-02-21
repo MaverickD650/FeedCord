@@ -7,14 +7,19 @@ using FeedCord.Core.Factories;
 using FeedCord.Infrastructure.Http;
 using FeedCord.Services.Factories;
 using FeedCord.Infrastructure.Factories;
+using FeedCord.Infrastructure.Health;
 using FeedCord.Services.Interfaces;
 using FeedCord.Infrastructure.Parsers;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
+using OpenTelemetry.Metrics;
 using System.Net;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
@@ -40,7 +45,58 @@ namespace FeedCord
                     SetupConfiguration(ctx, builder, args);
                 })
                 .ConfigureLogging(SetupLogging)
+                .ConfigureWebHostDefaults(ConfigureWebHost)
                 .ConfigureServices(SetupServices);
+        }
+
+        private static void ConfigureWebHost(IWebHostBuilder webBuilder)
+        {
+            webBuilder.ConfigureServices((ctx, services) =>
+            {
+                var observabilityOptions =
+                    ctx.Configuration.GetSection(ObservabilityOptions.SectionName).Get<ObservabilityOptions>() ??
+                    new ObservabilityOptions();
+
+                webBuilder.UseUrls(observabilityOptions.Urls);
+
+                services.AddHealthChecks()
+                    .AddCheck<LivenessHealthCheck>("live", tags: new[] { "live" })
+                    .AddCheck<ReadinessHealthCheck>("ready", tags: new[] { "ready" });
+
+                services.AddOpenTelemetry()
+                    .WithMetrics(metrics =>
+                    {
+                        metrics
+                            .AddRuntimeInstrumentation()
+                            .AddAspNetCoreInstrumentation()
+                            .AddHttpClientInstrumentation()
+                            .AddPrometheusExporter();
+                    });
+            });
+
+            webBuilder.Configure((ctx, app) =>
+            {
+                var observabilityOptions =
+                    ctx.Configuration.GetSection(ObservabilityOptions.SectionName).Get<ObservabilityOptions>() ??
+                    new ObservabilityOptions();
+
+                app.UseRouting();
+
+                app.UseEndpoints(endpoints =>
+                {
+                    endpoints.MapHealthChecks(observabilityOptions.LivenessPath, new HealthCheckOptions
+                    {
+                        Predicate = check => check.Tags.Contains("live")
+                    });
+
+                    endpoints.MapHealthChecks(observabilityOptions.ReadinessPath, new HealthCheckOptions
+                    {
+                        Predicate = check => check.Tags.Contains("ready")
+                    });
+
+                    endpoints.MapPrometheusScrapingEndpoint(observabilityOptions.MetricsPath);
+                });
+            });
         }
 
         private static void SetupConfiguration(HostBuilderContext ctx, IConfigurationBuilder builder, string[] args)
@@ -85,6 +141,18 @@ namespace FeedCord
             {
                 var httpErrors = string.Join("\n", httpOptionsValidationResults.Select(r => r.ErrorMessage));
                 throw new InvalidOperationException($"Invalid HTTP configuration: {httpErrors}");
+            }
+
+            var observabilityOptions =
+                ctx.Configuration.GetSection(ObservabilityOptions.SectionName).Get<ObservabilityOptions>() ??
+                new ObservabilityOptions();
+
+            var observabilityContext = new ValidationContext(observabilityOptions, serviceProvider: null, items: null);
+            var observabilityValidationResults = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(observabilityOptions, observabilityContext, observabilityValidationResults, validateAllProperties: true))
+            {
+                var observabilityErrors = string.Join("\n", observabilityValidationResults.Select(r => r.ErrorMessage));
+                throw new InvalidOperationException($"Invalid observability configuration: {observabilityErrors}");
             }
 
             var fallbackUserAgents = httpOptions.FallbackUserAgents;

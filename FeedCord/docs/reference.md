@@ -154,6 +154,62 @@ Example:
 }
 ```
 
+## Observability Settings (Prometheus + Kubernetes)
+
+`Observability` configures the management HTTP endpoints used for metrics and health probes.
+
+Example:
+
+```json
+{
+  "Observability": {
+    "Urls": "http://0.0.0.0:9090",
+    "MetricsPath": "/metrics",
+    "LivenessPath": "/health/live",
+    "ReadinessPath": "/health/ready"
+  }
+}
+```
+
+Defaults:
+
+- `Urls`: `http://0.0.0.0:9090`
+- `MetricsPath`: `/metrics`
+- `LivenessPath`: `/health/live`
+- `ReadinessPath`: `/health/ready`
+
+Validation:
+
+- Path values must start with `/`.
+
+Kubernetes probe example:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 9090
+  initialDelaySeconds: 20
+  periodSeconds: 15
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 9090
+  initialDelaySeconds: 5
+  periodSeconds: 10
+```
+
+Prometheus scrape example:
+
+```yaml
+scrape_configs:
+  - job_name: feedcord
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["feedcord.default.svc.cluster.local:9090"]
+```
+
 ## Post Filters
 
 `PostFilters` is an array of objects with `Url` and `Filters` fields.
@@ -262,4 +318,5 @@ Filter all feeds with `"Url": "all"`:
 - **ConcurrentRequests**: Per-instance request limit.
 - **App**: Optional top-level app settings object.
 - **Http**: Optional top-level HTTP settings object.
+- **Observability**: Optional top-level metrics and health probe settings.
 - **PostFilters**: Phrase filters applied to title/content.
