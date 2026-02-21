@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.ExceptionServices;
 using FeedCord.Helpers;
 using FeedCord.Services.Interfaces;
+using FeedCord.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
@@ -611,6 +612,103 @@ namespace FeedCord.Tests
                 InvokeStartupPrivateMethod("ValidateConfiguration", invalidConfig));
 
             Assert.Contains("Invalid config entry", exception.Message);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(301)]
+        public void SetupServices_WithInvalidTimeoutSeconds_Throws(int timeoutSeconds)
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "20",
+                ["Http:TimeoutSeconds"] = timeoutSeconds.ToString(),
+            });
+
+            var services = new ServiceCollection();
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                InvokeStartupPrivateMethod("SetupServices", context, services));
+
+            Assert.Contains("Invalid HTTP configuration", exception.Message);
+            Assert.Contains("TimeoutSeconds", exception.Message);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(121)]
+        public void SetupServices_WithInvalidPostMinIntervalSeconds_Throws(int postMinInterval)
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "20",
+                ["Http:PostMinIntervalSeconds"] = postMinInterval.ToString(),
+            });
+
+            var services = new ServiceCollection();
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                InvokeStartupPrivateMethod("SetupServices", context, services));
+
+            Assert.Contains("Invalid HTTP configuration", exception.Message);
+            Assert.Contains("PostMinIntervalSeconds", exception.Message);
+        }
+
+        [Fact]
+        public void SetupServices_WithNonDefaultConcurrentRequests_LogsInformation()
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "25",
+            });
+
+            var services = new ServiceCollection();
+
+            // This should not throw and should log that ConcurrentRequests is 25
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            using var provider = services.BuildServiceProvider();
+            var semaphore = provider.GetRequiredService<SemaphoreSlim>();
+
+            Assert.Equal(25, semaphore.CurrentCount);
+        }
+
+        [Fact]
+        public void SetupServices_RegistersBatchLogger()
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "20",
+            });
+
+            var services = new ServiceCollection();
+
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            using var provider = services.BuildServiceProvider();
+            var batchLogger = provider.GetRequiredService<IBatchLogger>();
+
+            Assert.NotNull(batchLogger);
+            Assert.IsType<FeedCord.Core.BatchLogger>(batchLogger);
+        }
+
+        [Fact]
+        public void SetupServices_RegistersCustomHttpClient()
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "20",
+            });
+
+            var services = new ServiceCollection();
+
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            using var provider = services.BuildServiceProvider();
+            var customHttpClient = provider.GetRequiredService<ICustomHttpClient>();
+
+            Assert.NotNull(customHttpClient);
+            Assert.IsType<FeedCord.Infrastructure.Http.CustomHttpClient>(customHttpClient);
         }
 
         private static HostBuilderContext CreateHostBuilderContext(Dictionary<string, string?> values)
