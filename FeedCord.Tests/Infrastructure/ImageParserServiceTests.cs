@@ -169,7 +169,7 @@ namespace FeedCord.Tests.Infrastructure
         [Fact]
         public async Task TryExtractImageLink_WithRelativeUrl_FallsBackToWebpageScrape()
         {
-            // Arrange - Create XML with relative URL which should fallback
+            // Arrange
             var xml = @"<?xml version='1.0'?>
 <rss>
     <channel>
@@ -189,8 +189,29 @@ namespace FeedCord.Tests.Infrastructure
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com/feed", xml);
 
-            // Assert - May extract or fallback
+            // Assert
+            Assert.Equal("https://example.com/fallback.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithRelativeUrlAndInvalidBaseUrl_ReturnsEmpty()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <enclosure type='image/jpeg' url='/images/photo.jpg' />
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("", xml);
+
+            // Assert
             Assert.NotNull(result);
+            Assert.Empty(result);
         }
 
         [Fact]

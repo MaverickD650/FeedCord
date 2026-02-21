@@ -126,7 +126,7 @@ public class JsonReferencePostStoreTests : IDisposable
     {
         // Arrange
         File.WriteAllText(_testFilePath, "{ bad json without close brace");
-        var mockLogger = new Mock<ILogger<JsonReferencePostStore>>();
+        var mockLogger = new Mock<ILogger<JsonReferencePostStore>>(MockBehavior.Loose);
         var store = new JsonReferencePostStore(_testFilePath, mockLogger.Object);
 
         // Act

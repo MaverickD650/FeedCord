@@ -23,12 +23,12 @@ namespace FeedCord.Infrastructure.Parsers
                 return await ScrapeImageFromWebpage(pageUrl);
 
             var feedImageUrl = ExtractImageFromFeedXml(xmlSource);
+            var resolvedFeedImageUrl = ResolveAndValidateImageUrl(pageUrl, feedImageUrl);
 
-            if (!IsValidImageUrl(feedImageUrl))
+            if (string.IsNullOrWhiteSpace(resolvedFeedImageUrl))
                 return await ScrapeImageFromWebpage(pageUrl);
 
-            feedImageUrl = MakeAbsoluteUrl(pageUrl, feedImageUrl);
-            return feedImageUrl;
+            return resolvedFeedImageUrl;
         }
 
         private static string ExtractImageFromFeedXml(string xmlSource)
@@ -124,8 +124,9 @@ namespace FeedCord.Infrastructure.Parsers
                 var imageUrl = ExtractImageFromDocument(doc);
                 if (!string.IsNullOrEmpty(imageUrl))
                 {
-                    imageUrl = MakeAbsoluteUrl(pageUrl, imageUrl);
-                    return imageUrl;
+                    var resolvedImageUrl = ResolveAndValidateImageUrl(pageUrl, imageUrl);
+                    if (!string.IsNullOrWhiteSpace(resolvedImageUrl))
+                        return resolvedImageUrl;
                 }
             }
             catch (Exception ex)
@@ -134,6 +135,22 @@ namespace FeedCord.Infrastructure.Parsers
             }
 
             return string.Empty;
+        }
+
+        private static string ResolveAndValidateImageUrl(string pageUrl, string? foundUrl)
+        {
+            if (!IsValidImageUrl(foundUrl))
+                return string.Empty;
+
+            var resolvedUrl = MakeAbsoluteUrl(pageUrl, foundUrl);
+            if (!Uri.TryCreate(resolvedUrl, UriKind.Absolute, out var parsedUri))
+                return string.Empty;
+
+            if (!parsedUri.Scheme.Equals(Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+                !parsedUri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                return string.Empty;
+
+            return parsedUri.ToString();
         }
 
         private static string? ExtractImageFromDocument(HtmlDocument doc)
