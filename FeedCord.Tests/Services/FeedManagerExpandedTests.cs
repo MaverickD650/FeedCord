@@ -19,11 +19,11 @@ namespace FeedCord.Tests.Services
 
         public FeedManagerExpandedTests()
         {
-            _mockHttpClient = new Mock<ICustomHttpClient>();
-            _mockRssParser = new Mock<IRssParsingService>();
-            _mockLogger = new Mock<ILogger<FeedManager>>();
-            _mockAggregator = new Mock<ILogAggregator>();
-            _mockFilterService = new Mock<IPostFilterService>();
+            _mockHttpClient = new Mock<ICustomHttpClient>(MockBehavior.Loose);
+            _mockRssParser = new Mock<IRssParsingService>(MockBehavior.Loose);
+            _mockLogger = new Mock<ILogger<FeedManager>>(MockBehavior.Loose);
+            _mockAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+            _mockFilterService = new Mock<IPostFilterService>(MockBehavior.Loose);
         }
 
         #region Constructor Tests
@@ -109,7 +109,7 @@ namespace FeedCord.Tests.Services
 
             _mockHttpClient
                 .Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK });
+                .Returns(Task.FromResult<HttpResponseMessage?>(new HttpResponseMessage { StatusCode = HttpStatusCode.OK }));
 
             var manager = new FeedManager(
                 config,
@@ -147,7 +147,7 @@ namespace FeedCord.Tests.Services
 
             _mockHttpClient
                 .Setup(x => x.GetAsyncWithFallback("https://example.com/rss", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK });
+                .Returns(Task.FromResult<HttpResponseMessage?>(new HttpResponseMessage { StatusCode = HttpStatusCode.OK }));
 
             var manager = new FeedManager(
                 config,
@@ -185,7 +185,7 @@ namespace FeedCord.Tests.Services
 
             _mockHttpClient
                 .Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((HttpResponseMessage)null!);
+                .Returns(Task.FromResult<HttpResponseMessage?>((HttpResponseMessage)null!));
 
             var manager = new FeedManager(
                 config,
@@ -223,7 +223,7 @@ namespace FeedCord.Tests.Services
 
             _mockHttpClient
                 .Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.NotFound });
+                .Returns(Task.FromResult<HttpResponseMessage?>(new HttpResponseMessage { StatusCode = HttpStatusCode.NotFound }));
 
             var manager = new FeedManager(
                 config,
@@ -437,7 +437,7 @@ namespace FeedCord.Tests.Services
 
             _mockHttpClient
                 .Setup(x => x.GetAsyncWithFallback(url, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK });
+                .Returns(Task.FromResult<HttpResponseMessage?>(new HttpResponseMessage { StatusCode = HttpStatusCode.OK }));
 
             var manager = new FeedManager(
                 config,
@@ -552,7 +552,7 @@ namespace FeedCord.Tests.Services
 
             _mockHttpClient
                 .Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new HttpRequestException("Network error"));
+                .Returns(Task.FromException<HttpResponseMessage?>(new HttpRequestException("Network error")));
 
             var manager = new FeedManager(
                 config,

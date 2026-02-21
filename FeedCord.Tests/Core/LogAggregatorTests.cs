@@ -13,7 +13,7 @@ public class LogAggregatorTests
 
     public LogAggregatorTests()
     {
-        _mockBatchLogger = new Mock<IBatchLogger>();
+        _mockBatchLogger = new Mock<IBatchLogger>(MockBehavior.Loose);
     }
 
     private Config CreateTestConfig(string id = "TestConfig")

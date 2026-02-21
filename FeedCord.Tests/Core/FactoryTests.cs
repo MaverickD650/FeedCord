@@ -44,7 +44,7 @@ public class FactoryTests
     public void LogAggregatorFactory_Create_ReturnsLogAggregatorWithInstanceId()
     {
         var services = new ServiceCollection();
-        var batchLogger = new Mock<IBatchLogger>();
+        var batchLogger = new Mock<IBatchLogger>(MockBehavior.Loose);
         services.AddSingleton(batchLogger.Object);
 
         var provider = services.BuildServiceProvider();

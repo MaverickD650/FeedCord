@@ -19,11 +19,11 @@ public class FeedManagerTests
 
     public FeedManagerTests()
     {
-        _mockHttpClient = new Mock<ICustomHttpClient>();
-        _mockRssParser = new Mock<IRssParsingService>();
-        _mockLogger = new Mock<ILogger<FeedManager>>();
-        _mockAggregator = new Mock<ILogAggregator>();
-        _mockFilterService = new Mock<IPostFilterService>();
+        _mockHttpClient = new Mock<ICustomHttpClient>(MockBehavior.Loose);
+        _mockRssParser = new Mock<IRssParsingService>(MockBehavior.Loose);
+        _mockLogger = new Mock<ILogger<FeedManager>>(MockBehavior.Loose);
+        _mockAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+        _mockFilterService = new Mock<IPostFilterService>(MockBehavior.Loose);
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public class FeedManagerTests
 
         _mockHttpClient
             .Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new HttpResponseMessage { StatusCode = System.Net.HttpStatusCode.OK });
+            .Returns(Task.FromResult<HttpResponseMessage?>(new HttpResponseMessage { StatusCode = System.Net.HttpStatusCode.OK }));
 
         var manager = new FeedManager(
             config,
@@ -75,7 +75,7 @@ public class FeedManagerTests
 
         _mockHttpClient
             .Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new HttpResponseMessage { StatusCode = System.Net.HttpStatusCode.OK });
+            .Returns(Task.FromResult<HttpResponseMessage?>(new HttpResponseMessage { StatusCode = System.Net.HttpStatusCode.OK }));
 
         var manager = new FeedManager(
             config,
@@ -113,11 +113,11 @@ public class FeedManagerTests
 
         _mockRssParser
             .Setup(x => x.ParseYoutubeFeedAsync(youtubeFeedUrl))
-            .ReturnsAsync(post);
+            .Returns(Task.FromResult<Post?>(post));
 
         _mockHttpClient
             .Setup(x => x.GetAsyncWithFallback(youtubeFeedUrl, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.OK });
+            .Returns(Task.FromResult<HttpResponseMessage?>(new HttpResponseMessage { StatusCode = HttpStatusCode.OK }));
 
         var manager = new FeedManager(
             config,
@@ -146,15 +146,15 @@ public class FeedManagerTests
 
         _mockHttpClient
             .Setup(x => x.GetAsyncWithFallback(youtubeChannelUrl, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new HttpResponseMessage
+            .Returns(Task.FromResult<HttpResponseMessage?>(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.OK,
                 Content = new StringContent(html)
-            });
+            }));
 
         _mockRssParser
             .Setup(x => x.ParseYoutubeFeedAsync(It.IsAny<string>()))
-            .ReturnsAsync((Post?)null);
+            .Returns(Task.FromResult<Post?>((Post?)null));
 
         var manager = new FeedManager(
             config,
@@ -213,7 +213,7 @@ public class FeedManagerTests
 
         _mockRssParser
             .Setup(x => x.ParseRssFeedAsync(It.IsAny<string>(), It.IsAny<int>()))
-            .ReturnsAsync(new List<Post?> { testPost });
+            .Returns(Task.FromResult<List<Post?>>(new List<Post?> { testPost }));
 
         _mockFilterService
             .Setup(x => x.ShouldIncludePost(It.IsAny<Post>(), It.IsAny<string>()))

@@ -15,8 +15,8 @@ namespace FeedCord.Tests.Infrastructure
 
         public ImageParserServiceTests()
         {
-            _mockHttpClient = new Mock<ICustomHttpClient>();
-            _mockLogger = new Mock<ILogger<ImageParserService>>();
+            _mockHttpClient = new Mock<ICustomHttpClient>(MockBehavior.Loose);
+            _mockLogger = new Mock<ILogger<ImageParserService>>(MockBehavior.Loose);
             _imageParserService = new ImageParserService(_mockHttpClient.Object, _mockLogger.Object);
         }
 
@@ -111,7 +111,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent("<html><meta property='og:image' content='https://example.com/webpage-image.jpg'/></html>")
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback("https://example.com", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
@@ -130,7 +130,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent("<html><img src='https://example.com/img.jpg'/></html>")
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback("https://example.com", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", null!);
@@ -157,7 +157,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent("<html><meta property='og:image' content='https://example.com/fallback.jpg'/></html>")
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback("https://example.com", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
@@ -184,7 +184,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent("<html><img src='https://example.com/fallback.jpg'/></html>")
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback("https://example.com/feed", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com/feed", xml);
@@ -198,7 +198,7 @@ namespace FeedCord.Tests.Infrastructure
         {
             // Arrange
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback("https://example.com", It.IsAny<CancellationToken>()))
-                .ReturnsAsync((HttpResponseMessage)null!);
+                .Returns(Task.FromResult<HttpResponseMessage?>((HttpResponseMessage)null!));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
@@ -252,7 +252,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(html)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
@@ -276,7 +276,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(html)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
@@ -300,7 +300,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(html)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
@@ -324,7 +324,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(html)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
@@ -348,7 +348,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(html)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
@@ -372,7 +372,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(html)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
@@ -397,7 +397,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(html)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
@@ -417,7 +417,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent(html)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
@@ -442,7 +442,7 @@ namespace FeedCord.Tests.Infrastructure
                 Content = new StringContent("<html><img src='https://example.com/fallback.jpg'/></html>")
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
@@ -458,7 +458,7 @@ namespace FeedCord.Tests.Infrastructure
             // Arrange
             var mockResponse = new HttpResponseMessage(HttpStatusCode.NotFound);
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(mockResponse);
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
             // Act
             var result = await _imageParserService.TryExtractImageLink("https://example.com", "");

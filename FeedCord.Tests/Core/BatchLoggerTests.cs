@@ -24,7 +24,7 @@ public class BatchLoggerTests
 
     private static LogAggregator CreateLogAggregator(string id = "TestFeed")
     {
-        var batchLoggerMock = new Mock<IBatchLogger>();
+        var batchLoggerMock = new Mock<IBatchLogger>(MockBehavior.Loose);
         var config = new Config
         {
             Id = id,
@@ -39,7 +39,7 @@ public class BatchLoggerTests
     [Fact]
     public async Task ConsumeLogData_WhenNoNewPosts_LogsLatestPostsAndResets()
     {
-        var loggerMock = new Mock<ILogger<BatchLogger>>();
+        var loggerMock = new Mock<ILogger<BatchLogger>>(MockBehavior.Loose);
         var sut = new BatchLogger(loggerMock.Object);
         var logItem = CreateLogAggregator("DailyRun");
 
@@ -74,7 +74,7 @@ public class BatchLoggerTests
     [Fact]
     public async Task ConsumeLogData_WithFailures_LogsFailedStatusDetails()
     {
-        var loggerMock = new Mock<ILogger<BatchLogger>>();
+        var loggerMock = new Mock<ILogger<BatchLogger>>(MockBehavior.Loose);
         var sut = new BatchLogger(loggerMock.Object);
         var logItem = CreateLogAggregator();
 
@@ -100,7 +100,7 @@ public class BatchLoggerTests
     [Fact]
     public async Task ConsumeLogData_WithNewPosts_LogsNewPostCount()
     {
-        var loggerMock = new Mock<ILogger<BatchLogger>>();
+        var loggerMock = new Mock<ILogger<BatchLogger>>(MockBehavior.Loose);
         var sut = new BatchLogger(loggerMock.Object);
         var logItem = CreateLogAggregator();
 

@@ -10,7 +10,7 @@ public class EncodingExtractorTests
 {
     private HttpContentHeaders CreateMockHeaders(string? charSet = null)
     {
-        var mockContent = new Mock<HttpContent>();
+        var mockContent = new Mock<HttpContent>(MockBehavior.Loose);
         var headers = mockContent.Object.Headers;
         if (!string.IsNullOrEmpty(charSet))
         {

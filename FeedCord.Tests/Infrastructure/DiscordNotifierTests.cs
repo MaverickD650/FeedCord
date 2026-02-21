@@ -24,8 +24,8 @@ public class DiscordNotifierTests
             DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
             Forum = false
         };
-        var mockHttpClient = new Mock<ICustomHttpClient>();
-        var mockPayloadService = new Mock<IDiscordPayloadService>();
+        var mockHttpClient = new Mock<ICustomHttpClient>(MockBehavior.Loose);
+        var mockPayloadService = new Mock<IDiscordPayloadService>(MockBehavior.Loose);
         mockPayloadService.Setup(x => x.BuildPayloadWithPost(It.IsAny<Post>())).Returns(new System.Net.Http.StringContent("{}"));
         mockPayloadService.Setup(x => x.BuildForumWithPost(It.IsAny<Post>())).Returns(new System.Net.Http.StringContent("{}"));
         mockHttpClient.Setup(x => x.PostAsyncWithFallback(It.IsAny<string>(), It.IsAny<System.Net.Http.StringContent>(), It.IsAny<System.Net.Http.StringContent>(), It.IsAny<bool>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -48,11 +48,11 @@ public class DiscordNotifierTests
             DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
             Forum = false
         };
-        var mockHttpClient = new Mock<ICustomHttpClient>();
-        var mockPayloadService = new Mock<IDiscordPayloadService>();
+        var mockHttpClient = new Mock<ICustomHttpClient>(MockBehavior.Loose);
+        var mockPayloadService = new Mock<IDiscordPayloadService>(MockBehavior.Loose);
         mockPayloadService.Setup(x => x.BuildPayloadWithPost(It.IsAny<Post>())).Returns(new System.Net.Http.StringContent("{}"));
         mockPayloadService.Setup(x => x.BuildForumWithPost(It.IsAny<Post>())).Returns(new System.Net.Http.StringContent("{}"));
-        mockHttpClient.Setup(x => x.PostAsyncWithFallback(It.IsAny<string>(), It.IsAny<System.Net.Http.StringContent>(), It.IsAny<System.Net.Http.StringContent>(), It.IsAny<bool>(), It.IsAny<CancellationToken>())).ThrowsAsync(new System.Exception("fail"));
+        mockHttpClient.Setup(x => x.PostAsyncWithFallback(It.IsAny<string>(), It.IsAny<System.Net.Http.StringContent>(), It.IsAny<System.Net.Http.StringContent>(), It.IsAny<bool>(), It.IsAny<CancellationToken>())).Returns(Task.FromException(new System.Exception("fail")));
         var notifier = new DiscordNotifier(config, mockHttpClient.Object, mockPayloadService.Object);
         var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", System.DateTime.Now, "author") };
 

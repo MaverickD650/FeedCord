@@ -15,9 +15,9 @@ public class RssParsingServiceTests
 
     public RssParsingServiceTests()
     {
-        _mockLogger = new Mock<ILogger<RssParsingService>>();
-        _mockYoutubeParser = new Mock<IYoutubeParsingService>();
-        _mockImageParser = new Mock<IImageParserService>();
+        _mockLogger = new Mock<ILogger<RssParsingService>>(MockBehavior.Loose);
+        _mockYoutubeParser = new Mock<IYoutubeParsingService>(MockBehavior.Loose);
+        _mockImageParser = new Mock<IImageParserService>(MockBehavior.Loose);
     }
 
     [Fact]
@@ -196,7 +196,7 @@ public class RssParsingServiceTests
 
         _mockYoutubeParser
             .Setup(x => x.GetXmlUrlAndFeed(channelUrl))
-            .ReturnsAsync(expectedPost);
+            .Returns(Task.FromResult<Post?>(expectedPost));
 
         var service = new RssParsingService(
             _mockLogger.Object,
@@ -221,7 +221,7 @@ public class RssParsingServiceTests
 
         _mockYoutubeParser
             .Setup(x => x.GetXmlUrlAndFeed(invalidUrl))
-            .ReturnsAsync((Post?)null!);
+            .Returns(Task.FromResult<Post?>((Post?)null!));
 
         var service = new RssParsingService(
             _mockLogger.Object,

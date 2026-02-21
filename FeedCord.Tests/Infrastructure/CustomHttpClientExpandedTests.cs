@@ -16,8 +16,8 @@ namespace FeedCord.Tests.Infrastructure
         public async Task GetAsyncWithFallback_WithCachedUserAgent_UsesCachedValue()
         {
             // Arrange
-            var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-            var handler = new Mock<HttpMessageHandler>();
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
             var requestedUserAgents = new List<string>();
 
             handler.Protected()
@@ -52,8 +52,8 @@ namespace FeedCord.Tests.Infrastructure
         public async Task GetAsyncWithFallback_WithTaskCanceledException_LogsWarningAndReturnsNull()
         {
             // Arrange
-            var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-            var handler = new Mock<HttpMessageHandler>();
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
 
             handler.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -77,8 +77,8 @@ namespace FeedCord.Tests.Infrastructure
         public async Task GetAsyncWithFallback_WithOperationCancelledException_LogsWarningAndReturnsNull()
         {
             // Arrange
-            var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-            var handler = new Mock<HttpMessageHandler>();
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
 
             handler.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -102,8 +102,8 @@ namespace FeedCord.Tests.Infrastructure
         public async Task GetAsyncWithFallback_WithGeneralException_LogsErrorAndReturnsNull()
         {
             // Arrange
-            var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-            var handler = new Mock<HttpMessageHandler>();
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
 
             handler.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -127,9 +127,9 @@ namespace FeedCord.Tests.Infrastructure
         public async Task GetAsyncWithFallback_TriesFallbackUserAgentsOnFailure()
         {
             // Arrange
-            var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
             var callCount = 0;
-            var handler = new Mock<HttpMessageHandler>();
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
 
             handler.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -161,9 +161,9 @@ namespace FeedCord.Tests.Infrastructure
         public async Task PostAsyncWithFallback_WithSuccessResponse_DoesNotRetry()
         {
             // Arrange
-            var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
             var callCount = 0;
-            var handler = new Mock<HttpMessageHandler>();
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
 
             handler.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -190,9 +190,9 @@ namespace FeedCord.Tests.Infrastructure
         public async Task PostAsyncWithFallback_WithFailureResponse_RetriesWithAltChannelType()
         {
             // Arrange
-            var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
             var callCount = 0;
-            var handler = new Mock<HttpMessageHandler>();
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
 
             handler.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -220,8 +220,8 @@ namespace FeedCord.Tests.Infrastructure
         public async Task PostAsyncWithFallback_EnforcesRateLimiting()
         {
             // Arrange
-            var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-            var handler = new Mock<HttpMessageHandler>();
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
 
             handler.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -255,10 +255,10 @@ namespace FeedCord.Tests.Infrastructure
         public async Task Throttle_LimitsSimultaneousRequests()
         {
             // Arrange
-            var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
             var activeRequests = 0;
             var maxConcurrentRequests = 0;
-            var handler = new Mock<HttpMessageHandler>();
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
 
             handler.Protected()
                 .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -297,7 +297,7 @@ namespace FeedCord.Tests.Infrastructure
         public void Constructor_WithNullFallbackUserAgents_UsesDefaults()
         {
             // Arrange
-            var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
             var httpClient = new HttpClient();
             var throttle = new SemaphoreSlim(1, 1);
 
@@ -312,7 +312,7 @@ namespace FeedCord.Tests.Infrastructure
         public void Constructor_WithEmptyFallbackUserAgents_FiltersAndDeduplicates()
         {
             // Arrange
-            var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
             var httpClient = new HttpClient();
             var throttle = new SemaphoreSlim(1, 1);
             var userAgents = new[] { "  UA1  ", "", "  UA1  ", null! }; // Has duplicates and whitespace

@@ -18,7 +18,7 @@ public class FactoryTests
     public void NotifierFactory_Create_ReturnsDiscordNotifier()
     {
         var services = new ServiceCollection();
-        var httpClientMock = new Mock<ICustomHttpClient>();
+        var httpClientMock = new Mock<ICustomHttpClient>(MockBehavior.Loose);
         services.AddSingleton(httpClientMock.Object);
 
         var provider = services.BuildServiceProvider();
@@ -32,7 +32,7 @@ public class FactoryTests
             DiscordWebhookUrl = "https://discord.com/api/webhooks/1/2"
         };
 
-        var payloadServiceMock = new Mock<IDiscordPayloadService>();
+        var payloadServiceMock = new Mock<IDiscordPayloadService>(MockBehavior.Loose);
         var notifier = sut.Create(config, payloadServiceMock.Object);
 
         Assert.IsType<DiscordNotifier>(notifier);
@@ -42,12 +42,12 @@ public class FactoryTests
     public void FeedWorkerFactory_Create_ReturnsFeedWorkerAndLogsCreation()
     {
         var services = new ServiceCollection();
-        var lifetimeMock = new Mock<IHostApplicationLifetime>();
+        var lifetimeMock = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
         services.AddSingleton(lifetimeMock.Object);
         services.AddLogging();
 
         var provider = services.BuildServiceProvider();
-        var factoryLoggerMock = new Mock<ILogger<FeedWorkerFactory>>();
+        var factoryLoggerMock = new Mock<ILogger<FeedWorkerFactory>>(MockBehavior.Loose);
         var sut = new FeedWorkerFactory(provider, factoryLoggerMock.Object);
 
         var config = new Config
@@ -60,9 +60,9 @@ public class FactoryTests
             PersistenceOnShutdown = false
         };
 
-        var aggregatorMock = new Mock<ILogAggregator>();
-        var feedManagerMock = new Mock<IFeedManager>();
-        var notifierMock = new Mock<INotifier>();
+        var aggregatorMock = new Mock<ILogAggregator>(MockBehavior.Loose);
+        var feedManagerMock = new Mock<IFeedManager>(MockBehavior.Loose);
+        var notifierMock = new Mock<INotifier>(MockBehavior.Loose);
 
         var worker = sut.Create(config, aggregatorMock.Object, feedManagerMock.Object, notifierMock.Object);
 

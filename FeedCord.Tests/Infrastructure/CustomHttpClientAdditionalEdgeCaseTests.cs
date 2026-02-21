@@ -17,10 +17,10 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task GetAsyncWithFallback_ParsesRobotsTxtWithMultipleUserAgents()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
         var requestedUrls = new List<string>();
 
-        var handler = new Mock<HttpMessageHandler>();
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
             .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
@@ -57,10 +57,10 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task GetAsyncWithFallback_HandlesRobotsTxtFetchFailureGracefully()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
         var callCount = 0;
 
-        var handler = new Mock<HttpMessageHandler>();
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
             .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
@@ -86,9 +86,9 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task GetAsyncWithFallback_SkipsEmptyRobotsTxtContent()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
         var callCount = 0;
-        var handler = new Mock<HttpMessageHandler>();
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
 
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -134,11 +134,11 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task GetAsyncWithFallback_CachesSuccessfulUserAgentForURL()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
         var url = "https://example.com/feed";
         var callCountForUrl = 0;
 
-        var handler = new Mock<HttpMessageHandler>();
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
             .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
@@ -180,11 +180,11 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task GetAsyncWithFallback_UsesCachedUserAgentOnSubsequentRequests()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
         var url = "https://example.com/feed";
         var userAgentAttempts = new List<string>();
 
-        var handler = new Mock<HttpMessageHandler>();
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
             .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
@@ -220,8 +220,8 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task PostAsyncWithFallback_EnforcesMinimumTimeIntervalPrecisely()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-        var handler = new Mock<HttpMessageHandler>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         var postTimes = new List<DateTime>();
 
         handler.Protected()
@@ -256,8 +256,8 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task PostAsyncWithFallback_RateLimitAppliesPerChannel()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-        var handler = new Mock<HttpMessageHandler>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         var postTimes = new List<long>();
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
@@ -288,8 +288,8 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task PostAsyncWithFallback_HandlesRateLimitWithCancellation()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-        var handler = new Mock<HttpMessageHandler>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
 
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -322,8 +322,8 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task PostAsyncWithFallback_BothAttemptsFailLogsAllFailures()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-        var handler = new Mock<HttpMessageHandler>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         var callCount = 0;
 
         handler.Protected()
@@ -364,8 +364,8 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task PostAsyncWithFallback_FallbackSucceedsAfterInitialFailure()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-        var handler = new Mock<HttpMessageHandler>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         var callCount = 0;
 
         handler.Protected()
@@ -412,8 +412,8 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task PostAsyncWithFallback_ReleasesRateLimiterOnException()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-        var handler = new Mock<HttpMessageHandler>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         var callCount = 0;
 
         handler.Protected()
@@ -461,8 +461,8 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task GetAsyncWithFallback_HandlesSpecialCharactersInURL()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-        var handler = new Mock<HttpMessageHandler>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         var requestedUrls = new List<string>();
 
         handler.Protected()
@@ -491,8 +491,8 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task GetAsyncWithFallback_HandlesDifferentDomainSuffixes()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-        var handler = new Mock<HttpMessageHandler>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
 
         handler.Protected()
             .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
@@ -525,8 +525,8 @@ public class CustomHttpClientAdditionalEdgeCaseTests
     public async Task GetAsyncWithFallback_HandlesConcurrentRequestsWithThrottle()
     {
         // Arrange
-        var mockLogger = new Mock<ILogger<CustomHttpClient>>();
-        var handler = new Mock<HttpMessageHandler>();
+        var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+        var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
         var activeRequests = 0;
         var maxConcurrentRequests = 0;
 
