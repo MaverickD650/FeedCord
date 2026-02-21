@@ -654,23 +654,48 @@ namespace FeedCord.Tests
             Assert.Contains("PostMinIntervalSeconds", exception.Message);
         }
 
-        [Fact]
-        public void SetupServices_WithNonDefaultConcurrentRequests_LogsInformation()
+        [Theory]
+        [InlineData(1)]
+        [InlineData(10)]
+        [InlineData(25)]
+        [InlineData(50)]
+        [InlineData(100)]
+        [InlineData(200)]
+        public void SetupServices_WithNonDefaultConcurrentRequests_LogsInformation(int concurrentRequests)
         {
             var context = CreateHostBuilderContext(new Dictionary<string, string?>
             {
-                ["App:ConcurrentRequests"] = "25",
+                ["App:ConcurrentRequests"] = concurrentRequests.ToString(),
             });
 
             var services = new ServiceCollection();
 
-            // This should not throw and should log that ConcurrentRequests is 25
+            // This should not throw and should log that ConcurrentRequests is set
             InvokeStartupPrivateMethod("SetupServices", context, services);
 
             using var provider = services.BuildServiceProvider();
             var semaphore = provider.GetRequiredService<SemaphoreSlim>();
 
-            Assert.Equal(25, semaphore.CurrentCount);
+            Assert.Equal(concurrentRequests, semaphore.CurrentCount);
+        }
+
+        [Fact]
+        public void SetupServices_WithDefaultConcurrentRequests_DoesNotLog()
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["App:ConcurrentRequests"] = "20",
+            });
+
+            var services = new ServiceCollection();
+
+            // With default value of 20, the logging should be skipped
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            using var provider = services.BuildServiceProvider();
+            var semaphore = provider.GetRequiredService<SemaphoreSlim>();
+
+            Assert.Equal(20, semaphore.CurrentCount);
         }
 
         [Fact]
