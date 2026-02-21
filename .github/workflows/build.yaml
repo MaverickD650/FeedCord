@@ -61,6 +61,8 @@ jobs:
           tags: ghcr.io/${{ steps.downcase.outputs.repo }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Export digest
         run: |
