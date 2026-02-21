@@ -247,4 +247,38 @@ public class RssParsingServiceTests
             Times.Once
         );
     }
+
+    [Fact]
+    public async Task ParseRssFeedAsync_WithCancelledToken_ThrowsOperationCancelledException()
+    {
+        // Arrange
+        var xmlContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<rss version=""2.0"">
+  <channel>
+    <title>Test Feed</title>
+    <link>http://example.com</link>
+    <description>A test feed</description>
+    <item>
+      <title>Test Post</title>
+      <link>http://example.com/post1</link>
+      <description>Test description</description>
+      <pubDate>Mon, 06 Sep 2026 00:01:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>";
+
+        var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var service = new RssParsingService(
+            _mockLogger.Object,
+            _mockYoutubeParser.Object,
+            _mockImageParser.Object
+        );
+
+        // Act & Assert
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => service.ParseRssFeedAsync(xmlContent, trim: 250, cancellationToken: cts.Token)
+        );
+    }
 }
