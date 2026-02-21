@@ -87,10 +87,10 @@ public class ServiceInterfacesTests
     {
         var interfaceType = typeof(IRssParsingService);
 
-        var parseRssMethod = GetRequiredMethod(interfaceType, nameof(IRssParsingService.ParseRssFeedAsync), typeof(string), typeof(int));
+        var parseRssMethod = GetRequiredMethod(interfaceType, nameof(IRssParsingService.ParseRssFeedAsync), typeof(string), typeof(int), typeof(CancellationToken));
         Assert.Equal(typeof(Task<List<Post?>>), parseRssMethod.ReturnType);
 
-        var parseYoutubeMethod = GetRequiredMethod(interfaceType, nameof(IRssParsingService.ParseYoutubeFeedAsync), typeof(string));
+        var parseYoutubeMethod = GetRequiredMethod(interfaceType, nameof(IRssParsingService.ParseYoutubeFeedAsync), typeof(string), typeof(CancellationToken));
         Assert.Equal(typeof(Task<Post?>), parseYoutubeMethod.ReturnType);
     }
 
@@ -99,7 +99,7 @@ public class ServiceInterfacesTests
     {
         var interfaceType = typeof(IYoutubeParsingService);
 
-        var parseMethod = GetRequiredMethod(interfaceType, nameof(IYoutubeParsingService.GetXmlUrlAndFeed), typeof(string));
+        var parseMethod = GetRequiredMethod(interfaceType, nameof(IYoutubeParsingService.GetXmlUrlAndFeed), typeof(string), typeof(CancellationToken));
         Assert.Equal(typeof(Task<Post?>), parseMethod.ReturnType);
     }
 

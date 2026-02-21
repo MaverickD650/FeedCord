@@ -54,8 +54,10 @@ namespace FeedCord.Services.Helpers
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                // Silent recovery - continue with empty author rather than failing post parsing
+                System.Diagnostics.Debug.WriteLine($"Failed to extract author from feed item: {ex}");
                 return string.Empty;
             }
 

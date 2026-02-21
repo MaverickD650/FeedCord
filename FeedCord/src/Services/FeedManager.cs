@@ -263,7 +263,7 @@ namespace FeedCord.Services
 
                 if (IsDirectYoutubeFeedUrl(url))
                 {
-                    post = await _rssParsingService.ParseYoutubeFeedAsync(url);
+                    post = await _rssParsingService.ParseYoutubeFeedAsync(url, cancellationToken);
                     return post == null ? new List<Post?>() : new List<Post?> { post };
                 }
 
@@ -279,7 +279,7 @@ namespace FeedCord.Services
 
                 var xmlContent = await GetResponseContentAsync(response, cancellationToken);
 
-                post = await _rssParsingService.ParseYoutubeFeedAsync(xmlContent);
+                post = await _rssParsingService.ParseYoutubeFeedAsync(xmlContent, cancellationToken);
 
                 return post == null ? new List<Post?>() : new List<Post?> { post };
 
@@ -344,7 +344,7 @@ namespace FeedCord.Services
 
                 var xmlContent = await GetResponseContentAsync(response, cancellationToken);
 
-                return await _rssParsingService.ParseRssFeedAsync(xmlContent, trim);
+                return await _rssParsingService.ParseRssFeedAsync(xmlContent, trim, cancellationToken);
 
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -81,6 +81,7 @@ namespace FeedCord.Infrastructure.Parsers
             }
             catch (Exception)
             {
+                // Silent recovery in static utility - errors are logged at caller level
             }
             return string.Empty;
         }

@@ -23,7 +23,7 @@ namespace FeedCord.Services
             _imageParserService = imageParserService;
         }
 
-        public async Task<List<Post?>> ParseRssFeedAsync(string xmlContent, int trim)
+        public async Task<List<Post?>> ParseRssFeedAsync(string xmlContent, int trim, CancellationToken cancellationToken = default)
         {
             var xmlContenter = xmlContent.Replace("<!doctype", "<!DOCTYPE");
 
@@ -42,13 +42,14 @@ namespace FeedCord.Services
 
                 foreach (var post in feedItems)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var rawXml = GetRawXmlForItem(post);
 
                     // Temporary, don't extract images from post url
                     var imageLink = feed.ImageUrl;
 
                     // var imageLink = await _imageParserService
-                    //     .TryExtractImageLink(post.Link, rawXml)
+                    //     .TryExtractImageLink(post.Link, rawXml, cancellationToken)
                     //                 ?? feed.ImageUrl;
 
                     var builtPost = PostBuilder.TryBuildPost(post, feed, trim, imageLink);
@@ -59,6 +60,10 @@ namespace FeedCord.Services
                 return posts;
 
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogWarning("An unexpected error occurred while parsing the RSS feed: {Ex}", SensitiveDataMasker.MaskException(ex));
@@ -66,9 +71,9 @@ namespace FeedCord.Services
             }
         }
 
-        public async Task<Post?> ParseYoutubeFeedAsync(string channelUrl)
+        public async Task<Post?> ParseYoutubeFeedAsync(string channelUrl, CancellationToken cancellationToken = default)
         {
-            var youtubePost = await _youtubeParsingService.GetXmlUrlAndFeed(channelUrl);
+            var youtubePost = await _youtubeParsingService.GetXmlUrlAndFeed(channelUrl, cancellationToken);
 
             if (youtubePost is null)
                 _logger.LogWarning("Failed to parse Youtube Feed from url: {ChannelUrl} - Try directly feeding the xml formatted Url, otherwise could be a malformed feed", channelUrl);

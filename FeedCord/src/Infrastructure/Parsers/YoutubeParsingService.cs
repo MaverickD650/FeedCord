@@ -18,11 +18,11 @@ namespace FeedCord.Infrastructure.Parsers
             _logger = logger;
         }
 
-        public async Task<Post?> GetXmlUrlAndFeed(string xml)
+        public async Task<Post?> GetXmlUrlAndFeed(string xml, CancellationToken cancellationToken = default)
         {
             if (xml.StartsWith("https") && xml.Contains("xml"))
             {
-                return await GetRecentPost(xml);
+                return await GetRecentPost(xml, cancellationToken);
             }
 
 
@@ -34,14 +34,14 @@ namespace FeedCord.Infrastructure.Parsers
             if (node != null)
             {
                 var hrefValue = node.GetAttributeValue("href", "");
-                return await GetRecentPost(hrefValue);
+                return await GetRecentPost(hrefValue, cancellationToken);
             }
 
             _logger.LogWarning("No RSS feed link found in the provided XML.");
             return null;
         }
 
-        private async Task<Post?> GetRecentPost(string xmlUrl)
+        private async Task<Post?> GetRecentPost(string xmlUrl, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(xmlUrl))
             {
@@ -50,13 +50,13 @@ namespace FeedCord.Infrastructure.Parsers
 
             try
             {
-                var response = await _httpClient.GetAsyncWithFallback(xmlUrl);
+                var response = await _httpClient.GetAsyncWithFallback(xmlUrl, cancellationToken);
 
                 if (response is null) return null;
 
                 response.EnsureSuccessStatusCode();
 
-                var xmlContent = await response.Content.ReadAsStringAsync();
+                var xmlContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
                 var xdoc = XDocument.Parse(xmlContent);
                 if (xdoc.Root == null) return null;
