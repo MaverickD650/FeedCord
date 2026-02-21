@@ -3,7 +3,6 @@ name: Test
 
 permissions:
   contents: read
-  checks: write
   id-token: write
 
 on:
@@ -63,13 +62,6 @@ jobs:
           name: test-results-10.0
           path: './TestResults/**/*.trx'
           if-no-files-found: warn
-
-      - name: Publish test results
-        if: always()
-        uses: EnricoMi/publish-unit-test-result-action@27d65e188ec43221b20d26de30f4892fad91df2f # v2
-        with:
-          files: './TestResults/**/*.trx'
-          check_name: Test Results (.NET 10.0)
 
       - name: Upload coverage to Codecov
         if: always()
