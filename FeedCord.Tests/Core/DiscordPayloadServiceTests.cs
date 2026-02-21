@@ -374,6 +374,25 @@ public class DiscordPayloadServiceTests
     }
 
     [Fact]
+    public async Task BuildPayloadWithPost_WithMarkdownFormatAndNonForum_OmitsThreadName()
+    {
+        // Arrange
+        var config = CreateTestConfig(isMarkdownFormat: true, isForum: false);
+        var service = new DiscordPayloadService(config);
+        var post = CreateTestPost(title: "Markdown Non Forum");
+
+        // Act
+        var content = service.BuildPayloadWithPost(post);
+        var jsonString = await content.ReadAsStringAsync();
+
+        // Assert
+        using var jsonDoc = JsonDocument.Parse(jsonString);
+        var root = jsonDoc.RootElement;
+        Assert.True(root.TryGetProperty("content", out _));
+        Assert.False(root.TryGetProperty("thread_name", out _));
+    }
+
+    [Fact]
     public async Task BuildPayloadWithPost_WithCustomAuthorName_OverridesPostAuthor()
     {
         // Arrange

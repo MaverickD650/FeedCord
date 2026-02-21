@@ -57,7 +57,7 @@ namespace FeedCord.Infrastructure.Http
 
                 response = await SendGetAsync(request, cancellationToken);
 
-                if (!response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode && ShouldTryAlternative(response.StatusCode))
                 {
                     response = await TryAlternativeAsync(url, response, cancellationToken);
                 }
@@ -148,7 +148,7 @@ namespace FeedCord.Infrastructure.Http
                         continue;
                     }
 
-                    _userAgentCache.AddOrUpdate(url, fallbackUserAgent, (_, _) => fallbackUserAgent);
+                    _userAgentCache[url] = fallbackUserAgent;
                     return response;
                 }
 
@@ -165,7 +165,7 @@ namespace FeedCord.Infrastructure.Http
                         response = await SendGetAsync(request, cancellationToken);
                         if (response.IsSuccessStatusCode)
                         {
-                            _userAgentCache.AddOrUpdate(url, userAgent, (_, _) => userAgent);
+                            _userAgentCache[url] = userAgent;
                             return response;
                         }
                     }
@@ -180,6 +180,14 @@ namespace FeedCord.Infrastructure.Http
                 _logger.LogError("Failed to fetch RSS Feed after fallback attempts: {Url} - {E}", url, SensitiveDataMasker.MaskException(e));
             }
             return oldResponse;
+        }
+
+        private static bool ShouldTryAlternative(HttpStatusCode statusCode)
+        {
+            return statusCode == HttpStatusCode.Forbidden
+                   || statusCode == HttpStatusCode.Unauthorized
+                   || statusCode == HttpStatusCode.TooManyRequests
+                   || statusCode == HttpStatusCode.NotAcceptable;
         }
 
         private async Task<string> FetchRobotsContentAsync(string url, CancellationToken cancellationToken)
@@ -236,8 +244,8 @@ namespace FeedCord.Infrastructure.Http
 
         private static async Task<StringContent> CloneStringContentAsync(StringContent content, CancellationToken cancellationToken)
         {
-            var payload = await content.ReadAsStringAsync(cancellationToken);
             var mediaType = content.Headers.ContentType?.MediaType ?? "application/json";
+            var payloadBytes = await content.ReadAsByteArrayAsync(cancellationToken);
 
             var charset = content.Headers.ContentType?.CharSet;
             Encoding encoding;
@@ -252,6 +260,8 @@ namespace FeedCord.Infrastructure.Http
             {
                 encoding = Encoding.UTF8;
             }
+
+            var payload = encoding.GetString(payloadBytes);
 
             var clone = new StringContent(payload, encoding, mediaType);
 

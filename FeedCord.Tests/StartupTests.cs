@@ -375,58 +375,30 @@ namespace FeedCord.Tests
 
     public class StartupIntegrationTests
     {
-        #region Service Configuration Constants
+        #region Service Configuration Behavior
 
         [Fact]
-        public void HttpClientUserAgent_ContainsExpectedComponents()
+        public void SetupServices_RegistersHttpClientFactory_WithExpectedDefaults()
         {
-            // Verify that the default user agent contains expected components
-            var userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
-                           "(KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36";
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["ConcurrentRequests"] = "20"
+            });
 
-            // Assert
+            var services = new ServiceCollection();
+
+            InvokeStartupPrivateMethod("SetupServices", context, services);
+
+            using var provider = services.BuildServiceProvider();
+            var factory = provider.GetRequiredService<IHttpClientFactory>();
+            var client = factory.CreateClient("Default");
+            var userAgent = client.DefaultRequestHeaders.UserAgent.ToString();
+
+            Assert.True(
+                client.Timeout == TimeSpan.FromSeconds(30) || client.Timeout == Timeout.InfiniteTimeSpan,
+                $"Unexpected timeout: {client.Timeout}");
             Assert.Contains("Mozilla", userAgent);
             Assert.Contains("Chrome", userAgent);
-        }
-
-        [Fact]
-        public void HttpClientTimeout_Is30Seconds()
-        {
-            // Verify timeout constant
-            var timeout = TimeSpan.FromSeconds(30);
-
-            // Assert
-            Assert.Equal(30, timeout.TotalSeconds);
-        }
-
-        [Fact]
-        public void DefaultConcurrentRequests_Is20()
-        {
-            // Verify default concurrent requests value
-            var defaultValue = 20;
-
-            // Assert
-            Assert.Equal(20, defaultValue);
-        }
-
-        [Fact]
-        public void ConcurrentRequests_MinimumValue_IsOne()
-        {
-            // Verify minimum concurrent requests
-            var minimum = 1;
-
-            // Assert
-            Assert.Equal(1, minimum);
-        }
-
-        [Fact]
-        public void ConcurrentRequests_MaximumValue_Is200()
-        {
-            // Verify maximum concurrent requests
-            var maximum = 200;
-
-            // Assert
-            Assert.Equal(200, maximum);
         }
 
         #endregion
@@ -453,6 +425,34 @@ namespace FeedCord.Tests
 
             // Assert
             Assert.Equal(LogLevel.Warning, hostingLevel);
+        }
+
+        private static HostBuilderContext CreateHostBuilderContext(Dictionary<string, string?> values)
+        {
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(values)
+                .Build();
+
+            return new HostBuilderContext(new Dictionary<object, object>())
+            {
+                Configuration = configuration
+            };
+        }
+
+        private static object? InvokeStartupPrivateMethod(string methodName, params object[] parameters)
+        {
+            var method = typeof(Startup).GetMethod(methodName, BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.NotNull(method);
+
+            try
+            {
+                return method!.Invoke(null, parameters);
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException is not null)
+            {
+                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                throw;
+            }
         }
 
         #endregion

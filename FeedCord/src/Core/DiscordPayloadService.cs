@@ -9,7 +9,13 @@ namespace FeedCord.Core
 {
     public class DiscordPayloadService : IDiscordPayloadService
     {
-        private Config _config;
+        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        private readonly Config _config;
 
         public DiscordPayloadService(Config config)
         {
@@ -29,13 +35,7 @@ namespace FeedCord.Core
                 Embeds = new[] { embed }
             };
 
-            var payloadJson = JsonSerializer.Serialize(payload, new JsonSerializerOptions
-            {
-                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
-
-            return new StringContent(payloadJson, Encoding.UTF8, "application/json");
+            return SerializeToJsonContent(payload);
         }
 
         public StringContent BuildForumWithPost(Post post)
@@ -48,16 +48,10 @@ namespace FeedCord.Core
             {
                 Content = post.Tag,
                 Embeds = new[] { embed },
-                ThreadName = post.Title.Length > 100 ? post.Title[..99] : post.Title
+                ThreadName = GetThreadName(post.Title)
             };
 
-            var payloadJson = JsonSerializer.Serialize(payload, new JsonSerializerOptions
-            {
-                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
-
-            return new StringContent(payloadJson, Encoding.UTF8, "application/json");
+            return SerializeToJsonContent(payload);
         }
 
         private DiscordEmbed BuildEmbed(Post post)
@@ -104,15 +98,20 @@ namespace FeedCord.Core
             DiscordMarkdownPayload payload = new()
             {
                 Content = markdownPost,
-                ThreadName = _config.Forum ? (post.Title.Length > 100 ? post.Title[..99] : post.Title) : null
+                ThreadName = _config.Forum ? GetThreadName(post.Title) : null
             };
 
-            var payloadJson = JsonSerializer.Serialize(payload, new JsonSerializerOptions
-            {
-                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+            return SerializeToJsonContent(payload);
+        }
 
+        private static string GetThreadName(string title)
+        {
+            return title.Length > 100 ? title[..99] : title;
+        }
+
+        private static StringContent SerializeToJsonContent<TPayload>(TPayload payload)
+        {
+            var payloadJson = JsonSerializer.Serialize(payload, JsonOptions);
             return new StringContent(payloadJson, Encoding.UTF8, "application/json");
         }
     }
