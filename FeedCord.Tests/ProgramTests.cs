@@ -3,6 +3,11 @@ using System.Reflection;
 
 namespace FeedCord.Tests
 {
+    [CollectionDefinition("ProgramMainNonParallel", DisableParallelization = true)]
+    public class ProgramMainNonParallelCollection
+    {
+    }
+
     public class ProgramTests
     {
         #region Program Structure Tests
@@ -361,6 +366,38 @@ namespace FeedCord.Tests
         }
 
         #endregion
+    }
+
+    [Collection("ProgramMainNonParallel")]
+    public class ProgramExecutionTests
+    {
+        [Fact]
+        public void Program_Main_InvokesStartupEntryPointWithProvidedArgs()
+        {
+            var startupEntryPointProperty = typeof(Program).GetProperty(
+                "StartupEntryPoint",
+                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic
+            );
+
+            Assert.NotNull(startupEntryPointProperty);
+
+            var originalStartupEntryPoint = (Action<string[]>)startupEntryPointProperty!.GetValue(null)!;
+            string[]? capturedArgs = null;
+
+            try
+            {
+                startupEntryPointProperty.SetValue(null, (Action<string[]>)(args => capturedArgs = args));
+
+                var args = new[] { "config/custom.json" };
+                Program.Main(args);
+
+                Assert.Same(args, capturedArgs);
+            }
+            finally
+            {
+                startupEntryPointProperty.SetValue(null, originalStartupEntryPoint);
+            }
+        }
     }
 }
 

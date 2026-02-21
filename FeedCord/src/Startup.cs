@@ -21,10 +21,13 @@ namespace FeedCord
 {
     public class Startup
     {
+        internal static Func<string[], IHost> BuildHost { get; set; } = args => CreateHostBuilder(args).Build();
+        internal static Action<IHost> RunHost { get; set; } = host => host.Run();
+
         public static void Initialize(string[] args)
         {
-            var host = CreateHostBuilder(args).Build();
-            host.Run();
+            var host = BuildHost(args);
+            RunHost(host);
         }
 
         private static IHostBuilder CreateHostBuilder(string[] args)
