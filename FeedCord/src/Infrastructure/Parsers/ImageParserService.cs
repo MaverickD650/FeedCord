@@ -79,9 +79,8 @@ namespace FeedCord.Infrastructure.Parsers
                 var fromContent = ExtractImgFromHtml(contentHtml);
                 if (!string.IsNullOrEmpty(fromContent)) return fromContent;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine("Failed to parse feed XML. " + ex.Message);
             }
             return string.Empty;
         }

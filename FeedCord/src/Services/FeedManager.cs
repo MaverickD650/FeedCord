@@ -19,6 +19,7 @@ namespace FeedCord.Services
         private readonly ILogger<FeedManager> _logger;
         private readonly IRssParsingService _rssParsingService;
         private readonly IPostFilterService _postFilterService;
+        private readonly IReferencePostStore _referencePostStore;
         private readonly Dictionary<string, ReferencePost> _lastRunReference;
         private readonly ConcurrentDictionary<string, FeedState> _feedStates;
 
@@ -28,12 +29,14 @@ namespace FeedCord.Services
             IRssParsingService rssParsingService,
             ILogger<FeedManager> logger,
             ILogAggregator logAggregator,
-            IPostFilterService postFilterService)
+            IPostFilterService postFilterService,
+            IReferencePostStore? referencePostStore = null)
         {
             _config = config;
             _httpClient = httpClient;
-            var feedDumpPath = Path.Combine(AppContext.BaseDirectory, "feed_dump.csv");
-            _lastRunReference = CsvReader.LoadReferencePosts(feedDumpPath);
+            var feedDumpPath = Path.Combine(AppContext.BaseDirectory, "feed_dump.json");
+            _referencePostStore = referencePostStore ?? new JsonReferencePostStore(feedDumpPath);
+            _lastRunReference = _referencePostStore.LoadReferencePosts();
             _rssParsingService = rssParsingService;
             _logger = logger;
             _logAggregator = logAggregator;

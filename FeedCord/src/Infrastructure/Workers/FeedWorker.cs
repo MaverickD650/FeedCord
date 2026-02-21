@@ -3,7 +3,6 @@ using FeedCord.Core.Interfaces;
 using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Globalization;
 
 namespace FeedCord.Infrastructure.Workers
 {
@@ -14,6 +13,7 @@ namespace FeedCord.Infrastructure.Workers
         private readonly ILogger<FeedWorker> _logger;
         private readonly IFeedManager _feedManager;
         private readonly INotifier _notifier;
+        private readonly IReferencePostStore _referencePostStore;
 
         private readonly bool _persistent;
         private readonly string _id;
@@ -27,7 +27,8 @@ namespace FeedCord.Infrastructure.Workers
             IFeedManager feedManager,
             INotifier notifier,
             Config config,
-            ILogAggregator logAggregator)
+            ILogAggregator logAggregator,
+            IReferencePostStore? referencePostStore = null)
         {
             _lifetime = lifetime;
             _logger = logger;
@@ -38,7 +39,7 @@ namespace FeedCord.Infrastructure.Workers
             _isInitialized = false;
             _persistent = config.PersistenceOnShutdown;
             _logAggregator = logAggregator;
-
+            _referencePostStore = referencePostStore ?? new NoOpReferencePostStore();
             logger.LogInformation("{id} Created with check interval {Interval} minutes",
                 _id, config.RssCheckIntervalMinutes);
         }
@@ -101,17 +102,14 @@ namespace FeedCord.Infrastructure.Workers
             if (!_persistent) return;
 
             var data = _feedManager.GetAllFeedData();
-            SaveDataToCsv(data);
+            _referencePostStore.SaveReferencePosts(data);
         }
 
-        private void SaveDataToCsv(IReadOnlyDictionary<string, FeedState> data)
+        private sealed class NoOpReferencePostStore : IReferencePostStore
         {
-            var filePath = Path.Combine(AppContext.BaseDirectory, "feed_dump.csv");
-            using var writer = new StreamWriter(filePath, append: false);
-
-            foreach (var (key, value) in data)
+            public Dictionary<string, ReferencePost> LoadReferencePosts() => [];
+            public void SaveReferencePosts(IReadOnlyDictionary<string, FeedState> data)
             {
-                writer.WriteLine($"{key},{value.IsYoutube},{value.LastPublishDate.ToString("O", CultureInfo.InvariantCulture)}");
             }
         }
     }

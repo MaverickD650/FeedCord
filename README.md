@@ -67,6 +67,11 @@ There are currently 17 properties you can configure. You can read more in depth 
 - `RssCheckIntervalMinutes` must be between `1` and `1440`.
 - `DescriptionLimit` must be between `1` and `4000`.
 
+### Persistence Notes
+
+- When `PersistenceOnShutdown` is `true`, FeedCord persists feed state to `feed_dump.json`.
+- `feed_dump.json` is the persistence format.
+
 ---
 
 ### 2. Create a new Webhook in Discord (Visual Steps Provided)

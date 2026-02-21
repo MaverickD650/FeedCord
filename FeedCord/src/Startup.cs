@@ -114,6 +114,11 @@ namespace FeedCord
             services.AddTransient<IImageParserService, ImageParserService>();
             services.AddTransient<IYoutubeParsingService, YoutubeParsingService>();
             services.AddTransient<IDiscordPayloadService, DiscordPayloadService>();
+            services.AddSingleton<IReferencePostStore>(_ =>
+            {
+                var path = Path.Combine(AppContext.BaseDirectory, "feed_dump.json");
+                return new JsonReferencePostStore(path);
+            });
 
             var configs = ctx.Configuration.GetSection("Instances")
                 .Get<List<Config>>() ?? new List<Config>();

@@ -221,7 +221,7 @@ Filter all feeds with `"Url": "all"`:
 - **DescriptionLimit**: Maximum description length.
 - **Forum**: `true` for forum channels, `false` for text channels.
 - **MarkdownFormat**: `true` for markdown posts, `false` for embeds.
-- **PersistenceOnShutdown**: Persist last-run date on shutdown.
+- **PersistenceOnShutdown**: Persist feed state on shutdown. State is written to `feed_dump.json`.
 
 ### Validation Ranges
 
@@ -242,6 +242,3 @@ Filter all feeds with `"Url": "all"`:
 - **ConcurrentRequests**: Per-instance request limit.
 - **HttpFallbackUserAgents**: Optional top-level fallback user-agent list.
 - **PostFilters**: Phrase filters applied to title/content.
-
----
-

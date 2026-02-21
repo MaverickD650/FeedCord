@@ -36,7 +36,7 @@ namespace FeedCord.Common
         public bool Forum { get; set; }
         [Required(ErrorMessage = "Markdown Property is required (True for Markdown Posts, False for Embed Posts)")]
         public bool MarkdownFormat { get; set; }
-        [Required(ErrorMessage = "PersistenceOnShutdown Property is required (True for saving last scan date, False for new instance data on startup)")]
+        [Required(ErrorMessage = "PersistenceOnShutdown Property is required (True to persist feed state on shutdown, False to start fresh each run)")]
         public bool PersistenceOnShutdown { get; set; }
         public List<PostFilters>? PostFilters { get; set; }
         public Dictionary<string, string[]>? Pings { get; set; }

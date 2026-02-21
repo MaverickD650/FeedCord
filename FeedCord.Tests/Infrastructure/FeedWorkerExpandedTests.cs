@@ -274,7 +274,7 @@ namespace FeedCord.Tests.Infrastructure
         #region Shutdown/Persistence Tests
 
         [Fact]
-        public void SaveDataToCsv_WithPersistenceEnabled_SavesToFile()
+        public async Task OnShutdown_WithPersistenceEnabled_SavesThroughReferencePostStore()
         {
             // Arrange
             var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
@@ -282,6 +282,10 @@ namespace FeedCord.Tests.Infrastructure
             var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
             var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
             var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+            var mockReferencePostStore = new Mock<IReferencePostStore>(MockBehavior.Loose);
+            var appStoppingSource = new CancellationTokenSource();
+
+            mockLifetime.SetupGet(x => x.ApplicationStopping).Returns(appStoppingSource.Token);
 
             var feedData = new Dictionary<string, FeedState>
             {
@@ -313,17 +317,30 @@ namespace FeedCord.Tests.Infrastructure
                 mockFeedManager.Object,
                 mockNotifier.Object,
                 config,
-                mockLogAggregator.Object
+                mockLogAggregator.Object,
+                mockReferencePostStore.Object
             );
 
-            // Act & Assert - Should not throw
-            // Note: Writing to actual file system as implementation does
-            // Test verifies the method can be called without error
-            Assert.NotNull(worker);
+            var workerTokenSource = new CancellationTokenSource();
+            var runTask = worker.StartAsync(workerTokenSource.Token);
+
+            await Task.Delay(100);
+            appStoppingSource.Cancel();
+            workerTokenSource.Cancel();
+
+            try
+            {
+                await runTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+
+            mockReferencePostStore.Verify(x => x.SaveReferencePosts(It.IsAny<IReadOnlyDictionary<string, FeedState>>()), Times.AtLeastOnce);
         }
 
         [Fact]
-        public void NoShutdownAction_WhenPersistenceDisabled_DoesNotSave()
+        public async Task OnShutdown_WhenPersistenceDisabled_DoesNotSaveThroughReferencePostStore()
         {
             // Arrange
             var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
@@ -331,6 +348,10 @@ namespace FeedCord.Tests.Infrastructure
             var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
             var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
             var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+            var mockReferencePostStore = new Mock<IReferencePostStore>(MockBehavior.Loose);
+            var appStoppingSource = new CancellationTokenSource();
+
+            mockLifetime.SetupGet(x => x.ApplicationStopping).Returns(appStoppingSource.Token);
 
             var config = new Config
             {
@@ -348,12 +369,26 @@ namespace FeedCord.Tests.Infrastructure
                 mockFeedManager.Object,
                 mockNotifier.Object,
                 config,
-                mockLogAggregator.Object
+                mockLogAggregator.Object,
+                mockReferencePostStore.Object
             );
 
-            // Act & Assert
-            Assert.NotNull(worker);
-            // With persistence disabled, no save should occur on shutdown
+            var workerTokenSource = new CancellationTokenSource();
+            var runTask = worker.StartAsync(workerTokenSource.Token);
+
+            await Task.Delay(100);
+            appStoppingSource.Cancel();
+            workerTokenSource.Cancel();
+
+            try
+            {
+                await runTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+
+            mockReferencePostStore.Verify(x => x.SaveReferencePosts(It.IsAny<IReadOnlyDictionary<string, FeedState>>()), Times.Never);
         }
 
         #endregion
