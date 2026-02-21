@@ -1,23 +1,20 @@
-# Set the desired platform for the build stage
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY ["FeedCord.csproj", "./"]
-COPY ["src", "./src"]
-COPY ["restart-first-run.sh", "./"]
 
-RUN dotnet restore && \
-    dotnet build -c Release -o /app/build && \
-    dotnet publish -c Release -o /app/publish
+COPY FeedCord.csproj ./
+RUN dotnet restore
+
+COPY src ./src
+COPY restart-first-run.sh ./
+RUN dotnet publish FeedCord.csproj -c Release -o /app/publish --no-restore
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
 WORKDIR /app
-COPY --from=build /app/publish .
 
-# Copy the restart script into the container
-COPY restart-first-run.sh /app
+RUN adduser --disabled-password --home /app --gecos "" appuser
+COPY --from=build /app/publish ./
+COPY --from=build /src/restart-first-run.sh ./
+RUN chmod +x /app/restart-first-run.sh && chown -R appuser:appuser /app
 
-# Make the script executable
-RUN chmod +x /app/restart-first-run.sh
-
-# Set the entry point to your application
+USER appuser
 ENTRYPOINT ["/app/restart-first-run.sh"]
