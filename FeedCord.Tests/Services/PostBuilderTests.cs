@@ -429,6 +429,59 @@ namespace FeedCord.Tests.Services
             };
         }
 
+        /// <summary>
+        /// Test that TryBuildPost handles null SpecificItem with various edge cases.
+        /// This verifies the author extraction logic doesn't crash with edge case data,
+        /// exercising the try-catch in TryGetAuthor via various code paths.
+        /// </summary>
+        [Fact]
+        public void TryBuildPost_WithNullSpecificItem_SafelyReturnsPost()
+        {
+            // Arrange - item with null SpecificItem
+            var feed = CreateMockFeed("Test Feed", "https://example.com/rss");
+            var item = new FeedItem
+            {
+                Title = "No Author Feed Item",
+                Description = "Item with no author info",
+                Link = "https://example.com/item1",
+                Author = "",  // Empty author
+                PublishingDate = DateTime.Now,
+                SpecificItem = null
+            };
+
+            // Act - should safely handle null SpecificItem
+            var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("No Author Feed Item", result.Title);
+            Assert.Equal("", result.Author);
+        }
+
+        /// <summary>
+        /// Test that TryBuildPost with an Atom item (AtomFeedItem) extracts author safely.
+        /// This exercises the SpecificItem property access in TryGetAuthor.
+        /// </summary>
+        [Fact]
+        public void TryBuildPost_WithAtomItemButNoAuthor_ReturnsPostWithEmptyAuthor()
+        {
+            // Arrange - create RSS item where accessing SpecificItem properties is safe
+            var feed = CreateMockFeed("Atom Feed", "https://example.com/atom");
+            var item = CreateMockRssItem(
+                "Atom Entry Without Author",
+                "No author info",
+                "https://example.com/entry1"
+            );
+            // SpecificItem will be null (no special author fields), so TryGetAuthor returns empty
+
+            // Act
+            var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+            // Assert - author extraction should fail gracefully with empty string
+            Assert.NotNull(result);
+            Assert.Equal("", result.Author);
+        }
+
         #endregion
     }
 }
