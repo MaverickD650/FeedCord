@@ -59,13 +59,13 @@ namespace FeedCord.Infrastructure.Parsers
                 var xmlContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
                 var xdoc = XDocument.Parse(xmlContent);
-                if (xdoc.Root == null) return null;
 
                 XNamespace atomNs = "http://www.w3.org/2005/Atom";
                 XNamespace mediaNs = "http://search.yahoo.com/mrss/";
 
-                var channelTitle = xdoc.Root.Element(atomNs + "title")?.Value ?? string.Empty;
-                var videoEntry = xdoc.Root.Element(atomNs + "entry");
+                var root = xdoc.Root!;
+                var channelTitle = root.Element(atomNs + "title")?.Value ?? string.Empty;
+                var videoEntry = root.Element(atomNs + "entry");
 
                 if (videoEntry is null)
                 {

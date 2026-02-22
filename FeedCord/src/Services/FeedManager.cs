@@ -214,11 +214,6 @@ namespace FeedCord.Services
             {
                 throw;
             }
-            catch (Exception ex)
-            {
-                HandleFeedError(url, feedState, ex);
-                return;
-            }
             finally
             {
                 if (acquired)
@@ -227,7 +222,10 @@ namespace FeedCord.Services
                 }
             }
 
-            var freshlyFetched = posts.Where(p => p?.PublishDate > feedState.LastPublishDate).ToList();
+            var freshlyFetched = posts
+                .Where(p => p is not null && p.PublishDate > feedState.LastPublishDate)
+                .Cast<Post>()
+                .ToList();
 
             if (freshlyFetched.Any())
             {
@@ -236,12 +234,6 @@ namespace FeedCord.Services
 
                 foreach (var post in freshlyFetched)
                 {
-                    if (post is null)
-                    {
-                        _logger.LogWarning("Failed to parse a post from {Url}", url);
-                        continue;
-                    }
-
                     if (_postFilterService.ShouldIncludePost(post, url))
                     {
                         newPosts.Add(post);

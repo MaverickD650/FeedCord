@@ -821,6 +821,37 @@ namespace FeedCord.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task PostAsyncWithFallback_WhenSourceContentTypeIsNull_UsesJsonUtf8Fallback()
+        {
+            var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+            string? observedMediaType = null;
+            string? observedCharset = null;
+            var handler = new Mock<HttpMessageHandler>(MockBehavior.Loose);
+
+            handler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
+                {
+                    observedMediaType = request.Content?.Headers.ContentType?.MediaType;
+                    observedCharset = request.Content?.Headers.ContentType?.CharSet;
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+                });
+
+            var httpClient = new HttpClient(handler.Object);
+            var throttle = new SemaphoreSlim(1, 1);
+            var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle);
+
+            var forumContent = new StringContent("{\"payload\":1}");
+            forumContent.Headers.ContentType = null;
+            var textContent = new StringContent("{\"payload\":2}");
+
+            await client.PostAsyncWithFallback("https://discord.com/api/webhooks/123", forumContent, textContent, true);
+
+            Assert.Equal("application/json", observedMediaType);
+            Assert.Equal("utf-8", observedCharset);
+        }
+
+        [Fact]
         public async Task PostAsyncWithFallback_WithNonPositiveConfiguredInterval_UsesOneSecondMinimum()
         {
             var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);

@@ -183,6 +183,34 @@ namespace FeedCord.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task GetRecentPost_WithAsynchronouslyCompletedHttpCall_ExtractsFields()
+        {
+            // Arrange
+            var xmlUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxxx";
+            var validFeed = CreateValidAtomFeed();
+            var completion = new TaskCompletionSource<HttpResponseMessage?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
+                .Returns(completion.Task);
+
+            // Act
+            var resultTask = _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            await Task.Yield();
+
+            completion.SetResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(validFeed)
+            });
+
+            var result = await resultTask;
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("Test Video Title", result.Title);
+            Assert.Equal("Test Channel", result.Tag);
+        }
+
+        [Fact]
         public async Task GetRecentPost_WithMissingOptionalFields_StillReturnsPost()
         {
             // Arrange
@@ -245,6 +273,100 @@ namespace FeedCord.Tests.Infrastructure
             Assert.Equal(string.Empty, result.Author);
         }
 
+        [Fact]
+        public async Task GetRecentPost_WithLinkElementMissingHref_UsesEmptyLink()
+        {
+            // Arrange
+            var xmlUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxxx";
+            var feed = @"<?xml version='1.0'?>
+<feed xmlns='http://www.w3.org/2005/Atom' xmlns:media='http://search.yahoo.com/mrss/'>
+    <title>Test Channel</title>
+    <entry>
+        <title>Video Title</title>
+        <link />
+        <published>2024-01-15T10:30:00Z</published>
+    </entry>
+</feed>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(feed)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(string.Empty, result.Link);
+        }
+
+        [Fact]
+        public async Task GetRecentPost_WithThumbnailMissingUrlAttribute_UsesEmptyThumbnail()
+        {
+            // Arrange
+            var xmlUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxxx";
+            var feed = @"<?xml version='1.0'?>
+<feed xmlns='http://www.w3.org/2005/Atom' xmlns:media='http://search.yahoo.com/mrss/'>
+    <title>Test Channel</title>
+    <entry>
+        <title>Video Title</title>
+        <link href='https://www.youtube.com/watch?v=test'/>
+        <media:group>
+            <media:thumbnail />
+        </media:group>
+        <published>2024-01-15T10:30:00Z</published>
+    </entry>
+</feed>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(feed)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(string.Empty, result.ImageUrl);
+        }
+
+        [Fact]
+        public async Task GetRecentPost_WithMediaGroupButNoThumbnailElement_UsesEmptyThumbnail()
+        {
+            // Arrange
+            var xmlUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxxx";
+            var feed = @"<?xml version='1.0'?>
+<feed xmlns='http://www.w3.org/2005/Atom' xmlns:media='http://search.yahoo.com/mrss/'>
+    <title>Test Channel</title>
+    <entry>
+        <title>Video Title</title>
+        <link href='https://www.youtube.com/watch?v=test'/>
+        <media:group>
+        </media:group>
+        <published>2024-01-15T10:30:00Z</published>
+    </entry>
+</feed>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(feed)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(string.Empty, result.ImageUrl);
+        }
         [Fact]
         public async Task GetRecentPost_WithNoEntryInFeed_ReturnsNull()
         {

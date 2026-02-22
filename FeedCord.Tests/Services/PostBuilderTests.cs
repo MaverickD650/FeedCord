@@ -273,6 +273,25 @@ namespace FeedCord.Tests.Services
             Assert.Equal("Regular Post", result.Title);
         }
 
+        [Fact]
+        public void TryBuildPost_WithNullRssLink_UsesEmptyLink()
+        {
+            var feed = CreateMockFeed("General Feed", "https://example.com/feed");
+            var item = new FeedItem
+            {
+                Id = "https://example.com/post",
+                Title = "Regular Post",
+                Description = "Description",
+                Link = null,
+                PublishingDate = DateTime.UtcNow
+            };
+
+            var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+            Assert.NotNull(result);
+            Assert.Equal(string.Empty, result.Link);
+        }
+
         #endregion
 
         #region Date Handling Tests
@@ -761,6 +780,30 @@ namespace FeedCord.Tests.Services
                         Assert.Equal(default, result.PublishDate);
                 }
 
+                    [Fact]
+                    public void TryBuildPost_WithAtomItemWithoutLinks_UsesEmptyLink()
+                    {
+                        var atomXml = """
+                            <feed xmlns="http://www.w3.org/2005/Atom">
+                                <title>Atom Feed</title>
+                                <entry>
+                                <title>No Link Entry</title>
+                                <id>entry-no-link</id>
+                                <published>2025-02-22T08:30:00Z</published>
+                                <content type="html"><![CDATA[content]]></content>
+                                </entry>
+                            </feed>
+                            """;
+
+                        var parsed = FeedReader.ReadFromString(atomXml);
+                        var feed = new Feed { Title = parsed.Title, Link = "https://example.com/atom" };
+                        var item = parsed.Items[0];
+
+                        var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+                        Assert.Equal(string.Empty, result.Link);
+                    }
+
                 [Fact]
                 public void TryBuildPost_WithGitLabItemAndTrim_TrimDescriptionInGitLabBuilder()
                 {
@@ -782,6 +825,25 @@ namespace FeedCord.Tests.Services
                         Assert.Equal(13, result.Description.Length);
                         Assert.EndsWith("...", result.Description);
                 }
+
+                    [Fact]
+                    public void TryBuildPost_WithGitLabNullTitleAndLink_UsesEmptyFallbacks()
+                    {
+                        var item = new FeedItem
+                        {
+                            Id = "https://gitlab.com/org/proj/-/issues/999",
+                            Title = null,
+                            Description = "desc",
+                            Link = null,
+                            PublishingDate = DateTime.UtcNow
+                        };
+                        var feed = new Feed { Title = "GitLab", Link = "https://gitlab.com/org/proj" };
+
+                        var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+                        Assert.Equal(string.Empty, result.Title);
+                        Assert.Equal(string.Empty, result.Link);
+                    }
 
                 [Fact]
                 public void TryBuildPost_WithRedditThumbnailAndAlternateLink_UsesThumbnailAndAlternateHref()
@@ -941,6 +1003,20 @@ namespace FeedCord.Tests.Services
 
             // Assert
             Assert.Equal("Rss Creator", result.Author);
+        }
+
+        [Fact]
+        public void TryGetAuthor_WithNullFeedItem_ReturnsEmptyStringViaCatch()
+        {
+            // Arrange - Use reflection to access private TryGetAuthor method
+            var method = typeof(PostBuilder).GetMethod("TryGetAuthor", BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.NotNull(method);
+
+            // Act - Pass null to trigger exception in try-catch block (lines 58-64)
+            var result = method!.Invoke(null, new object?[] { null });
+
+            // Assert - Catch block returns empty string for defensive safety
+            Assert.Equal(string.Empty, result);
         }
 
         #endregion

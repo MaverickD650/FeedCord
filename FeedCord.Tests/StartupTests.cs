@@ -583,6 +583,35 @@ namespace FeedCord.Tests
         }
 
         [Fact]
+        public void SetupServices_WithValidInstance_ResolvesHostedServiceInstance()
+        {
+            var context = CreateHostBuilderContext(new Dictionary<string, string?>
+            {
+                ["Instances:0:Id"] = "test-feed-resolve",
+                ["Instances:0:RssUrls:0"] = "https://example.com/rss",
+                ["Instances:0:YoutubeUrls:0"] = "https://youtube.com/channel/example",
+                ["Instances:0:DiscordWebhookUrl"] = "https://discord.com/api/webhooks/123/abc",
+                ["Instances:0:RssCheckIntervalMinutes"] = "30",
+                ["Instances:0:DescriptionLimit"] = "250",
+                ["Instances:0:Forum"] = "false",
+                ["Instances:0:MarkdownFormat"] = "false",
+                ["Instances:0:PersistenceOnShutdown"] = "false",
+            });
+
+            var services = new ServiceCollection();
+
+            Startup.SetupServices(context, services);
+            services.AddSingleton<Moq.Mock<IHostApplicationLifetime>>();
+            services.AddSingleton<IHostApplicationLifetime>(sp => sp.GetRequiredService<Moq.Mock<IHostApplicationLifetime>>().Object);
+
+            using var provider = services.BuildServiceProvider();
+            var hostedServices = provider.GetServices<IHostedService>().ToList();
+
+            Assert.Single(hostedServices);
+            Assert.NotNull(hostedServices[0]);
+        }
+
+        [Fact]
         public void ValidateConfiguration_WithInvalidConfig_ThrowsDetailedMessage()
         {
             var invalidConfig = new Config

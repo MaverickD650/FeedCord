@@ -681,6 +681,31 @@ namespace FeedCord.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task TryExtractImageLink_WithElementIdButNoSrcAttributes_ReturnsEmpty()
+        {
+            // Arrange
+            var html = @"<html>
+<body>
+    <img id='post-image' alt='missing src'/>
+</body>
+</html>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(html)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        [Fact]
         public async Task TryExtractImageLink_WithFirstImgTag_ReturnsImageUrl()
         {
             // Arrange
@@ -724,6 +749,58 @@ namespace FeedCord.Tests.Infrastructure
             // Assert
             Assert.NotNull(result);
             Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithScrapedFtpImageUrl_ReturnsEmpty()
+        {
+            // Arrange
+            var html = @"<html>
+<head>
+    <meta property='og:image' content='ftp://example.com/image.jpg'/>
+</head>
+</html>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(html)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithWhitespaceDescriptionImageSrc_FallsBackToWebpageScrape()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <description><![CDATA[<img src='   ' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<html><meta property='og:image' content='https://example.com/fallback.jpg'/></html>")
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback("https://example.com", It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/fallback.jpg", result);
         }
 
         #endregion
@@ -836,6 +913,132 @@ namespace FeedCord.Tests.Infrastructure
             // Assert
             Assert.NotNull(result);
             Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithEnclosureEmptyUrl_FallsBackToDescription()
+        {
+            // Arrange - enclosure exists with type but url is empty (line 46 false branch)
+            var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <enclosure type='image/jpeg' url='' />
+            <description><![CDATA[<img src='https://example.com/fallback.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/fallback.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithEnclosureWhitespaceUrl_FallsBackToDescription()
+        {
+            // Arrange - enclosure exists with type but url is whitespace (line 46 false branch)
+            var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <enclosure type='image/jpeg' url='   ' />
+            <description><![CDATA[<img src='https://example.com/fallback2.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/fallback2.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithMediaContentEmptyUrl_FallsBackToDescription()
+        {
+            // Arrange - media:content exists but url is empty (line 58 false branch)
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:media='http://search.yahoo.com/mrss/'>
+    <channel>
+        <item>
+            <media:content type='image/png' url='' />
+            <description><![CDATA[<img src='https://example.com/media-fallback.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/media-fallback.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithMediaThumbnailWhitespaceUrl_FallsBackToDescription()
+        {
+            // Arrange - media:thumbnail exists but url is whitespace (line 58 false branch)
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:media='http://search.yahoo.com/mrss/'>
+    <channel>
+        <item>
+            <media:thumbnail url='  ' />
+            <description><![CDATA[<img src='https://example.com/thumb-fallback.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/thumb-fallback.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithItunesImageEmptyHref_FallsBackToDescription()
+        {
+            // Arrange - itunes:image exists but href is empty (line 67 false branch)
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:itunes='http://www.itunes.com/dtds/podcast-1.0.dtd'>
+    <channel>
+        <item>
+            <itunes:image href='' />
+            <description><![CDATA[<img src='https://example.com/itunes-fallback.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/itunes-fallback.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithItunesImageWhitespaceHref_FallsBackToDescription()
+        {
+            // Arrange - itunes:image exists but href is whitespace (line 67 false branch)
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:itunes='http://www.itunes.com/dtds/podcast-1.0.dtd'>
+    <channel>
+        <item>
+            <itunes:image href='   ' />
+            <description><![CDATA[<img src='https://example.com/itunes-fallback2.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/itunes-fallback2.jpg", result);
         }
 
         #endregion

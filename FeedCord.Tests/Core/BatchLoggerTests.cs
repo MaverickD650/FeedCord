@@ -118,4 +118,26 @@ public class BatchLoggerTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce);
     }
+
+    [Fact]
+    public async Task ConsumeLogData_WithNullLatestPost_LogsUrlSummarySafely()
+    {
+        var loggerMock = new Mock<ILogger<BatchLogger>>(MockBehavior.Loose);
+        var sut = new BatchLogger(loggerMock.Object);
+        var logItem = CreateLogAggregator("NullPostRun");
+
+        logItem.AddLatestUrlPost("https://feed.example.com/null", null);
+
+        await sut.ConsumeLogData(logItem);
+        await WaitForProcessingAsync(loggerMock);
+
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((value, _) => value.ToString()!.Contains("https://feed.example.com/null")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.AtLeastOnce);
+    }
 }
