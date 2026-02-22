@@ -74,6 +74,38 @@ Provided below is a quick guide to get up and running.
 }
 ```
 
+YAML format is also supported. You can use `appsettings.yaml` (or `appsettings.yml`) with equivalent content:
+
+```yaml
+Instances:
+  - Id: "My First News Feed"
+    YoutubeUrls:
+      - ""
+    RssUrls:
+      - ""
+    Forum: false
+    DiscordWebhookUrl: "..."
+    RssCheckIntervalMinutes: 25
+    EnableAutoRemove: false
+    Color: 8411391
+    DescriptionLimit: 250
+    MarkdownFormat: false
+    PersistenceOnShutdown: true
+App:
+  ConcurrentRequests: 40
+Http:
+  TimeoutSeconds: 30
+  PostMinIntervalSeconds: 2
+  FallbackUserAgents:
+    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36"
+    - "FeedFetcher-Google"
+Observability:
+  Urls: "http://0.0.0.0:9090"
+  MetricsPath: "/metrics"
+  LivenessPath: "/health/live"
+  ReadinessPath: "/health/ready"
+```
+
 There are currently 17 properties you can configure. You can read more in depth explanation of the file structure as well as view all properties and their purpose in the [reference documentation](https://github.com/MaverickD650/FeedCord/blob/main/FeedCord/docs/reference.md)
 
 ### Validation Notes
@@ -281,6 +313,12 @@ Run with your `appsettings.json` (provide your own path)
 
 ```bash
 dotnet run -- path/to/your/appsettings.json
+```
+
+Or run with your `appsettings.yaml` (or `.yml`)
+
+```bash
+dotnet run -- path/to/your/appsettings.yaml
 ```
 
 With the above steps completed, FeedCord should now be running and posting updates from your RSS feeds directly to your Discord channel.

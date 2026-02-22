@@ -12,6 +12,7 @@
     <PackageReference Include="CodeHollow.FeedReader" Version="1.2.6" />
     <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.3.0" />
+    <PackageReference Include="NetEscapades.Configuration.Yaml" Version="3.1.0" />
     <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.15.0-beta.1" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />

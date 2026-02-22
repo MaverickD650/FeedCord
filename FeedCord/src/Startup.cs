@@ -104,13 +104,35 @@ namespace FeedCord
         internal static void SetupConfiguration(ConfigurationManager builder, string[] args)
         {
             builder.SetBasePath(AppDomain.CurrentDomain.BaseDirectory);
-            builder.AddJsonFile(SelectConfigPath(args), optional: false, reloadOnChange: true);
+            AddConfigurationFile(builder, SelectConfigPath(args));
         }
 
         internal static void SetupConfiguration(HostBuilderContext ctx, IConfigurationBuilder builder, string[] args)
         {
             builder.SetBasePath(AppDomain.CurrentDomain.BaseDirectory);
-            builder.AddJsonFile(SelectConfigPath(args), optional: false, reloadOnChange: true);
+            AddConfigurationFile(builder, SelectConfigPath(args));
+        }
+
+        internal static void AddConfigurationFile(IConfigurationBuilder builder, string configPath)
+        {
+            var extension = Path.GetExtension(configPath);
+
+            if (string.Equals(extension, ".yaml", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(extension, ".yml", StringComparison.OrdinalIgnoreCase))
+            {
+                builder.AddYamlFile(configPath, optional: false, reloadOnChange: true);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(extension) ||
+                string.Equals(extension, ".json", StringComparison.OrdinalIgnoreCase))
+            {
+                builder.AddJsonFile(configPath, optional: false, reloadOnChange: true);
+                return;
+            }
+
+            throw new InvalidOperationException(
+                $"Unsupported configuration file extension '{extension}'. Supported extensions are: .json, .yaml, .yml.");
         }
 
         internal static string SelectConfigPath(string[] args)

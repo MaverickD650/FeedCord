@@ -472,6 +472,23 @@ namespace FeedCord.Tests
             Assert.Equal("custom-config.json", jsonSource.Path);
         }
 
+        [Theory]
+        [InlineData("custom-config.yaml")]
+        [InlineData("custom-config.yml")]
+        public void SetupConfiguration_WithYamlArgument_UsesYamlSource(string path)
+        {
+            var context = new HostBuilderContext(new Dictionary<object, object>());
+            var builder = new ConfigurationBuilder();
+
+            Startup.SetupConfiguration(context, builder, new[] { path });
+
+            var source = builder.Sources.Last();
+            Assert.Equal("YamlConfigurationSource", source.GetType().Name);
+
+            var sourcePath = source.GetType().GetProperty("Path")?.GetValue(source) as string;
+            Assert.Equal(path, sourcePath);
+        }
+
         [Fact]
         public void SetupConfiguration_WithMultipleArguments_UsesFirstProvidedPath()
         {
@@ -482,6 +499,58 @@ namespace FeedCord.Tests
 
             var jsonSource = Assert.IsType<JsonConfigurationSource>(builder.Sources.Last());
             Assert.Equal("one", jsonSource.Path);
+        }
+
+        [Fact]
+        public void SetupConfiguration_WithUnsupportedExtension_Throws()
+        {
+            var context = new HostBuilderContext(new Dictionary<object, object>());
+            var builder = new ConfigurationBuilder();
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                Startup.SetupConfiguration(context, builder, new[] { "config.toml" }));
+
+            Assert.Contains("Unsupported configuration file extension", exception.Message);
+        }
+
+        [Theory]
+        [InlineData(".yaml")]
+        [InlineData(".yml")]
+        public void SetupConfigurationManager_WithYamlArgument_UsesYamlSource(string extension)
+        {
+            var builder = new ConfigurationManager();
+            var path = Path.Combine(Path.GetTempPath(), $"feedcord-startup-config-{Guid.NewGuid():N}{extension}");
+
+            File.WriteAllText(path, "Instances: []");
+
+            try
+            {
+                Startup.SetupConfiguration(builder, new[] { path });
+
+                var source = builder.Sources.Last();
+                Assert.Equal("YamlConfigurationSource", source.GetType().Name);
+
+                var sourcePath = source.GetType().GetProperty("Path")?.GetValue(source) as string;
+                Assert.Equal(Path.GetFileName(path), sourcePath);
+            }
+            finally
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+            }
+        }
+
+        [Fact]
+        public void SetupConfigurationManager_WithUnsupportedExtension_Throws()
+        {
+            var builder = new ConfigurationManager();
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                Startup.SetupConfiguration(builder, new[] { "manager-config.toml" }));
+
+            Assert.Contains("Unsupported configuration file extension", exception.Message);
         }
 
         [Fact]

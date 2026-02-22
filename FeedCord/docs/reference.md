@@ -1,4 +1,4 @@
-﻿# appsettings.json reference
+﻿# appsettings reference
 
 Your `appsettings.json` is a collection of `Instances`.
 
@@ -6,6 +6,12 @@ Your `appsettings.json` is a collection of `Instances`.
 {
   "Instances": []
 }
+```
+
+YAML is also supported using `appsettings.yaml` or `appsettings.yml`.
+
+```yaml
+Instances: []
 ```
 
 Each Discord channel is one instance and has one webhook.
