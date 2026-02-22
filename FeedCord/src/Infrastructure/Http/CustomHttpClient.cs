@@ -283,8 +283,8 @@ namespace FeedCord.Infrastructure.Http
             if (robotsContent == string.Empty)
                 return userAgents.OrderByDescending(x => x).Distinct().ToList();
 
-            var pattern = @"User-agent:\s*(?<agent>.+)";
-            var regex = new Regex(pattern);
+            var pattern = @"^User-agent:[ \t]*(?<agent>[^\r\n]+)[ \t]*$";
+            var regex = new Regex(pattern, RegexOptions.Multiline);
 
             var matches = regex.Matches(robotsContent);
 

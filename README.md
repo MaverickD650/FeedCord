@@ -285,6 +285,23 @@ dotnet run -- path/to/your/appsettings.json
 
 With the above steps completed, FeedCord should now be running and posting updates from your RSS feeds directly to your Discord channel.
 
+## Testing & Coverage
+
+FeedCord maintains a comprehensive test suite with automated coverage tracking. For detailed information about testing see **[TESTING.md](TESTING.md)**.
+
+### Running Tests Locally
+
+```bash
+# Run all tests
+dotnet test
+
+# Run with coverage report
+dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+
+# Run specific test class
+dotnet test --filter "ClassName=FeedCord.Tests.Services.FeedManagerTests"
+```
+
 ## Changelog
 
 All notable changes to this project will be documented in GitHub's release section. Each release will have a detailed list of changes, improvements, and bug fixes. This is a shift from the original project but allows for better organization and visibility of changes directly within GitHub's interface. It also allows us to leverage GitHub's release features, such as tagging and release notes, to provide a more comprehensive overview of each update.

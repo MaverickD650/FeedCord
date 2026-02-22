@@ -2,6 +2,7 @@ using Xunit;
 using FeedCord.Services.Helpers;
 using FeedCord.Common;
 using CodeHollow.FeedReader;
+using CodeHollow.FeedReader.Feeds;
 
 namespace FeedCord.Tests.Services
 {
@@ -480,6 +481,192 @@ namespace FeedCord.Tests.Services
             // Assert - author extraction should fail gracefully with empty string
             Assert.NotNull(result);
             Assert.Equal("", result.Author);
+        }
+
+        #endregion
+
+        #region Specialized Format Tests - High Priority Coverage Improvements
+
+        [Fact]
+        public void TryBuildPost_RedditAuthorExtracted_FromAtomAuthorElement()
+        {
+            // Arrange
+            var redditXml = """
+                <feed xmlns="http://www.w3.org/2005/Atom">
+                  <title>r/news</title>
+                  <entry>
+                    <title>Breaking: News Title</title>
+                    <id>t3_xyz123</id>
+                    <published>2025-02-20T12:00:00Z</published>
+                    <author><name>/u/journalist</name></author>
+                    <content type="html"><![CDATA[News content here]]></content>
+                  </entry>
+                </feed>
+                """;
+
+            var parsed = FeedReader.ReadFromString(redditXml);
+            var feed = new Feed { Title = parsed.Title, Link = "https://reddit.com/r/news" };
+            var item = parsed.Items[0];
+
+            // Act
+            var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("/u/journalist", result.Author);
+        }
+
+        [Fact]
+        public void TryBuildPost_GitLabWithMultipleLabels_ParsesAllLabels()
+        {
+            // Arrange - GitLab uses a <labels> element with <label> children
+            var gitlabXml = """
+                <feed xmlns="http://www.w3.org/2005/Atom">
+                  <title>GitLab Issues</title>
+                  <entry>
+                    <title>Implement feature X</title>
+                    <id>https://gitlab.com/org/proj/-/issues/456</id>
+                    <published>2025-02-15T10:00:00Z</published>
+                    <link href="https://gitlab.com/org/proj/-/issues/456" />
+                    <content type="html"><![CDATA[Issue content]]></content>
+                    <labels>
+                      <label>bug</label>
+                      <label>enhancement</label>
+                      <label>urgent</label>
+                      <label> </label>
+                    </labels>
+                  </entry>
+                </feed>
+                """;
+
+            var parsed = FeedReader.ReadFromString(gitlabXml);
+            var feed = new Feed { Title = parsed.Title, Link = "https://gitlab.example.com" };
+            var item = parsed.Items[0];
+
+            // Act
+            var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.NotNull(result.Labels);
+            Assert.Equal(3, result.Labels.Count());  // Empty labels should be filtered
+            Assert.Contains("bug", result.Labels);
+            Assert.Contains("enhancement", result.Labels);
+            Assert.Contains("urgent", result.Labels);
+        }
+
+        [Fact]
+        public void TryBuildPost_RedditWithHtmlContentImage_ExtractsFirstImage()
+        {
+            // Arrange - ParseFirstImageFromHtml is only used for Reddit posts
+            var redditXml = """
+                <feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+                  <title>r/test</title>
+                  <entry>
+                    <title>Article</title>
+                    <id>t3_abc</id>
+                    <published>2025-02-20T12:00:00Z</published>
+                    <author><name>/u/testuser</name></author>
+                    <content type="html"><![CDATA[<div><img src='https://first.jpg'/><img src='https://second.jpg'/></div>]]></content>
+                  </entry>
+                </feed>
+                """;
+
+            var parsed = FeedReader.ReadFromString(redditXml);
+            var feed = new Feed { Title = parsed.Title, Link = "https://reddit.com/r/test" };
+            var item = parsed.Items[0];
+
+            // Act
+            var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.NotNull(result.ImageUrl);
+            Assert.Contains("first.jpg", result.ImageUrl);  // Should extract first image from HTML
+        }
+
+        [Fact]
+        public void TryBuildPost_DecodeContent_HandlesMultipleEntityTypes()
+        {
+            // Arrange
+            var feed = CreateMockFeed("Feed", "https://example.com");
+            var item = new FeedItem
+            {
+                Title = "Test",
+                Description = "Price: &pound;100 &amp; taxes &quot;included&quot; &apos;per item&apos;",
+                Link = "https://example.com/item",
+                PublishingDate = DateTime.UtcNow
+            };
+
+            // Act
+            var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+            // Assert
+            Assert.Contains("£", result.Description);
+            Assert.Contains("&", result.Description);
+            Assert.Contains("\"", result.Description);
+            Assert.Contains("'", result.Description);
+            Assert.DoesNotContain("&pound;", result.Description);
+            Assert.DoesNotContain("&apos;", result.Description);
+            Assert.DoesNotContain("&quot;", result.Description);
+        }
+
+        [Fact]
+        public void TryBuildPost_WithMediaRssSpecificItem_ExtractsDcCreatorAuthor()
+        {
+            // Arrange
+                        var mediaRssXml = """
+                                <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/">
+                                    <channel>
+                                        <title>Media Feed</title>
+                                        <item>
+                                            <title>Media Item</title>
+                                            <link>https://example.com/item</link>
+                                            <dc:creator>Media Creator</dc:creator>
+                                        </item>
+                                    </channel>
+                                </rss>
+                                """;
+
+                        var parsed = FeedReader.ReadFromString(mediaRssXml);
+                        var feed = new Feed { Title = parsed.Title, Link = "https://example.com/rss" };
+                        var item = parsed.Items[0];
+                        item.Author = string.Empty;
+
+            // Act
+            var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+            // Assert
+            Assert.Equal("Media Creator", result.Author);
+        }
+
+        [Fact]
+        public void TryBuildPost_WithRss20SpecificItem_ExtractsDcCreatorAuthor()
+        {
+            // Arrange
+                        var rssXml = """
+                                <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+                                    <channel>
+                                        <title>Rss Feed</title>
+                                        <item>
+                                            <title>Rss Item</title>
+                                            <link>https://example.com/item</link>
+                                            <dc:creator>Rss Creator</dc:creator>
+                                        </item>
+                                    </channel>
+                                </rss>
+                                """;
+
+                        var parsed = FeedReader.ReadFromString(rssXml);
+                        var feed = new Feed { Title = parsed.Title, Link = "https://example.com/rss" };
+                        var item = parsed.Items[0];
+                        item.Author = string.Empty;
+
+            // Act
+            var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+            // Assert
+            Assert.Equal("Rss Creator", result.Author);
         }
 
         #endregion

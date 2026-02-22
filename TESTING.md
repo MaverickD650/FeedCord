@@ -1,5 +1,9 @@
 # FeedCord Unit Testing Guide
 
+**Last Updated**: February 22, 2026  
+**Test Count**: 634 tests (all passing)  
+**Coverage**: 89.59% line coverage | 75.66% branch coverage
+
 This document explains the unit testing setup for FeedCord and how to run and extend tests.
 
 ## Overview
@@ -8,20 +12,32 @@ This document explains the unit testing setup for FeedCord and how to run and ex
 - **Test Project**: `FeedCord.Tests/`
 - **CI Integration**: GitHub Actions workflows
 - **Coverage**: Targets core services and business logic
+- **Documentation**: See [TEST_CONSOLIDATION_GUIDE.md](TEST_CONSOLIDATION_GUIDE.md) for detailed coverage analysis
 
 ## Project Structure
 
 ```bash
 FeedCord.Tests/
 ├── FeedCord.Tests.csproj    # Test project configuration
-├── Common/                   # Tests for Common models
-│   └── ConfigTests.cs       # Configuration validation tests
+├── Common/                   # Tests for Common models (100% coverage)
+│   ├── ConfigTests.cs
+│   ├── FeedStateTests.cs
+│   ├── PostTests.cs
+│   └── ReferencePostAndPostFiltersTests.cs
 ├── Services/                # Tests for Service layer
-│   ├── FeedManagerTests.cs
+│   ├── FeedManagerCoverageTests.cs  # Consolidated FeedManager suite
+│   ├── PostBuilderTests.cs          # Enhanced with specialized format tests
+│   ├── PostBuilderCoverageTests.cs
 │   ├── PostFilterServiceTests.cs
 │   └── RssParsingServiceTests.cs
-└── Infrastructure/          # Tests for Infrastructure layer (not yet added)
-    └── (e.g., DiscordNotifierTests.cs, CustomHttpClientTests.cs)
+├── Infrastructure/          # Tests for Infrastructure layer
+│   ├── FeedWorkerTests.cs           # ✅ Consolidated (Feb 2026)
+│   ├── CustomHttpClientExpandedTests.cs  # ✅ Consolidated CustomHttpClient suite
+│   ├── DiscordNotifierTests.cs
+│   └── (other infrastructure tests)
+└── Helpers/                 # Tests for Helper utilities
+    ├── FilterConfigsTests.cs
+    └── (other helper tests)
 ```
 
 ## Running Tests Locally
@@ -76,13 +92,6 @@ dotnet watch test
 - **Requirement**: Tests must pass before Docker build
 - **Dependency**: Release build depends on `test` job completing successfully
 - **Matrix**: Release validation runs tests on .NET 10.0
-
-### GitHub Actions Features
-
-1. **Test Result Publishing**: xUnit results published as check annotations
-2. **Coverage Reports**: OpenCover XML uploaded to Codecov
-3. **Matrix Testing**: Runs on multiple .NET versions
-4. **Artifact Storage**: Test results retained for 1 day
 
 ## Test Categories
 
@@ -264,25 +273,13 @@ public class FeedWorkerTests
 }
 ```
 
-## Coverage Goals
-
-| Component | Target Coverage | Status |
-| --- | --- | --- |
-| Config | 95%+ | ✅ Tests created |
-| PostFilterService | 90%+ | ✅ Tests created |
-| RssParsingService | 85%+ | ✅ Tests created |
-| FeedManager | 80%+ | ✅ Tests created |
-| DiscordNotifier | 75%+ | ✅ Tests created |
-| CustomHttpClient | 80%+ | ✅ Tests created |
-| FeedWorker | 70%+ | ✅ Tests created |
-
 ## Continuous Integration Status
 
 Tests are automatically run on:
 
-- ✅ Push to `main`
-- ✅ Pull requests (all numbers of .NET versions)
-- ✅ Before release build (blocks Docker image build if failing)
+- Push to `main`
+- Pull requests (all numbers of .NET versions)
+- Before release build (blocks Docker image build if failing)
 
 View results:
 

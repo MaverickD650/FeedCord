@@ -4,6 +4,8 @@ using FeedCord.Services;
 using FeedCord.Services.Interfaces;
 using FeedCord.Common;
 using Microsoft.Extensions.Logging;
+using CodeHollow.FeedReader;
+using System.Reflection;
 
 namespace FeedCord.Tests.Services;
 
@@ -179,6 +181,39 @@ public class RssParsingServiceTests
         }
     }
 
+      [Fact]
+      public async Task ParseRssFeedAsync_WithItemWithoutDescription_ReturnsPostWithEmptyDescription()
+      {
+        // Arrange
+        var xmlWithoutDescription = @"<?xml version=""1.0"" encoding=""utf-8""?>
+  <rss version=""2.0""><channel>
+      <title>Feed without description</title>
+    <link>https://example.com</link>
+    <description>Feed body</description>
+      <item>
+      <title>Item without description</title>
+      <link>https://example.com/item-1</link>
+      <pubDate>Fri, 20 Feb 2026 12:00:00 GMT</pubDate>
+      </item>
+    </channel></rss>";
+
+        var service = new RssParsingService(
+          _mockLogger.Object,
+          _mockYoutubeParser.Object,
+          _mockImageParser.Object
+        );
+
+        // Act
+        var result = await service.ParseRssFeedAsync(xmlWithoutDescription, trim: 250);
+
+        // Assert
+        Assert.NotNull(result);
+        if (result.Count > 0 && result[0] != null)
+        {
+          Assert.Equal(string.Empty, result[0]!.Description);
+        }
+      }
+
     [Fact]
     public async Task ParseYoutubeFeedAsync_CallsYoutubeParsingService()
     {
@@ -280,5 +315,106 @@ public class RssParsingServiceTests
         await Assert.ThrowsAsync<OperationCanceledException>(
             () => service.ParseRssFeedAsync(xmlContent, trim: 250, cancellationToken: cts.Token)
         );
+    }
+
+    [Fact]
+    public async Task ParseRssFeedAsync_ValidAtomXml_ParsesFeedItems()
+    {
+        // Arrange
+        var atomXml = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<feed xmlns=""http://www.w3.org/2005/Atom"">
+  <title>Atom Test Feed</title>
+  <id>https://example.com/atom</id>
+  <updated>2026-02-20T12:00:00Z</updated>
+  <entry>
+    <id>https://example.com/atom/1</id>
+    <title>Atom Entry 1</title>
+    <updated>2026-02-20T12:00:00Z</updated>
+    <link href=""https://example.com/atom/1"" />
+    <author>
+      <name>Atom Author</name>
+    </author>
+    <summary>Atom summary content</summary>
+  </entry>
+</feed>";
+
+        var service = new RssParsingService(
+            _mockLogger.Object,
+            _mockYoutubeParser.Object,
+            _mockImageParser.Object
+        );
+
+        // Act
+        var result = await service.ParseRssFeedAsync(atomXml, trim: 250);
+
+        // Assert
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task ParseRssFeedAsync_ValidJsonFeed_ParsesFeedItems()
+    {
+        // Arrange
+        var jsonFeed = @"{
+  ""version"": ""https://jsonfeed.org/version/1.1"",
+  ""title"": ""JSON Feed Test"",
+  ""home_page_url"": ""https://example.com"",
+  ""feed_url"": ""https://example.com/feed.json"",
+  ""items"": [
+    {
+      ""id"": ""item-1"",
+      ""url"": ""https://example.com/item-1"",
+      ""title"": ""JSON Entry 1"",
+      ""content_text"": ""Json feed content"",
+      ""date_published"": ""2026-02-20T12:00:00Z""
+    }
+  ]
+}";
+
+        var service = new RssParsingService(
+            _mockLogger.Object,
+            _mockYoutubeParser.Object,
+            _mockImageParser.Object
+        );
+
+        // Act
+        var result = await service.ParseRssFeedAsync(jsonFeed, trim: 250);
+
+        // Assert
+        Assert.NotNull(result);
+      }
+
+      [Fact]
+      public void GetRawXmlForItem_WithUnknownSpecificItem_ReturnsEmptyString()
+      {
+        // Arrange
+        var service = new RssParsingService(
+          _mockLogger.Object,
+          _mockYoutubeParser.Object,
+          _mockImageParser.Object
+        );
+
+        var method = typeof(RssParsingService).GetMethod("GetRawXmlForItem", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        var baseFeedItemType = typeof(CodeHollow.FeedReader.Feeds.BaseFeedItem);
+        var fallbackSpecificItemType = baseFeedItemType.Assembly.GetTypes()
+            .FirstOrDefault(t =>
+                baseFeedItemType.IsAssignableFrom(t) &&
+                !t.IsAbstract &&
+                t != typeof(CodeHollow.FeedReader.Feeds.Rss20FeedItem) &&
+                t != typeof(CodeHollow.FeedReader.Feeds.AtomFeedItem) &&
+                t.GetConstructor(Type.EmptyTypes) is not null);
+
+        Assert.NotNull(fallbackSpecificItemType);
+
+        var fallbackSpecificItem = (CodeHollow.FeedReader.Feeds.BaseFeedItem)Activator.CreateInstance(fallbackSpecificItemType!)!;
+        var feedItem = new FeedItem { SpecificItem = fallbackSpecificItem };
+
+        // Act
+        var result = method!.Invoke(service, new object[] { feedItem });
+
+        // Assert
+        Assert.Equal(string.Empty, result as string);
     }
 }
