@@ -324,7 +324,7 @@ namespace FeedCord.Tests.Services
 
       // Assert
       Assert.NotNull(result);
-      Assert.True(result.PublishDate != default(DateTime));
+      Assert.NotEqual(default, result.PublishDate);
     }
 
     #endregion
@@ -398,7 +398,7 @@ namespace FeedCord.Tests.Services
       Assert.NotNull(result.Description);
       Assert.NotNull(result.Link);
       Assert.NotNull(result.Tag);
-      Assert.True(result.PublishDate != default(DateTime));
+      Assert.NotEqual(default, result.PublishDate);
       Assert.NotNull(result.Author);
       Assert.NotNull(result.Labels);
     }

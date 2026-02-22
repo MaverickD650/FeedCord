@@ -897,7 +897,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.True(timeBetweenPosts >= 900, $"Expected at least ~1s spacing, got {timeBetweenPosts}ms");
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_EnforcesRateLimiting()
     {
       // Arrange
@@ -932,7 +932,7 @@ namespace FeedCord.Tests.Infrastructure
 
     #region Throttling Tests
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task Throttle_LimitsSimultaneousRequests()
     {
       // Arrange
@@ -943,16 +943,16 @@ namespace FeedCord.Tests.Infrastructure
 
       handler.Protected()
           .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
-          .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
+          .Returns<HttpRequestMessage, CancellationToken>(async (request, _) =>
           {
             Interlocked.Increment(ref activeRequests);
             var currentMax = Math.Max(maxConcurrentRequests, activeRequests);
             Interlocked.Exchange(ref maxConcurrentRequests, currentMax);
 
-            Thread.Sleep(50);
+            await Task.Delay(50, TestContext.Current.CancellationToken);
 
             Interlocked.Decrement(ref activeRequests);
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+            return new HttpResponseMessage(HttpStatusCode.OK);
           });
 
       var httpClient = new HttpClient(handler.Object);

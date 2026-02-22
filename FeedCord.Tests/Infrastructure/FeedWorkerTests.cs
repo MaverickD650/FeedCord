@@ -359,7 +359,7 @@ public class FeedWorkerTests
     var task = (Task)executeAsync!.Invoke(worker, new object[] { TestContext.Current.CancellationToken })!;
 
     // Assert
-    await Assert.ThrowsAsync<InvalidOperationException>(async () => await task);
+    await Assert.ThrowsAsync<InvalidOperationException>(() => task);
     mockLogger.Verify(
         x => x.Log(
             LogLevel.Critical,
@@ -388,7 +388,7 @@ public class FeedWorkerTests
         Description: "Test description",
         Link: "https://example.com/article",
         Tag: "Test Feed",
-        PublishDate: DateTime.Now,
+        PublishDate: new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         Author: "Test Author"
     );
 
@@ -446,8 +446,8 @@ public class FeedWorkerTests
 
     var posts = new List<Post>
         {
-            new Post("Post 1", "", "Desc 1", "link1", "tag1", DateTime.Now, "author1"),
-            new Post("Post 2", "", "Desc 2", "link2", "tag2", DateTime.Now, "author2")
+            new Post("Post 1", "", "Desc 1", "link1", "tag1", new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), "author1"),
+            new Post("Post 2", "", "Desc 2", "link2", "tag2", new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), "author2")
         };
 
     mockFeedManager.Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>()))

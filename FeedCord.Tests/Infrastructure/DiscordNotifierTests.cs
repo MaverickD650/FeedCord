@@ -22,7 +22,7 @@ public class DiscordNotifierTests
       Forum = true
     };
 
-    var post = new Post("title", "img", "desc", "link", "tag", System.DateTime.Now, "author");
+    var post = new Post("title", "img", "desc", "link", "tag", new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), "author");
     var primaryPayload = new System.Net.Http.StringContent("{\"type\":\"forum\"}");
     var fallbackPayload = new System.Net.Http.StringContent("{\"type\":\"webhook\"}");
 
@@ -67,7 +67,7 @@ public class DiscordNotifierTests
     mockPayloadService.Setup(x => x.BuildForumWithPost(It.IsAny<Post>())).Returns(new System.Net.Http.StringContent("{}"));
     mockHttpClient.Setup(x => x.PostAsyncWithFallback(It.IsAny<string>(), It.IsAny<System.Net.Http.StringContent>(), It.IsAny<System.Net.Http.StringContent>(), It.IsAny<bool>(), It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
     var notifier = new DiscordNotifier(config, mockHttpClient.Object, mockPayloadService.Object);
-    var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", System.DateTime.Now, "author") };
+    var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), "author") };
 
     // Act & Assert
     await notifier.SendNotificationsAsync(posts, TestContext.Current.CancellationToken);
@@ -92,7 +92,7 @@ public class DiscordNotifierTests
     mockPayloadService.Setup(x => x.BuildForumWithPost(It.IsAny<Post>())).Returns(new System.Net.Http.StringContent("{}"));
     mockHttpClient.Setup(x => x.PostAsyncWithFallback(It.IsAny<string>(), It.IsAny<System.Net.Http.StringContent>(), It.IsAny<System.Net.Http.StringContent>(), It.IsAny<bool>(), It.IsAny<CancellationToken>())).Returns(Task.FromException(new System.Exception("fail")));
     var notifier = new DiscordNotifier(config, mockHttpClient.Object, mockPayloadService.Object);
-    var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", System.DateTime.Now, "author") };
+    var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), "author") };
 
     // Act & Assert
     await notifier.SendNotificationsAsync(posts, TestContext.Current.CancellationToken);
@@ -120,7 +120,7 @@ public class DiscordNotifierTests
         .ThrowsAsync(new OperationCanceledException("cancelled"));
 
     var notifier = new DiscordNotifier(config, mockHttpClient.Object, mockPayloadService.Object);
-    var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", System.DateTime.Now, "author") };
+    var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), "author") };
 
     await Assert.ThrowsAsync<OperationCanceledException>(() => notifier.SendNotificationsAsync(posts, TestContext.Current.CancellationToken));
   }
@@ -148,7 +148,7 @@ public class DiscordNotifierTests
         .ThrowsAsync(new System.Exception("fail"));
 
     var notifier = new DiscordNotifier(config, mockHttpClient.Object, mockPayloadService.Object, mockLogger.Object);
-    var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", System.DateTime.Now, "author") };
+    var posts = new List<Post> { new Post("title", "img", "desc", "link", "tag", new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), "author") };
 
     await notifier.SendNotificationsAsync(posts, TestContext.Current.CancellationToken);
 

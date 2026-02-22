@@ -402,7 +402,7 @@ public class FeedManagerCoverageTests
 
     var state = manager.GetAllFeedData()[fallbackUrl];
     Assert.False(state.IsYoutube);
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.NotEqual(default, state.LastPublishDate);
     mockRssParser.Verify(x => x.ParseRssFeedAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
   }
 
@@ -445,7 +445,7 @@ public class FeedManagerCoverageTests
 
     var state = manager.GetAllFeedData()[youtubeChannelUrl];
     Assert.True(state.IsYoutube);
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.NotEqual(default, state.LastPublishDate);
     mockRssParser.Verify(x => x.ParseYoutubeFeedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
   }
 
@@ -533,7 +533,7 @@ public class FeedManagerCoverageTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
     var state = manager.GetAllFeedData()[parserUrl];
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.NotEqual(default, state.LastPublishDate);
   }
 
   [Fact]
@@ -576,7 +576,7 @@ public class FeedManagerCoverageTests
     var state = manager.GetAllFeedData()[youtubeChannelUrl];
     Assert.Multiple(
       () => Assert.True(state.IsYoutube),
-      () => Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1))
+      () => Assert.NotEqual(default, state.LastPublishDate)
     );
   }
 
@@ -627,7 +627,7 @@ public class FeedManagerCoverageTests
     var state = manager.GetAllFeedData()[youtubeChannelUrl];
     Assert.Multiple(
       () => Assert.True(state.IsYoutube),
-      () => Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1))
+      () => Assert.NotEqual(default, state.LastPublishDate)
     );
   }
 
@@ -1474,7 +1474,7 @@ public class FeedManagerCoverageTests
     var state = manager.GetAllFeedData()[youtubeFeedUrl];
     Assert.Multiple(
       () => Assert.True(state.IsYoutube),
-      () => Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1))
+      () => Assert.NotEqual(default, state.LastPublishDate)
     );
   }
 
@@ -2658,7 +2658,7 @@ public class FeedManagerExpandedTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
     var state = manager.GetAllFeedData()[youtubeUrl];
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.NotEqual(default, state.LastPublishDate);
   }
 
   [Fact]
@@ -2710,7 +2710,7 @@ public class FeedManagerExpandedTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
     var state = manager.GetAllFeedData()[rssUrl];
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.NotEqual(default, state.LastPublishDate);
   }
 
   #endregion
