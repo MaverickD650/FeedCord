@@ -14,66 +14,66 @@ namespace FeedCord.Tests.Infrastructure;
 
 public class FactoryTests
 {
-    [Fact]
-    public void NotifierFactory_Create_ReturnsDiscordNotifier()
+  [Fact]
+  public void NotifierFactory_Create_ReturnsDiscordNotifier()
+  {
+    var services = new ServiceCollection();
+    var httpClientMock = new Mock<ICustomHttpClient>(MockBehavior.Loose);
+    services.AddSingleton(httpClientMock.Object);
+
+    var provider = services.BuildServiceProvider();
+    var sut = new NotifierFactory(provider);
+
+    var config = new Config
     {
-        var services = new ServiceCollection();
-        var httpClientMock = new Mock<ICustomHttpClient>(MockBehavior.Loose);
-        services.AddSingleton(httpClientMock.Object);
+      Id = "NotifierFactory",
+      RssUrls = [],
+      YoutubeUrls = [],
+      DiscordWebhookUrl = "https://discord.com/api/webhooks/1/2"
+    };
 
-        var provider = services.BuildServiceProvider();
-        var sut = new NotifierFactory(provider);
+    var payloadServiceMock = new Mock<IDiscordPayloadService>(MockBehavior.Loose);
+    var notifier = sut.Create(config, payloadServiceMock.Object);
 
-        var config = new Config
-        {
-            Id = "NotifierFactory",
-            RssUrls = [],
-            YoutubeUrls = [],
-            DiscordWebhookUrl = "https://discord.com/api/webhooks/1/2"
-        };
+    Assert.IsType<DiscordNotifier>(notifier);
+  }
 
-        var payloadServiceMock = new Mock<IDiscordPayloadService>(MockBehavior.Loose);
-        var notifier = sut.Create(config, payloadServiceMock.Object);
+  [Fact]
+  public void FeedWorkerFactory_Create_ReturnsFeedWorkerAndLogsCreation()
+  {
+    var services = new ServiceCollection();
+    var lifetimeMock = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+    services.AddSingleton(lifetimeMock.Object);
+    services.AddLogging();
 
-        Assert.IsType<DiscordNotifier>(notifier);
-    }
+    var provider = services.BuildServiceProvider();
+    var factoryLoggerMock = new Mock<ILogger<FeedWorkerFactory>>(MockBehavior.Loose);
+    var sut = new FeedWorkerFactory(provider, factoryLoggerMock.Object);
 
-    [Fact]
-    public void FeedWorkerFactory_Create_ReturnsFeedWorkerAndLogsCreation()
+    var config = new Config
     {
-        var services = new ServiceCollection();
-        var lifetimeMock = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
-        services.AddSingleton(lifetimeMock.Object);
-        services.AddLogging();
+      Id = "WorkerFactory",
+      RssUrls = [],
+      YoutubeUrls = [],
+      DiscordWebhookUrl = "https://discord.com/api/webhooks/1/2",
+      RssCheckIntervalMinutes = 1,
+      PersistenceOnShutdown = false
+    };
 
-        var provider = services.BuildServiceProvider();
-        var factoryLoggerMock = new Mock<ILogger<FeedWorkerFactory>>(MockBehavior.Loose);
-        var sut = new FeedWorkerFactory(provider, factoryLoggerMock.Object);
+    var aggregatorMock = new Mock<ILogAggregator>(MockBehavior.Loose);
+    var feedManagerMock = new Mock<IFeedManager>(MockBehavior.Loose);
+    var notifierMock = new Mock<INotifier>(MockBehavior.Loose);
 
-        var config = new Config
-        {
-            Id = "WorkerFactory",
-            RssUrls = [],
-            YoutubeUrls = [],
-            DiscordWebhookUrl = "https://discord.com/api/webhooks/1/2",
-            RssCheckIntervalMinutes = 1,
-            PersistenceOnShutdown = false
-        };
+    var worker = sut.Create(config, aggregatorMock.Object, feedManagerMock.Object, notifierMock.Object);
 
-        var aggregatorMock = new Mock<ILogAggregator>(MockBehavior.Loose);
-        var feedManagerMock = new Mock<IFeedManager>(MockBehavior.Loose);
-        var notifierMock = new Mock<INotifier>(MockBehavior.Loose);
-
-        var worker = sut.Create(config, aggregatorMock.Object, feedManagerMock.Object, notifierMock.Object);
-
-        Assert.IsType<FeedWorker>(worker);
-        factoryLoggerMock.Verify(
-            x => x.Log(
-                LogLevel.Information,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((value, _) => value.ToString()!.Contains("Creating new RssCheckerBackgroundService instance")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-            Times.Once);
-    }
+    Assert.IsType<FeedWorker>(worker);
+    factoryLoggerMock.Verify(
+        x => x.Log(
+            LogLevel.Information,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((value, _) => value.ToString()!.Contains("Creating new RssCheckerBackgroundService instance")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+        Times.Once);
+  }
 }
