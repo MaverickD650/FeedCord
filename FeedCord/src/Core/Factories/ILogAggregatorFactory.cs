@@ -5,5 +5,5 @@ namespace FeedCord.Core.Factories;
 
 public interface ILogAggregatorFactory
 {
-    ILogAggregator Create(Config config);
+  ILogAggregator Create(Config config);
 }

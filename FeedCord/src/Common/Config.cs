@@ -1,46 +1,46 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace FeedCord.Common
 {
-    public class Config
-    {
-        [Required(ErrorMessage = "The 'Id' Property is required. \"Id\": \"MyFeedName\"")]
-        public required string Id { get; set; }
+  public class Config
+  {
+    [Required(ErrorMessage = "The 'Id' Property is required. \"Id\": \"MyFeedName\"")]
+    public required string Id { get; set; }
 
-        [Required(ErrorMessage = "RssUrls Property is required (use an empty array if none) - \"RssUrls\": [\"\"]")]
-        public required string[] RssUrls { get; set; }
+    [Required(ErrorMessage = "RssUrls Property is required (use an empty array if none) - \"RssUrls\": [\"\"]")]
+    public required string[] RssUrls { get; set; }
 
-        [Required(ErrorMessage = "YoutubeUrls Property is required (use an empty array if none) - \"YoutubeUrls\": [\"\"]")]
-        public required string[] YoutubeUrls { get; set; }
+    [Required(ErrorMessage = "YoutubeUrls Property is required (use an empty array if none) - \"YoutubeUrls\": [\"\"]")]
+    public required string[] YoutubeUrls { get; set; }
 
-        [Required(ErrorMessage = "DiscordWebhookUrl Property is required.")]
-        public required string DiscordWebhookUrl { get; set; }
+    [Required(ErrorMessage = "DiscordWebhookUrl Property is required.")]
+    public required string DiscordWebhookUrl { get; set; }
 
-        [Required(ErrorMessage = "RssCheckIntervalMinutes Property is required.")]
-        [Range(1, 1440, ErrorMessage = "RssCheckIntervalMinutes must be between 1 and 1440 minutes.")]
-        public int RssCheckIntervalMinutes { get; set; }
-        public string? Username { get; set; }
-        public string? AvatarUrl { get; set; }
-        public string? AuthorIcon { get; set; }
-        public string? AuthorName { get; set; }
-        public string? AuthorUrl { get; set; }
-        public string? FallbackImage { get; set; }
-        public string? FooterImage { get; set; }
-        public int Color { get; set; }
-        public bool EnableAutoRemove { get; set; }
+    [Required(ErrorMessage = "RssCheckIntervalMinutes Property is required.")]
+    [Range(1, 1440, ErrorMessage = "RssCheckIntervalMinutes must be between 1 and 1440 minutes.")]
+    public int RssCheckIntervalMinutes { get; set; }
+    public string? Username { get; set; }
+    public string? AvatarUrl { get; set; }
+    public string? AuthorIcon { get; set; }
+    public string? AuthorName { get; set; }
+    public string? AuthorUrl { get; set; }
+    public string? FallbackImage { get; set; }
+    public string? FooterImage { get; set; }
+    public int Color { get; set; }
+    public bool EnableAutoRemove { get; set; }
 
-        [Required(ErrorMessage = "Description Limit Property is required.")]
-        [Range(1, 4000, ErrorMessage = "DescriptionLimit must be between 1 and 4000 characters.")]
-        public int DescriptionLimit { get; set; }
-        [Required(ErrorMessage = "Forum Property is required (True for Forum Channels, False for Text Channels)")]
-        public bool Forum { get; set; }
-        [Required(ErrorMessage = "Markdown Property is required (True for Markdown Posts, False for Embed Posts)")]
-        public bool MarkdownFormat { get; set; }
-        [Required(ErrorMessage = "PersistenceOnShutdown Property is required (True to persist feed state on shutdown, False to start fresh each run)")]
-        public bool PersistenceOnShutdown { get; set; }
-        public List<PostFilters>? PostFilters { get; set; }
-        public Dictionary<string, string[]>? Pings { get; set; }
-        [Range(1, 200, ErrorMessage = "ConcurrentRequests must be between 1 and 200.")]
-        public int ConcurrentRequests { get; set; } = 5;
-    }
+    [Required(ErrorMessage = "Description Limit Property is required.")]
+    [Range(1, 4000, ErrorMessage = "DescriptionLimit must be between 1 and 4000 characters.")]
+    public int DescriptionLimit { get; set; }
+    [Required(ErrorMessage = "Forum Property is required (True for Forum Channels, False for Text Channels)")]
+    public bool Forum { get; set; }
+    [Required(ErrorMessage = "Markdown Property is required (True for Markdown Posts, False for Embed Posts)")]
+    public bool MarkdownFormat { get; set; }
+    [Required(ErrorMessage = "PersistenceOnShutdown Property is required (True to persist feed state on shutdown, False to start fresh each run)")]
+    public bool PersistenceOnShutdown { get; set; }
+    public List<PostFilters>? PostFilters { get; set; }
+    public Dictionary<string, string[]>? Pings { get; set; }
+    [Range(1, 200, ErrorMessage = "ConcurrentRequests must be between 1 and 200.")]
+    public int ConcurrentRequests { get; set; } = 5;
+  }
 }

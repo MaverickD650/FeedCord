@@ -11,22 +11,22 @@ namespace FeedCord.Tests.Services;
 
 public class RssParsingServiceTests
 {
-    private readonly Mock<ILogger<RssParsingService>> _mockLogger;
-    private readonly Mock<IYoutubeParsingService> _mockYoutubeParser;
-    private readonly Mock<IImageParserService> _mockImageParser;
+  private readonly Mock<ILogger<RssParsingService>> _mockLogger;
+  private readonly Mock<IYoutubeParsingService> _mockYoutubeParser;
+  private readonly Mock<IImageParserService> _mockImageParser;
 
-    public RssParsingServiceTests()
-    {
-        _mockLogger = new Mock<ILogger<RssParsingService>>(MockBehavior.Loose);
-        _mockYoutubeParser = new Mock<IYoutubeParsingService>(MockBehavior.Loose);
-        _mockImageParser = new Mock<IImageParserService>(MockBehavior.Loose);
-    }
+  public RssParsingServiceTests()
+  {
+    _mockLogger = new Mock<ILogger<RssParsingService>>(MockBehavior.Loose);
+    _mockYoutubeParser = new Mock<IYoutubeParsingService>(MockBehavior.Loose);
+    _mockImageParser = new Mock<IImageParserService>(MockBehavior.Loose);
+  }
 
-    [Fact]
-    public async Task ParseRssFeedAsync_ValidRssXml_ReturnsListOfPosts()
-    {
-        // Arrange
-        var xmlContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
+  [Fact]
+  public async Task ParseRssFeedAsync_ValidRssXml_ReturnsListOfPosts()
+  {
+    // Arrange
+    var xmlContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <rss version=""2.0"">
   <channel>
     <title>Test Feed</title>
@@ -45,26 +45,26 @@ public class RssParsingServiceTests
   </channel>
 </rss>";
 
-        var service = new RssParsingService(
-            _mockLogger.Object,
-            _mockYoutubeParser.Object,
-            _mockImageParser.Object
-        );
+    var service = new RssParsingService(
+        _mockLogger.Object,
+        _mockYoutubeParser.Object,
+        _mockImageParser.Object
+    );
 
-        // Act
-        var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, TestContext.Current.CancellationToken);
+    // Act
+    var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, TestContext.Current.CancellationToken);
 
-        // Assert - should parse without error (may have 0 or more posts depending on PostBuilder)
-        Assert.NotNull(result);
-        // Note: PostBuilder.TryBuildPost may return null if validation fails,
-        // so we allow empty list as valid result
-    }
+    // Assert - should parse without error (may have 0 or more posts depending on PostBuilder)
+    Assert.NotNull(result);
+    // Note: PostBuilder.TryBuildPost may return null if validation fails,
+    // so we allow empty list as valid result
+  }
 
-    [Fact]
-    public async Task ParseRssFeedAsync_HandlesLowercaseDoctype()
-    {
-        // Arrange - RSS with lowercase <!doctype (common in malformed feeds)
-        var xmlContent = @"<!doctype rss>
+  [Fact]
+  public async Task ParseRssFeedAsync_HandlesLowercaseDoctype()
+  {
+    // Arrange - RSS with lowercase <!doctype (common in malformed feeds)
+    var xmlContent = @"<!doctype rss>
 <?xml version=""1.0"" encoding=""utf-8""?>
 <rss version=""2.0"">
   <channel>
@@ -77,24 +77,24 @@ public class RssParsingServiceTests
   </channel>
 </rss>";
 
-        var service = new RssParsingService(
-            _mockLogger.Object,
-            _mockYoutubeParser.Object,
-            _mockImageParser.Object
-        );
+    var service = new RssParsingService(
+        _mockLogger.Object,
+        _mockYoutubeParser.Object,
+        _mockImageParser.Object
+    );
 
-        // Act - should handle preprocessing without error
-        var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, TestContext.Current.CancellationToken);
+    // Act - should handle preprocessing without error
+    var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, TestContext.Current.CancellationToken);
 
-        // Assert
-        Assert.NotNull(result);
-    }
+    // Assert
+    Assert.NotNull(result);
+  }
 
-    [Fact]
-    public async Task ParseRssFeedAsync_EmptyFeed_ReturnsEmptyList()
-    {
-        // Arrange - valid XML but no items
-        var xmlContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
+  [Fact]
+  public async Task ParseRssFeedAsync_EmptyFeed_ReturnsEmptyList()
+  {
+    // Arrange - valid XML but no items
+    var xmlContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <rss version=""2.0"">
   <channel>
     <title>Empty Feed</title>
@@ -103,56 +103,56 @@ public class RssParsingServiceTests
   </channel>
 </rss>";
 
-        var service = new RssParsingService(
-            _mockLogger.Object,
-            _mockYoutubeParser.Object,
-            _mockImageParser.Object
-        );
+    var service = new RssParsingService(
+        _mockLogger.Object,
+        _mockYoutubeParser.Object,
+        _mockImageParser.Object
+    );
 
-        // Act
-        var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, TestContext.Current.CancellationToken);
+    // Act
+    var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, TestContext.Current.CancellationToken);
 
-        // Assert
-        Assert.Empty(result);
-    }
+    // Assert
+    Assert.Empty(result);
+  }
 
-    [Fact]
-    public async Task ParseRssFeedAsync_InvalidXml_ReturnsEmptyAndLogsWarning()
-    {
-        // Arrange - malformed XML
-        var invalidXml = "<invalid>Not really XML</unclosed>";
+  [Fact]
+  public async Task ParseRssFeedAsync_InvalidXml_ReturnsEmptyAndLogsWarning()
+  {
+    // Arrange - malformed XML
+    var invalidXml = "<invalid>Not really XML</unclosed>";
 
-        var service = new RssParsingService(
-            _mockLogger.Object,
-            _mockYoutubeParser.Object,
-            _mockImageParser.Object
-        );
+    var service = new RssParsingService(
+        _mockLogger.Object,
+        _mockYoutubeParser.Object,
+        _mockImageParser.Object
+    );
 
-        // Act - should not throw exception
-        var result = await service.ParseRssFeedAsync(invalidXml, trim: 250, TestContext.Current.CancellationToken);
+    // Act - should not throw exception
+    var result = await service.ParseRssFeedAsync(invalidXml, trim: 250, TestContext.Current.CancellationToken);
 
-        // Assert
-        Assert.Empty(result);
+    // Assert
+    Assert.Empty(result);
 
-        // Verify warning was logged
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Warning,
-                It.IsAny<EventId>(),
-                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("unexpected error")),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()
-            ),
-            Times.Once
-        );
-    }
+    // Verify warning was logged
+    _mockLogger.Verify(
+        x => x.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("unexpected error")),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+        ),
+        Times.Once
+    );
+  }
 
-    [Fact]
-    public async Task ParseRssFeedAsync_TrimmsDescriptionToLimit()
-    {
-        // Arrange
-        var longDescription = new string('x', 500);
-        var xmlContent = $@"<?xml version=""1.0"" encoding=""utf-8""?>
+  [Fact]
+  public async Task ParseRssFeedAsync_TrimmsDescriptionToLimit()
+  {
+    // Arrange
+    var longDescription = new string('x', 500);
+    var xmlContent = $@"<?xml version=""1.0"" encoding=""utf-8""?>
 <rss version=""2.0"">
   <channel>
     <title>Test Feed</title>
@@ -165,27 +165,27 @@ public class RssParsingServiceTests
   </channel>
 </rss>";
 
-        var service = new RssParsingService(
-            _mockLogger.Object,
-            _mockYoutubeParser.Object,
-            _mockImageParser.Object
-        );
+    var service = new RssParsingService(
+        _mockLogger.Object,
+        _mockYoutubeParser.Object,
+        _mockImageParser.Object
+    );
 
-        // Act - trim to 250 characters
-        var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, TestContext.Current.CancellationToken);
+    // Act - trim to 250 characters
+    var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, TestContext.Current.CancellationToken);
 
-        // Assert - description should be trimmed
-        if (result.Count > 0 && result[0] != null)
-        {
-            Assert.True(result[0]!.Description.Length <= 250);
-        }
+    // Assert - description should be trimmed
+    if (result.Count > 0 && result[0] != null)
+    {
+      Assert.True(result[0]!.Description.Length <= 250);
     }
+  }
 
-      [Fact]
-      public async Task ParseRssFeedAsync_WithItemWithoutDescription_ReturnsPostWithEmptyDescription()
-      {
-        // Arrange
-        var xmlWithoutDescription = @"<?xml version=""1.0"" encoding=""utf-8""?>
+  [Fact]
+  public async Task ParseRssFeedAsync_WithItemWithoutDescription_ReturnsPostWithEmptyDescription()
+  {
+    // Arrange
+    var xmlWithoutDescription = @"<?xml version=""1.0"" encoding=""utf-8""?>
   <rss version=""2.0""><channel>
       <title>Feed without description</title>
     <link>https://example.com</link>
@@ -197,97 +197,97 @@ public class RssParsingServiceTests
       </item>
     </channel></rss>";
 
-        var service = new RssParsingService(
-          _mockLogger.Object,
-          _mockYoutubeParser.Object,
-          _mockImageParser.Object
-        );
+    var service = new RssParsingService(
+      _mockLogger.Object,
+      _mockYoutubeParser.Object,
+      _mockImageParser.Object
+    );
 
-        // Act
-        var result = await service.ParseRssFeedAsync(xmlWithoutDescription, trim: 250, TestContext.Current.CancellationToken);
+    // Act
+    var result = await service.ParseRssFeedAsync(xmlWithoutDescription, trim: 250, TestContext.Current.CancellationToken);
 
-        // Assert
-        Assert.NotNull(result);
-        if (result.Count > 0 && result[0] != null)
-        {
-          Assert.Equal(string.Empty, result[0]!.Description);
-        }
-      }
-
-    [Fact]
-    public async Task ParseYoutubeFeedAsync_CallsYoutubeParsingService()
+    // Assert
+    Assert.NotNull(result);
+    if (result.Count > 0 && result[0] != null)
     {
-        // Arrange
-        var channelUrl = "https://www.youtube.com/c/TestChannel";
-        var expectedPost = new Post(
-            Title: "YouTube Video",
-            ImageUrl: "http://example.com/thumb.jpg",
-            Description: "Video description",
-            Link: "https://youtube.com/watch?v=123",
-            Tag: "youtube",
-            PublishDate: DateTime.Now,
-            Author: "Test Channel"
-        );
-
-        _mockYoutubeParser
-          .Setup(x => x.GetXmlUrlAndFeed(channelUrl, It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult<Post?>(expectedPost));
-
-        var service = new RssParsingService(
-            _mockLogger.Object,
-            _mockYoutubeParser.Object,
-            _mockImageParser.Object
-        );
-
-        // Act
-        var result = await service.ParseYoutubeFeedAsync(channelUrl, TestContext.Current.CancellationToken);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal("YouTube Video", result?.Title);
-        _mockYoutubeParser.Verify(x => x.GetXmlUrlAndFeed(channelUrl, It.IsAny<CancellationToken>()), Times.Once);
+      Assert.Equal(string.Empty, result[0]!.Description);
     }
+  }
 
-    [Fact]
-    public async Task ParseYoutubeFeedAsync_InvalidUrl_LogsWarningReturnsNull()
-    {
-        // Arrange
-        var invalidUrl = "https://invalid-youtube-url";
+  [Fact]
+  public async Task ParseYoutubeFeedAsync_CallsYoutubeParsingService()
+  {
+    // Arrange
+    var channelUrl = "https://www.youtube.com/c/TestChannel";
+    var expectedPost = new Post(
+        Title: "YouTube Video",
+        ImageUrl: "http://example.com/thumb.jpg",
+        Description: "Video description",
+        Link: "https://youtube.com/watch?v=123",
+        Tag: "youtube",
+        PublishDate: DateTime.Now,
+        Author: "Test Channel"
+    );
 
-        _mockYoutubeParser
-          .Setup(x => x.GetXmlUrlAndFeed(invalidUrl, It.IsAny<CancellationToken>()))
-            .Returns(Task.FromResult<Post?>((Post?)null!));
+    _mockYoutubeParser
+      .Setup(x => x.GetXmlUrlAndFeed(channelUrl, It.IsAny<CancellationToken>()))
+        .Returns(Task.FromResult<Post?>(expectedPost));
 
-        var service = new RssParsingService(
-            _mockLogger.Object,
-            _mockYoutubeParser.Object,
-            _mockImageParser.Object
-        );
+    var service = new RssParsingService(
+        _mockLogger.Object,
+        _mockYoutubeParser.Object,
+        _mockImageParser.Object
+    );
 
-        // Act
-        var result = await service.ParseYoutubeFeedAsync(invalidUrl, TestContext.Current.CancellationToken);
+    // Act
+    var result = await service.ParseYoutubeFeedAsync(channelUrl, TestContext.Current.CancellationToken);
 
-        // Assert
-        Assert.Null(result);
+    // Assert
+    Assert.NotNull(result);
+    Assert.Equal("YouTube Video", result?.Title);
+    _mockYoutubeParser.Verify(x => x.GetXmlUrlAndFeed(channelUrl, It.IsAny<CancellationToken>()), Times.Once);
+  }
 
-        // Verify warning was logged
-        _mockLogger.Verify(
-            x => x.Log(
-                LogLevel.Warning,
-                It.IsAny<EventId>(),
-                It.IsAny<It.IsAnyType>(),
-                It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception?, string>>()
-            ),
-            Times.Once
-        );
-    }
+  [Fact]
+  public async Task ParseYoutubeFeedAsync_InvalidUrl_LogsWarningReturnsNull()
+  {
+    // Arrange
+    var invalidUrl = "https://invalid-youtube-url";
 
-    [Fact]
-    public async Task ParseRssFeedAsync_WithCancelledToken_ThrowsOperationCancelledException()
-    {
-        // Arrange
-        var xmlContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
+    _mockYoutubeParser
+      .Setup(x => x.GetXmlUrlAndFeed(invalidUrl, It.IsAny<CancellationToken>()))
+        .Returns(Task.FromResult<Post?>((Post?)null!));
+
+    var service = new RssParsingService(
+        _mockLogger.Object,
+        _mockYoutubeParser.Object,
+        _mockImageParser.Object
+    );
+
+    // Act
+    var result = await service.ParseYoutubeFeedAsync(invalidUrl, TestContext.Current.CancellationToken);
+
+    // Assert
+    Assert.Null(result);
+
+    // Verify warning was logged
+    _mockLogger.Verify(
+        x => x.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+        ),
+        Times.Once
+    );
+  }
+
+  [Fact]
+  public async Task ParseRssFeedAsync_WithCancelledToken_ThrowsOperationCancelledException()
+  {
+    // Arrange
+    var xmlContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <rss version=""2.0"">
   <channel>
     <title>Test Feed</title>
@@ -302,26 +302,26 @@ public class RssParsingServiceTests
   </channel>
 </rss>";
 
-        var cts = new CancellationTokenSource();
-        cts.Cancel();
+    var cts = new CancellationTokenSource();
+    cts.Cancel();
 
-        var service = new RssParsingService(
-            _mockLogger.Object,
-            _mockYoutubeParser.Object,
-            _mockImageParser.Object
-        );
+    var service = new RssParsingService(
+        _mockLogger.Object,
+        _mockYoutubeParser.Object,
+        _mockImageParser.Object
+    );
 
-        // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(
-            () => service.ParseRssFeedAsync(xmlContent, trim: 250, cancellationToken: cts.Token)
-        );
-    }
+    // Act & Assert
+    await Assert.ThrowsAsync<OperationCanceledException>(
+        () => service.ParseRssFeedAsync(xmlContent, trim: 250, cancellationToken: cts.Token)
+    );
+  }
 
-    [Fact]
-    public async Task ParseRssFeedAsync_ValidAtomXml_ParsesFeedItems()
-    {
-        // Arrange
-        var atomXml = @"<?xml version=""1.0"" encoding=""utf-8""?>
+  [Fact]
+  public async Task ParseRssFeedAsync_ValidAtomXml_ParsesFeedItems()
+  {
+    // Arrange
+    var atomXml = @"<?xml version=""1.0"" encoding=""utf-8""?>
 <feed xmlns=""http://www.w3.org/2005/Atom"">
   <title>Atom Test Feed</title>
   <id>https://example.com/atom</id>
@@ -338,24 +338,24 @@ public class RssParsingServiceTests
   </entry>
 </feed>";
 
-        var service = new RssParsingService(
-            _mockLogger.Object,
-            _mockYoutubeParser.Object,
-            _mockImageParser.Object
-        );
+    var service = new RssParsingService(
+        _mockLogger.Object,
+        _mockYoutubeParser.Object,
+        _mockImageParser.Object
+    );
 
-        // Act
-        var result = await service.ParseRssFeedAsync(atomXml, trim: 250, TestContext.Current.CancellationToken);
+    // Act
+    var result = await service.ParseRssFeedAsync(atomXml, trim: 250, TestContext.Current.CancellationToken);
 
-        // Assert
-        Assert.NotNull(result);
-    }
+    // Assert
+    Assert.NotNull(result);
+  }
 
-    [Fact]
-    public async Task ParseRssFeedAsync_ValidJsonFeed_ParsesFeedItems()
-    {
-        // Arrange
-        var jsonFeed = @"{
+  [Fact]
+  public async Task ParseRssFeedAsync_ValidJsonFeed_ParsesFeedItems()
+  {
+    // Arrange
+    var jsonFeed = @"{
   ""version"": ""https://jsonfeed.org/version/1.1"",
   ""title"": ""JSON Feed Test"",
   ""home_page_url"": ""https://example.com"",
@@ -371,94 +371,94 @@ public class RssParsingServiceTests
   ]
 }";
 
-        var service = new RssParsingService(
-            _mockLogger.Object,
-            _mockYoutubeParser.Object,
-            _mockImageParser.Object
-        );
+    var service = new RssParsingService(
+        _mockLogger.Object,
+        _mockYoutubeParser.Object,
+        _mockImageParser.Object
+    );
 
-        // Act
-        var result = await service.ParseRssFeedAsync(jsonFeed, trim: 250, TestContext.Current.CancellationToken);
+    // Act
+    var result = await service.ParseRssFeedAsync(jsonFeed, trim: 250, TestContext.Current.CancellationToken);
 
-        // Assert
-        Assert.NotNull(result);
-      }
+    // Assert
+    Assert.NotNull(result);
+  }
 
-      [Fact]
-      public void GetRawXmlForItem_WithUnknownSpecificItem_ReturnsEmptyString()
-      {
-        // Arrange
-        var service = new RssParsingService(
-          _mockLogger.Object,
-          _mockYoutubeParser.Object,
-          _mockImageParser.Object
-        );
+  [Fact]
+  public void GetRawXmlForItem_WithUnknownSpecificItem_ReturnsEmptyString()
+  {
+    // Arrange
+    var service = new RssParsingService(
+      _mockLogger.Object,
+      _mockYoutubeParser.Object,
+      _mockImageParser.Object
+    );
 
-        var method = typeof(RssParsingService).GetMethod("GetRawXmlForItem", BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.NotNull(method);
+    var method = typeof(RssParsingService).GetMethod("GetRawXmlForItem", BindingFlags.NonPublic | BindingFlags.Instance);
+    Assert.NotNull(method);
 
-        var baseFeedItemType = typeof(CodeHollow.FeedReader.Feeds.BaseFeedItem);
-        var fallbackSpecificItemType = baseFeedItemType.Assembly.GetTypes()
-            .FirstOrDefault(t =>
-                baseFeedItemType.IsAssignableFrom(t) &&
-                !t.IsAbstract &&
-                t != typeof(CodeHollow.FeedReader.Feeds.Rss20FeedItem) &&
-                t != typeof(CodeHollow.FeedReader.Feeds.AtomFeedItem) &&
-                t.GetConstructor(Type.EmptyTypes) is not null);
+    var baseFeedItemType = typeof(CodeHollow.FeedReader.Feeds.BaseFeedItem);
+    var fallbackSpecificItemType = baseFeedItemType.Assembly.GetTypes()
+        .FirstOrDefault(t =>
+            baseFeedItemType.IsAssignableFrom(t) &&
+            !t.IsAbstract &&
+            t != typeof(CodeHollow.FeedReader.Feeds.Rss20FeedItem) &&
+            t != typeof(CodeHollow.FeedReader.Feeds.AtomFeedItem) &&
+            t.GetConstructor(Type.EmptyTypes) is not null);
 
-        Assert.NotNull(fallbackSpecificItemType);
+    Assert.NotNull(fallbackSpecificItemType);
 
-        var fallbackSpecificItem = (CodeHollow.FeedReader.Feeds.BaseFeedItem)Activator.CreateInstance(fallbackSpecificItemType!)!;
-        var feedItem = new FeedItem { SpecificItem = fallbackSpecificItem };
+    var fallbackSpecificItem = (CodeHollow.FeedReader.Feeds.BaseFeedItem)Activator.CreateInstance(fallbackSpecificItemType!)!;
+    var feedItem = new FeedItem { SpecificItem = fallbackSpecificItem };
 
-        // Act
-        var result = method!.Invoke(service, new object[] { feedItem });
+    // Act
+    var result = method!.Invoke(service, new object[] { feedItem });
 
-        // Assert
-        Assert.Equal(string.Empty, result as string);
-    }
+    // Assert
+    Assert.Equal(string.Empty, result as string);
+  }
 
-      [Fact]
-      public void GetRawXmlForItem_WithRssSpecificItemWithoutElement_ReturnsEmptyString()
-      {
-        var service = new RssParsingService(
-          _mockLogger.Object,
-          _mockYoutubeParser.Object,
-          _mockImageParser.Object
-        );
+  [Fact]
+  public void GetRawXmlForItem_WithRssSpecificItemWithoutElement_ReturnsEmptyString()
+  {
+    var service = new RssParsingService(
+      _mockLogger.Object,
+      _mockYoutubeParser.Object,
+      _mockImageParser.Object
+    );
 
-        var method = typeof(RssParsingService).GetMethod("GetRawXmlForItem", BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.NotNull(method);
+    var method = typeof(RssParsingService).GetMethod("GetRawXmlForItem", BindingFlags.NonPublic | BindingFlags.Instance);
+    Assert.NotNull(method);
 
-        var feedItem = new FeedItem
-        {
-          SpecificItem = new CodeHollow.FeedReader.Feeds.Rss20FeedItem()
-        };
+    var feedItem = new FeedItem
+    {
+      SpecificItem = new CodeHollow.FeedReader.Feeds.Rss20FeedItem()
+    };
 
-        var result = method!.Invoke(service, new object[] { feedItem });
+    var result = method!.Invoke(service, new object[] { feedItem });
 
-        Assert.Equal(string.Empty, result as string);
-      }
+    Assert.Equal(string.Empty, result as string);
+  }
 
-      [Fact]
-      public void GetRawXmlForItem_WithAtomSpecificItemWithoutElement_ReturnsEmptyString()
-      {
-        var service = new RssParsingService(
-          _mockLogger.Object,
-          _mockYoutubeParser.Object,
-          _mockImageParser.Object
-        );
+  [Fact]
+  public void GetRawXmlForItem_WithAtomSpecificItemWithoutElement_ReturnsEmptyString()
+  {
+    var service = new RssParsingService(
+      _mockLogger.Object,
+      _mockYoutubeParser.Object,
+      _mockImageParser.Object
+    );
 
-        var method = typeof(RssParsingService).GetMethod("GetRawXmlForItem", BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.NotNull(method);
+    var method = typeof(RssParsingService).GetMethod("GetRawXmlForItem", BindingFlags.NonPublic | BindingFlags.Instance);
+    Assert.NotNull(method);
 
-        var feedItem = new FeedItem
-        {
-          SpecificItem = new CodeHollow.FeedReader.Feeds.AtomFeedItem()
-        };
+    var feedItem = new FeedItem
+    {
+      SpecificItem = new CodeHollow.FeedReader.Feeds.AtomFeedItem()
+    };
 
-        var result = method!.Invoke(service, new object[] { feedItem });
+    var result = method!.Invoke(service, new object[] { feedItem });
 
-        Assert.Equal(string.Empty, result as string);
-      }
+    Assert.Equal(string.Empty, result as string);
+  }
 }
