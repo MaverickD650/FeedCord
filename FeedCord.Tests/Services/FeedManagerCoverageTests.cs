@@ -102,8 +102,9 @@ public class FeedManagerCoverageTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
     var results = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
-    Assert.Single(results);
-    Assert.Equal("new", results[0].Title);
+    Assert.Collection(results,
+      post => Assert.Equal("new", post.Title)
+    );
     mockFilter.Verify(x => x.ShouldIncludePost(It.IsAny<Post>(), RssUrl), Times.Once);
   }
 
@@ -573,8 +574,10 @@ public class FeedManagerCoverageTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
     var state = manager.GetAllFeedData()[youtubeChannelUrl];
-    Assert.True(state.IsYoutube);
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.Multiple(
+      () => Assert.True(state.IsYoutube),
+      () => Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1))
+    );
   }
 
   [Fact]
@@ -622,8 +625,10 @@ public class FeedManagerCoverageTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
     var state = manager.GetAllFeedData()[youtubeChannelUrl];
-    Assert.True(state.IsYoutube);
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.Multiple(
+      () => Assert.True(state.IsYoutube),
+      () => Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1))
+    );
   }
 
   [Fact]
@@ -1467,8 +1472,10 @@ public class FeedManagerCoverageTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
     var state = manager.GetAllFeedData()[youtubeFeedUrl];
-    Assert.True(state.IsYoutube);
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.Multiple(
+      () => Assert.True(state.IsYoutube),
+      () => Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1))
+    );
   }
 
   [Fact]
@@ -1572,8 +1579,9 @@ public class FeedManagerCoverageTests
 
     var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
-    Assert.Single(result);
-    Assert.Equal("yt-post", result[0].Title);
+    Assert.Collection(result,
+      post => Assert.Equal("yt-post", post.Title)
+    );
   }
 
   [Fact]

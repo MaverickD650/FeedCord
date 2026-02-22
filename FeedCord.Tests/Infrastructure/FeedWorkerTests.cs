@@ -14,6 +14,12 @@ namespace FeedCord.Tests.Infrastructure;
 /// Comprehensive test suite for FeedWorker functionality.
 /// Consolidates all FeedWorker tests into a single, well-organized file.
 /// </summary>
+[CollectionDefinition("InfrastructureWorkersNonParallel", DisableParallelization = true)]
+public class InfrastructureWorkersNonParallelCollection
+{
+}
+
+[Collection("InfrastructureWorkersNonParallel")]
 public class FeedWorkerTests
 {
   #region Constructor Tests
@@ -162,19 +168,18 @@ public class FeedWorkerTests
 
     // Act
     var loaded = store.LoadReferencePosts();
-    var saveException = Record.Exception(() => store.SaveReferencePosts(feedData));
+    store.SaveReferencePosts(feedData);
 
     // Assert
     Assert.NotNull(loaded);
     Assert.Empty(loaded);
-    Assert.Null(saveException);
   }
 
   #endregion
 
   #region ExecuteAsync Tests
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_InitializesUrlsOnFirstRun()
   {
     // Arrange
@@ -360,7 +365,7 @@ public class FeedWorkerTests
     );
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_ChecksForNewPostsAndNotifies()
   {
     // Arrange
@@ -422,7 +427,7 @@ public class FeedWorkerTests
     mockFeedManager.Verify(x => x.CheckForNewPostsAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_NotifiesWhenPostsFound()
   {
     // Arrange
@@ -480,7 +485,7 @@ public class FeedWorkerTests
     mockNotifier.Verify(x => x.SendNotificationsAsync(It.IsAny<List<Post>>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_DoesNotNotifyWhenNoPostsFound()
   {
     // Arrange
@@ -534,7 +539,7 @@ public class FeedWorkerTests
 
   #region Shutdown and Persistence Tests
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task OnShutdown_WithPersistenceEnabled_SavesThroughReferencePostStore()
   {
     // Arrange
@@ -600,7 +605,7 @@ public class FeedWorkerTests
     mockReferencePostStore.Verify(x => x.SaveReferencePosts(It.IsAny<IReadOnlyDictionary<string, FeedState>>()), Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task OnShutdown_WhenPersistenceDisabled_DoesNotSaveThroughReferencePostStore()
   {
     // Arrange
@@ -656,7 +661,7 @@ public class FeedWorkerTests
 
   #region LogAggregator Tests
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_SetsBatchLoggerStartAndEndTime()
   {
     // Arrange

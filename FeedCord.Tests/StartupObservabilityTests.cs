@@ -36,9 +36,11 @@ public class StartupObservabilityTests
       var readiness = await httpClient.GetAsync("/health/ready", TestContext.Current.CancellationToken);
       var metrics = await httpClient.GetAsync("/metrics", TestContext.Current.CancellationToken);
 
-      Assert.True(liveness.IsSuccessStatusCode, "Default liveness endpoint should return success.");
-      Assert.True(readiness.IsSuccessStatusCode, "Default readiness endpoint should return success.");
-      Assert.True(metrics.IsSuccessStatusCode, "Default metrics endpoint should return success.");
+        Assert.Multiple(
+          () => Assert.True(liveness.IsSuccessStatusCode, "Default liveness endpoint should return success."),
+          () => Assert.True(readiness.IsSuccessStatusCode, "Default readiness endpoint should return success."),
+          () => Assert.True(metrics.IsSuccessStatusCode, "Default metrics endpoint should return success.")
+        );
     }
     finally
     {
@@ -89,9 +91,11 @@ public class StartupObservabilityTests
       var readiness = await httpClient.GetAsync("/health/ready-test", TestContext.Current.CancellationToken);
       var metrics = await httpClient.GetAsync("/metrics-test", TestContext.Current.CancellationToken);
 
-      Assert.True(liveness.IsSuccessStatusCode, "Liveness endpoint should return success.");
-      Assert.True(readiness.IsSuccessStatusCode, "Readiness endpoint should return success.");
-      Assert.True(metrics.IsSuccessStatusCode, "Metrics endpoint should return success.");
+        Assert.Multiple(
+          () => Assert.True(liveness.IsSuccessStatusCode, "Liveness endpoint should return success."),
+          () => Assert.True(readiness.IsSuccessStatusCode, "Readiness endpoint should return success."),
+          () => Assert.True(metrics.IsSuccessStatusCode, "Metrics endpoint should return success.")
+        );
     }
     finally
     {
@@ -139,9 +143,11 @@ Observability:
       var readiness = await httpClient.GetAsync("/health/ready-yaml", TestContext.Current.CancellationToken);
       var metrics = await httpClient.GetAsync("/metrics-yaml", TestContext.Current.CancellationToken);
 
-      Assert.True(liveness.IsSuccessStatusCode, "YAML liveness endpoint should return success.");
-      Assert.True(readiness.IsSuccessStatusCode, "YAML readiness endpoint should return success.");
-      Assert.True(metrics.IsSuccessStatusCode, "YAML metrics endpoint should return success.");
+        Assert.Multiple(
+          () => Assert.True(liveness.IsSuccessStatusCode, "YAML liveness endpoint should return success."),
+          () => Assert.True(readiness.IsSuccessStatusCode, "YAML readiness endpoint should return success."),
+          () => Assert.True(metrics.IsSuccessStatusCode, "YAML metrics endpoint should return success.")
+        );
     }
     finally
     {

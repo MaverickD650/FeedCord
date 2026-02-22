@@ -305,13 +305,16 @@ namespace FeedCord.Tests
 
       // Assert - Verify all aspects of entry point contract
       Assert.NotNull(mainMethod);
-      Assert.True(mainMethod.IsStatic);
-      Assert.True(mainMethod.IsPublic);
-      Assert.Equal(typeof(void), mainMethod.ReturnType);
+        Assert.Multiple(
+          () => Assert.True(mainMethod.IsStatic),
+          () => Assert.True(mainMethod.IsPublic),
+          () => Assert.Equal(typeof(void), mainMethod.ReturnType)
+        );
 
       var parameters = mainMethod.GetParameters();
-      Assert.Single(parameters);
-      Assert.Equal(typeof(string[]), parameters[0].ParameterType);
+        Assert.Collection(parameters,
+          parameter => Assert.Equal(typeof(string[]), parameter.ParameterType)
+        );
     }
 
     [Fact]

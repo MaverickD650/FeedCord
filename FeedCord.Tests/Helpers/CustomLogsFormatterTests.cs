@@ -206,9 +206,10 @@ namespace FeedCord.Tests.Helpers
 
       // Assert
       var lines = output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
-      Assert.Equal(2, lines.Length);
-      Assert.Contains("Message 1", lines[0]);
-      Assert.Contains("Message 2", lines[1]);
+      Assert.Collection(lines,
+          line => Assert.Contains("Message 1", line),
+          line => Assert.Contains("Message 2", line)
+      );
     }
 
     [Theory]

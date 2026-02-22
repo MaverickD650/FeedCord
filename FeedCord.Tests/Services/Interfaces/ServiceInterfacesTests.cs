@@ -23,8 +23,10 @@ public class ServiceInterfacesTests
 
     foreach (var interfaceType in serviceInterfaceTypes)
     {
-      Assert.True(interfaceType.IsInterface);
-      Assert.True(interfaceType.IsPublic);
+      Assert.Multiple(
+          () => Assert.True(interfaceType.IsInterface),
+          () => Assert.True(interfaceType.IsPublic)
+      );
     }
   }
 

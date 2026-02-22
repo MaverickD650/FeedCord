@@ -8,8 +8,26 @@ using System.Net.Http.Headers;
 
 namespace FeedCord.Tests.Infrastructure
 {
-  public class CustomHttpClientExpandedTests
+  [CollectionDefinition("InfrastructureHttpNonParallel", DisableParallelization = true)]
+  public class InfrastructureHttpNonParallelCollection
   {
+  }
+
+  public sealed class CustomHttpClientExpandedTestsFixture
+  {
+    public Mock<ILogger<CustomHttpClient>> CreateLogger() => new(MockBehavior.Loose);
+
+    public SemaphoreSlim CreateThrottle(int count = 1) => new(count, count);
+  }
+
+  [Collection("InfrastructureHttpNonParallel")]
+  public class CustomHttpClientExpandedTests : IClassFixture<CustomHttpClientExpandedTestsFixture>
+  {
+    public CustomHttpClientExpandedTests(CustomHttpClientExpandedTestsFixture fixture)
+    {
+      _ = fixture;
+    }
+
     #region GetAsyncWithFallback Tests
 
     [Fact]
@@ -1379,7 +1397,7 @@ namespace FeedCord.Tests.Infrastructure
 
     #region Rate Limiting Precision
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_EnforcesMinimumTimeIntervalPrecisely()
     {
       // Arrange
@@ -1415,7 +1433,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.True(totalElapsed >= 1900, $"Rate limiting not enforced. Total: {totalElapsed}ms"); // Allow 100ms tolerance for system variance
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_RateLimitAppliesPerChannel()
     {
       // Arrange
@@ -1447,7 +1465,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.True(timeBetweenPosts >= 1900, $"Rate limit not enforced. Time between posts: {timeBetweenPosts}ms");
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_HandlesRateLimitWithCancellation()
     {
       // Arrange
@@ -1477,7 +1495,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.NotNull(ex);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_WhenCanceledDuringSend_ReleasesThrottleForNextRequest()
     {
       // Arrange
@@ -1723,7 +1741,7 @@ namespace FeedCord.Tests.Infrastructure
 
     #region Concurrent Request Handling
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_HandlesConcurrentRequestsWithThrottle()
     {
       // Arrange

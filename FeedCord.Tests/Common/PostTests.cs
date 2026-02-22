@@ -120,10 +120,11 @@ public class PostTests
             CreatePost("Title 3")
         };
 
-    Assert.Equal(3, posts.Count);
-    Assert.Equal("Title 1", posts[0].Title);
-    Assert.Equal("Title 2", posts[1].Title);
-    Assert.Equal("Title 3", posts[2].Title);
+    Assert.Collection(posts,
+      post => Assert.Equal("Title 1", post.Title),
+      post => Assert.Equal("Title 2", post.Title),
+      post => Assert.Equal("Title 3", post.Title)
+    );
   }
 
   private static Post CreatePost(string title)
