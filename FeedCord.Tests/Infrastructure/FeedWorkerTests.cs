@@ -213,11 +213,18 @@ public class FeedWorkerTests
     var startTask = worker.StartAsync(cts.Token);
     await Task.Delay(200, TestContext.Current.CancellationToken); // Allow background loop to run
     cts.Cancel();
-    try { await startTask; } catch { /* ignore cancellation */ }
+    try
+    {
+      await startTask;
+    }
+    catch (OperationCanceledException)
+    {
+      // Expected when cancellation is observed by the background loop.
+    }
     mockFeedManager.Verify(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_WhenCanceledDuringDelay_StopsGracefully()
   {
     var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
@@ -264,7 +271,7 @@ public class FeedWorkerTests
     mockLogAggregator.Verify(x => x.SendToBatchAsync(), Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_WhenRoutineThrowsOperationCanceledWithCanceledToken_BreaksLoopGracefully()
   {
     // Arrange
@@ -312,7 +319,7 @@ public class FeedWorkerTests
     mockLogAggregator.Verify(x => x.SetEndTime(It.IsAny<DateTime>()), Times.Never);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_WhenRoutineThrowsUnexpectedException_LogsCriticalAndRethrows()
   {
     // Arrange
@@ -349,7 +356,7 @@ public class FeedWorkerTests
     var executeAsync = typeof(FeedWorker).GetMethod("ExecuteAsync", BindingFlags.Instance | BindingFlags.NonPublic);
     Assert.NotNull(executeAsync);
 
-    var task = (Task)executeAsync!.Invoke(worker, new object[] { CancellationToken.None })!;
+    var task = (Task)executeAsync!.Invoke(worker, new object[] { TestContext.Current.CancellationToken })!;
 
     // Assert
     await Assert.ThrowsAsync<InvalidOperationException>(async () => await task);
@@ -714,7 +721,7 @@ public class FeedWorkerTests
     mockLogAggregator.Verify(x => x.SendToBatchAsync(), Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_WhenTaskDelayCanceled_LogsStoppedGracefully()
   {
     // Arrange - Test for FeedWorker.cs line 74 coverage (outer catch block)
@@ -774,7 +781,7 @@ public class FeedWorkerTests
     );
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_MultipleIterations_TaskDelayCompletesAtLeastOnce()
   {
     // Arrange - Test that Task.Delay line (line 74) is actually executed

@@ -36,7 +36,7 @@ public class BatchLoggerTests
     return new LogAggregator(batchLoggerMock.Object, config);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ConsumeLogData_WhenNoNewPosts_LogsLatestPostsAndResets()
   {
     var loggerMock = new Mock<ILogger<BatchLogger>>(MockBehavior.Loose);
@@ -71,7 +71,7 @@ public class BatchLoggerTests
     Assert.Equal(0, logItem.NewPostCount);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ConsumeLogData_WithFailures_LogsFailedStatusDetails()
   {
     var loggerMock = new Mock<ILogger<BatchLogger>>(MockBehavior.Loose);
@@ -97,7 +97,7 @@ public class BatchLoggerTests
         Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ConsumeLogData_WithNewPosts_LogsNewPostCount()
   {
     var loggerMock = new Mock<ILogger<BatchLogger>>(MockBehavior.Loose);

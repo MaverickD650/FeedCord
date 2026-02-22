@@ -333,7 +333,7 @@ namespace FeedCord.Tests.Infrastructure
       var throttle = new SemaphoreSlim(5, 5);
       var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "UA-1" });
 
-      var response = await client.GetAsyncWithFallback("https://example.com/feed", CancellationToken.None);
+      var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
 
       Assert.NotNull(response);
       Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -364,7 +364,7 @@ namespace FeedCord.Tests.Infrastructure
       var throttle = new SemaphoreSlim(5, 5);
       var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "UA-1" });
 
-      var response = await client.GetAsyncWithFallback("https://example.com/feed", CancellationToken.None);
+      var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
 
       Assert.NotNull(response);
       Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -426,7 +426,7 @@ namespace FeedCord.Tests.Infrastructure
       var throttle = new SemaphoreSlim(5, 5);
       var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "Bad-UA-1", "Bad-UA-2" });
 
-      var response = await client.GetAsyncWithFallback("https://example.com/feed", CancellationToken.None);
+      var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
 
       Assert.NotNull(response);
       Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -1390,7 +1390,8 @@ namespace FeedCord.Tests.Infrastructure
       await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
 
       // Assert - Should have used user agent at least once
-      Assert.True(userAgentAttempts.Count >= 0, "User agent tracking completed");
+      Assert.True(userAgentAttempts.Count <= 2, "Unexpected number of user-agent attempts recorded");
+      Assert.All(userAgentAttempts, ua => Assert.False(string.IsNullOrWhiteSpace(ua)));
     }
 
     #endregion
@@ -1770,7 +1771,7 @@ namespace FeedCord.Tests.Infrastructure
 
       // Act - Fire 5 concurrent requests
       var tasks = Enumerable.Range(0, 5)
-          .Select(i => client.GetAsyncWithFallback($"https://example.com/feed{i}"))
+          .Select(i => client.GetAsyncWithFallback($"https://example.com/feed{i}", TestContext.Current.CancellationToken))
           .ToList();
 
       await Task.WhenAll(tasks);

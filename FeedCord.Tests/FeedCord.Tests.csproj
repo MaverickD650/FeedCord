@@ -5,10 +5,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsTestProject>true</IsTestProject>
-    <!-- xUnit1051: All affected call sites correctly pass TestContext.Current.CancellationToken.
-         The analyzer has a known false-positive when the token is accessed via TestContext.Current
-         rather than taken as a method parameter. Suppressing until analyzer is fixed. -->
-    <NoWarn>xUnit1051</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

@@ -75,12 +75,12 @@ namespace FeedCord.Tests.Core
 
   public class DiscordImageTests
   {
-    public static TheoryData<string?> ImageUrls => new()
+    public static IEnumerable<object?[]> ImageUrls => new List<object?[]>
     {
-      null,
-      "",
-      "https://example.com/image.png",
-      "https://cdn.discord.com/attachments/123456/image.jpg",
+      new object?[] { (string?)null },
+      new object?[] { "" },
+      new object?[] { "https://example.com/image.png" },
+      new object?[] { "https://cdn.discord.com/attachments/123456/image.jpg" },
     };
 
     [Fact]
@@ -174,13 +174,13 @@ namespace FeedCord.Tests.Core
 
   public class DiscordEmbedTests
   {
-    public static TheoryData<string?> EmbedDescriptions => new()
+    public static IEnumerable<object?[]> EmbedDescriptions => new List<object?[]>
     {
-      null,
-      "",
-      "Short",
-      "A very long description that might be truncated by Discord",
-      "Description with special chars: !@#$%^&*()",
+      new object?[] { (string?)null },
+      new object?[] { "" },
+      new object?[] { "Short" },
+      new object?[] { "A very long description that might be truncated by Discord" },
+      new object?[] { "Description with special chars: !@#$%^&*()" },
     };
 
     public static TheoryData<int> EmbedColors => new()
@@ -467,22 +467,22 @@ namespace FeedCord.Tests.Core
       { "", "" },
     };
 
-    public static TheoryData<string?> ForumThreadNames => new()
+    public static IEnumerable<object?[]> ForumThreadNames => new List<object?[]>
     {
-      null,
-      "",
-      "Simple thread name",
-      "Thread with special chars: !@#$%^&*()",
-      "Very long thread name that might be constrained by Discord length limits",
+      new object?[] { (string?)null },
+      new object?[] { "" },
+      new object?[] { "Simple thread name" },
+      new object?[] { "Thread with special chars: !@#$%^&*()" },
+      new object?[] { "Very long thread name that might be constrained by Discord length limits" },
     };
 
-    public static TheoryData<string?> ForumContentValues => new()
+    public static IEnumerable<object?[]> ForumContentValues => new List<object?[]>
     {
-      null,
-      "",
-      "Simple content",
-      "Content with line breaks\nand multiple\nlines",
-      "Content with special markdown: **bold** *italic* `code`",
+      new object?[] { (string?)null },
+      new object?[] { "" },
+      new object?[] { "Simple content" },
+      new object?[] { "Content with line breaks\nand multiple\nlines" },
+      new object?[] { "Content with special markdown: **bold** *italic* `code`" },
     };
 
     [Fact]
@@ -600,26 +600,26 @@ namespace FeedCord.Tests.Core
       { "", "" },
     };
 
-    public static TheoryData<string?> MarkdownContentValues => new()
+    public static IEnumerable<object?[]> MarkdownContentValues => new List<object?[]>
     {
-      null,
-      "",
-      "Simple markdown",
-      "**bold** text",
-      "*italic* text",
-      "`code block`",
-      "# Heading\n\n## Subheading\n\nContent",
-      "[link](https://example.com)",
-      "- List item 1\n- List item 2",
+      new object?[] { (string?)null },
+      new object?[] { "" },
+      new object?[] { "Simple markdown" },
+      new object?[] { "**bold** text" },
+      new object?[] { "*italic* text" },
+      new object?[] { "`code block`" },
+      new object?[] { "# Heading\n\n## Subheading\n\nContent" },
+      new object?[] { "[link](https://example.com)" },
+      new object?[] { "- List item 1\n- List item 2" },
     };
 
-    public static TheoryData<string?> MarkdownThreadNameValues => new()
+    public static IEnumerable<object?[]> MarkdownThreadNameValues => new List<object?[]>
     {
-      null,
-      "",
-      "Simple name",
-      "Thread with spaces",
-      "Thread-with-dashes",
+      new object?[] { (string?)null },
+      new object?[] { "" },
+      new object?[] { "Simple name" },
+      new object?[] { "Thread with spaces" },
+      new object?[] { "Thread-with-dashes" },
     };
 
     [Fact]
