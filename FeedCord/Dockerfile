@@ -8,7 +8,7 @@ COPY src ./src
 COPY restart-first-run.sh ./
 RUN dotnet publish FeedCord.csproj -c Release -o /app/publish --no-restore
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnetcore:10.0 AS final
 WORKDIR /app
 
 COPY --chown=10001:10001 --from=build /app/publish ./
