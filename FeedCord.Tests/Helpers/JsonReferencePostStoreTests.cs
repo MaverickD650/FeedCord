@@ -43,6 +43,42 @@ public class JsonReferencePostStoreTests : IDisposable
     }
 
     [Fact]
+    public void LoadReferencePosts_WhenJsonIsWhitespace_ReturnsEmptyDictionary()
+    {
+        File.WriteAllText(_testFilePath, "   \n\t  ");
+        var store = new JsonReferencePostStore(_testFilePath);
+
+        var result = store.LoadReferencePosts();
+
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void LoadReferencePosts_WhenJsonPayloadIsNull_ReturnsEmptyDictionary()
+    {
+        File.WriteAllText(_testFilePath, "null");
+        var store = new JsonReferencePostStore(_testFilePath);
+
+        var result = store.LoadReferencePosts();
+
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void LoadReferencePosts_WhenEntriesIsNull_ReturnsEmptyDictionary()
+    {
+        File.WriteAllText(_testFilePath, "{\"Version\":1,\"Entries\":null}");
+        var store = new JsonReferencePostStore(_testFilePath);
+
+        var result = store.LoadReferencePosts();
+
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
     public void SaveReferencePosts_ThenLoadReferencePosts_RoundTripsData()
     {
         var store = new JsonReferencePostStore(_testFilePath);
@@ -119,6 +155,28 @@ public class JsonReferencePostStoreTests : IDisposable
         Assert.Contains("\"Version\"", fileContent);
         Assert.DoesNotContain("legacy-content", fileContent);
         Assert.False(File.Exists($"{_testFilePath}.tmp"));
+    }
+
+    [Fact]
+    public void LoadReferencePosts_WithWhitespaceUrlEntry_SkipsInvalidEntry()
+    {
+        var payload = new
+        {
+            Version = 1,
+            Entries = new object[]
+            {
+                new { Url = "   ", IsYoutube = false, LastRunDate = "2026-02-20T10:30:00Z" },
+                new { Url = "https://example.com/rss", IsYoutube = false, LastRunDate = "2026-02-21T10:30:00Z" }
+            }
+        };
+
+        File.WriteAllText(_testFilePath, JsonSerializer.Serialize(payload));
+        var store = new JsonReferencePostStore(_testFilePath);
+
+        var result = store.LoadReferencePosts();
+
+        Assert.Single(result);
+        Assert.True(result.ContainsKey("https://example.com/rss"));
     }
 
     [Fact]

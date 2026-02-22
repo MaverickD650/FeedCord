@@ -681,6 +681,31 @@ namespace FeedCord.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task TryExtractImageLink_WithElementIdButNoSrcAttributes_ReturnsEmpty()
+        {
+            // Arrange
+            var html = @"<html>
+<body>
+    <img id='post-image' alt='missing src'/>
+</body>
+</html>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(html)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        [Fact]
         public async Task TryExtractImageLink_WithFirstImgTag_ReturnsImageUrl()
         {
             // Arrange
@@ -724,6 +749,58 @@ namespace FeedCord.Tests.Infrastructure
             // Assert
             Assert.NotNull(result);
             Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithScrapedFtpImageUrl_ReturnsEmpty()
+        {
+            // Arrange
+            var html = @"<html>
+<head>
+    <meta property='og:image' content='ftp://example.com/image.jpg'/>
+</head>
+</html>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(html)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithWhitespaceDescriptionImageSrc_FallsBackToWebpageScrape()
+        {
+            // Arrange
+            var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <description><![CDATA[<img src='   ' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<html><meta property='og:image' content='https://example.com/fallback.jpg'/></html>")
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback("https://example.com", It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/fallback.jpg", result);
         }
 
         #endregion

@@ -183,6 +183,34 @@ namespace FeedCord.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task GetRecentPost_WithAsynchronouslyCompletedHttpCall_ExtractsFields()
+        {
+            // Arrange
+            var xmlUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxxx";
+            var validFeed = CreateValidAtomFeed();
+            var completion = new TaskCompletionSource<HttpResponseMessage?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
+                .Returns(completion.Task);
+
+            // Act
+            var resultTask = _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+            await Task.Yield();
+
+            completion.SetResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(validFeed)
+            });
+
+            var result = await resultTask;
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("Test Video Title", result.Title);
+            Assert.Equal("Test Channel", result.Tag);
+        }
+
+        [Fact]
         public async Task GetRecentPost_WithMissingOptionalFields_StillReturnsPost()
         {
             // Arrange
