@@ -44,7 +44,7 @@ namespace FeedCord.Services.Helpers
                     {
                         return (post.SpecificItem as MediaRssFeedItem)!.DC.Creator;
                     }
-                    if (!string.IsNullOrEmpty(((Rss20FeedItem)post.SpecificItem)?.DC.Creator))
+                    if (!string.IsNullOrEmpty((post.SpecificItem as Rss20FeedItem)?.DC.Creator))
                     {
                         return (post.SpecificItem as Rss20FeedItem)!.DC.Creator;
                     }

@@ -3,6 +3,7 @@ using FeedCord.Services.Helpers;
 using FeedCord.Common;
 using CodeHollow.FeedReader;
 using CodeHollow.FeedReader.Feeds;
+using System.Reflection;
 
 namespace FeedCord.Tests.Services
 {
@@ -639,6 +640,279 @@ namespace FeedCord.Tests.Services
             // Assert
             Assert.Equal("Media Creator", result.Author);
         }
+
+                [Fact]
+                public void TryBuildPost_WithMediaRssSpecificItem_ExtractsSourceAuthorWhenDcCreatorMissing()
+                {
+                    // Arrange
+                    var mediaSpecificItem = new MediaRssFeedItem();
+
+                    var dcProperty = typeof(MediaRssFeedItem).GetProperty("DC");
+                    Assert.NotNull(dcProperty);
+                    var dcInstance = dcProperty!.GetValue(mediaSpecificItem) ?? Activator.CreateInstance(dcProperty.PropertyType);
+                    Assert.NotNull(dcInstance);
+                    var creatorProperty = dcProperty.PropertyType.GetProperty("Creator");
+                    Assert.NotNull(creatorProperty);
+                    creatorProperty!.SetValue(dcInstance, string.Empty);
+                    if (dcProperty.SetMethod != null)
+                    {
+                        dcProperty.SetValue(mediaSpecificItem, dcInstance);
+                    }
+                    else
+                    {
+                        var dcBackingField = typeof(MediaRssFeedItem).GetField("<DC>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+                        dcBackingField?.SetValue(mediaSpecificItem, dcInstance);
+                    }
+
+                    var sourceProperty = typeof(MediaRssFeedItem).GetProperty("Source");
+                    Assert.NotNull(sourceProperty);
+                    var sourceInstance = sourceProperty!.GetValue(mediaSpecificItem) ?? Activator.CreateInstance(sourceProperty.PropertyType);
+                    Assert.NotNull(sourceInstance);
+                    var valueProperty = sourceProperty.PropertyType.GetProperty("Value");
+                    Assert.NotNull(valueProperty);
+                    valueProperty!.SetValue(sourceInstance, "Media Source Author");
+                    if ((string?)valueProperty.GetValue(sourceInstance) != "Media Source Author")
+                    {
+                        var valueBackingField = sourceProperty.PropertyType.GetField("<Value>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+                        valueBackingField?.SetValue(sourceInstance, "Media Source Author");
+                    }
+                    if (sourceProperty.SetMethod != null)
+                    {
+                        sourceProperty.SetValue(mediaSpecificItem, sourceInstance);
+                    }
+                    else
+                    {
+                        var sourceBackingField = typeof(MediaRssFeedItem).GetField("<Source>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+                        sourceBackingField?.SetValue(mediaSpecificItem, sourceInstance);
+                    }
+
+                    var feed = new Feed { Title = "Media Feed", Link = "https://example.com/rss" };
+                    var item = new FeedItem
+                    {
+                        Title = "Media Item",
+                        Description = "Description",
+                        Link = "https://example.com/item",
+                        Author = string.Empty,
+                        PublishingDate = DateTime.UtcNow,
+                        SpecificItem = mediaSpecificItem
+                    };
+
+                        // Act
+                        var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+                        // Assert
+                        Assert.Equal("Media Source Author", result.Author);
+                }
+
+                [Fact]
+                public void TryBuildPost_WithAtomItem_UsesUpdatedDateWhenPublishedMissing()
+                {
+                        // Arrange
+                        var atomXml = """
+                                <feed xmlns="http://www.w3.org/2005/Atom">
+                                    <title>Atom Feed</title>
+                                    <entry>
+                                        <title>Atom Entry</title>
+                                        <id>entry-1</id>
+                                        <updated>2025-02-22T08:30:00Z</updated>
+                                        <link href="https://example.com/atom/entry-1" />
+                                        <content type="html"><![CDATA[Atom content]]></content>
+                                    </entry>
+                                </feed>
+                                """;
+
+                        var parsed = FeedReader.ReadFromString(atomXml);
+                        var feed = new Feed { Title = parsed.Title, Link = "https://example.com/atom" };
+                        var item = parsed.Items[0];
+
+                        // Act
+                        var result = PostBuilder.TryBuildPost(item, feed, 0, "https://example.com/img.png");
+
+                        // Assert
+                        Assert.Equal(new DateTime(2025, 2, 22, 8, 30, 0, DateTimeKind.Utc), result.PublishDate.ToUniversalTime());
+                        Assert.Equal("https://example.com/img.png", result.ImageUrl);
+                        Assert.Equal("https://example.com/atom/entry-1", result.Link);
+                }
+
+                [Fact]
+                public void TryBuildPost_WithAtomItem_UsesDefaultDateWhenPublishedAndUpdatedMissing()
+                {
+                        // Arrange
+                        var atomXml = """
+                                <feed xmlns="http://www.w3.org/2005/Atom">
+                                    <title>Atom Feed</title>
+                                    <entry>
+                                        <title>No Date Entry</title>
+                                        <id>entry-2</id>
+                                        <link href="https://example.com/atom/entry-2" />
+                                        <content type="html"><![CDATA[No date content]]></content>
+                                    </entry>
+                                </feed>
+                                """;
+
+                        var parsed = FeedReader.ReadFromString(atomXml);
+                        var feed = new Feed { Title = parsed.Title, Link = "https://example.com/atom" };
+                        var item = parsed.Items[0];
+
+                        // Act
+                        var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+                        // Assert
+                        Assert.Equal(default, result.PublishDate);
+                }
+
+                [Fact]
+                public void TryBuildPost_WithGitLabItemAndTrim_TrimDescriptionInGitLabBuilder()
+                {
+                        // Arrange
+                        var item = new FeedItem
+                        {
+                                Id = "https://gitlab.com/org/proj/-/issues/123",
+                                Title = "GitLab Issue",
+                                Description = new string('x', 40),
+                                Link = "https://gitlab.com/org/proj/-/issues/123",
+                                PublishingDate = DateTime.UtcNow
+                        };
+                        var feed = new Feed { Title = "GitLab", Link = "https://gitlab.com/org/proj" };
+
+                        // Act
+                        var result = PostBuilder.TryBuildPost(item, feed, 10, "");
+
+                        // Assert
+                        Assert.Equal(13, result.Description.Length);
+                        Assert.EndsWith("...", result.Description);
+                }
+
+                [Fact]
+                public void TryBuildPost_WithRedditThumbnailAndAlternateLink_UsesThumbnailAndAlternateHref()
+                {
+                        // Arrange
+                        var redditXml = """
+                                <feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+                                    <title>r/test</title>
+                                    <entry>
+                                        <title>Post with Thumbnail</title>
+                                        <id>t3_thumb1</id>
+                                        <published>2025-02-20T12:00:00Z</published>
+                                        <link rel="self" href="https://reddit.com/self" />
+                                        <link rel="alternate" href="https://reddit.com/r/test/comments/thumb1" />
+                                        <media:thumbnail url="https://example.com/thumb.jpg" />
+                                        <content type="html"><![CDATA[<p>Body</p>]]></content>
+                                    </entry>
+                                </feed>
+                                """;
+
+                        var parsed = FeedReader.ReadFromString(redditXml);
+                        var feed = new Feed { Title = parsed.Title, Link = "https://reddit.com/r/test" };
+                        var item = parsed.Items[0];
+
+                        // Act
+                        var result = PostBuilder.TryBuildPost(item, feed, 0, "https://fallback.jpg");
+
+                        // Assert
+                        Assert.Equal("https://example.com/thumb.jpg", result.ImageUrl);
+                        Assert.Equal("https://reddit.com/r/test/comments/thumb1", result.Link);
+                }
+
+                [Fact]
+                public void TryBuildPost_WithRedditNoContent_UsesPostDescriptionFallback()
+                {
+                        // Arrange
+                        var redditXml = """
+                                <feed xmlns="http://www.w3.org/2005/Atom">
+                                    <title>r/test</title>
+                                    <entry>
+                                        <title>Post without Content</title>
+                                        <id>t3_nocontent</id>
+                                        <published>2025-02-20T12:00:00Z</published>
+                                        <summary>Fallback &amp; summary text</summary>
+                                        <link href="https://reddit.com/r/test/comments/nocontent" />
+                                    </entry>
+                                </feed>
+                                """;
+
+                        var parsed = FeedReader.ReadFromString(redditXml);
+                        var feed = new Feed { Title = parsed.Title, Link = "https://reddit.com/r/test" };
+                        var item = parsed.Items[0];
+
+                        // Act
+                        var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+                        // Assert
+                        Assert.Contains("Fallback", result.Description);
+                        Assert.Contains("&", result.Description);
+                }
+
+                [Fact]
+                public void TryBuildPost_WithRedditTrim_AppliesEllipsisAfterTrim()
+                {
+                        // Arrange
+                        var redditXml = """
+                                <feed xmlns="http://www.w3.org/2005/Atom">
+                                    <title>r/test</title>
+                                    <entry>
+                                        <title>Trim Test</title>
+                                        <id>t3_trim</id>
+                                        <published>2025-02-20T12:00:00Z</published>
+                                        <content type="html"><![CDATA[This is a long reddit content body for trimming]]></content>
+                                        <link href="https://reddit.com/r/test/comments/trim" />
+                                    </entry>
+                                </feed>
+                                """;
+
+                        var parsed = FeedReader.ReadFromString(redditXml);
+                        var feed = new Feed { Title = parsed.Title, Link = "https://reddit.com/r/test" };
+                        var item = parsed.Items[0];
+
+                        // Act
+                        var result = PostBuilder.TryBuildPost(item, feed, 10, "");
+
+                        // Assert
+                        Assert.Equal(13, result.Description.Length);
+                        Assert.EndsWith("...", result.Description);
+                }
+
+                [Fact]
+                public void TryGetRedditAuthor_WithNullAtomItem_ReturnsEmptyStringViaCatch()
+                {
+                        // Arrange
+                        var method = typeof(PostBuilder).GetMethod("TryGetRedditAuthor", BindingFlags.Static | BindingFlags.NonPublic);
+                        Assert.NotNull(method);
+
+                        // Act
+                        var result = method!.Invoke(null, new object?[] { null });
+
+                        // Assert
+                        Assert.Equal(string.Empty, result);
+                }
+
+                [Fact]
+                public void TryBuildPost_WithRedditNoAuthorElement_ReturnsEmptyAuthor()
+                {
+                        // Arrange
+                        var redditXml = """
+                                <feed xmlns="http://www.w3.org/2005/Atom">
+                                    <title>r/test</title>
+                                    <entry>
+                                        <title>No Author</title>
+                                        <id>t3_noauthor</id>
+                                        <published>2025-02-20T12:00:00Z</published>
+                                        <content type="html"><![CDATA[body]]></content>
+                                        <link href="https://reddit.com/r/test/comments/noauthor" />
+                                    </entry>
+                                </feed>
+                                """;
+
+                        var parsed = FeedReader.ReadFromString(redditXml);
+                        var feed = new Feed { Title = parsed.Title, Link = "https://reddit.com/r/test" };
+                        var item = parsed.Items[0];
+
+                        // Act
+                        var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+                        // Assert
+                        Assert.Equal(string.Empty, result.Author);
+                }
 
         [Fact]
         public void TryBuildPost_WithRss20SpecificItem_ExtractsDcCreatorAuthor()
