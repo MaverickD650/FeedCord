@@ -2595,5 +2595,109 @@ public class FeedManagerExpandedTests
         yield return new object?[] { null };
     }
 
+    [Fact]
+    public async Task InitializeUrlsAsync_WhenYoutubeParserReturnsNullEntry_UsesUtcFallbackPublishDate()
+    {
+        var youtubeUrl = "https://www.youtube.com/@null-entry";
+        var config = new Config
+        {
+            Id = "TestFeed",
+            RssUrls = Array.Empty<string>(),
+            YoutubeUrls = new[] { youtubeUrl },
+            DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
+            RssCheckIntervalMinutes = 30,
+            DescriptionLimit = 250,
+            ConcurrentRequests = 5
+        };
+
+        var mockStore = new Mock<IReferencePostStore>(MockBehavior.Strict);
+        mockStore
+            .Setup(s => s.LoadReferencePosts())
+            .Returns(new Dictionary<string, ReferencePost>());
+
+        var mockHttpClient = new Mock<ICustomHttpClient>(MockBehavior.Strict);
+        mockHttpClient
+            .Setup(x => x.GetAsyncWithFallback(youtubeUrl, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<html></html>")
+            });
+
+        var mockRssParser = new Mock<IRssParsingService>(MockBehavior.Strict);
+        mockRssParser
+            .Setup(x => x.ParseYoutubeFeedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Post?)null);
+
+        var mockFilter = new Mock<IPostFilterService>(MockBehavior.Loose);
+        var mockLogger = new Mock<ILogger<FeedManager>>(MockBehavior.Loose);
+        var mockAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+
+        var manager = new FeedManager(
+            config,
+            mockHttpClient.Object,
+            mockRssParser.Object,
+            mockLogger.Object,
+            mockAggregator.Object,
+            mockFilter.Object,
+            mockStore.Object);
+
+        await manager.InitializeUrlsAsync();
+
+        var state = manager.GetAllFeedData()[youtubeUrl];
+        Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    }
+
+    [Fact]
+    public async Task InitializeUrlsAsync_WhenRssParserReturnsOnlyNullPosts_UsesUtcFallbackPublishDate()
+    {
+        var rssUrl = "https://example.com/rss-null-post";
+        var config = new Config
+        {
+            Id = "TestFeed",
+            RssUrls = new[] { rssUrl },
+            YoutubeUrls = Array.Empty<string>(),
+            DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
+            RssCheckIntervalMinutes = 30,
+            DescriptionLimit = 250,
+            ConcurrentRequests = 5
+        };
+
+        var mockStore = new Mock<IReferencePostStore>(MockBehavior.Strict);
+        mockStore
+            .Setup(s => s.LoadReferencePosts())
+            .Returns(new Dictionary<string, ReferencePost>());
+
+        var mockHttpClient = new Mock<ICustomHttpClient>(MockBehavior.Strict);
+        mockHttpClient
+            .Setup(x => x.GetAsyncWithFallback(rssUrl, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("<rss></rss>")
+            });
+
+        var mockRssParser = new Mock<IRssParsingService>(MockBehavior.Strict);
+        mockRssParser
+            .Setup(x => x.ParseRssFeedAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Post?> { null });
+
+        var mockFilter = new Mock<IPostFilterService>(MockBehavior.Loose);
+        var mockLogger = new Mock<ILogger<FeedManager>>(MockBehavior.Loose);
+        var mockAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+
+        var manager = new FeedManager(
+            config,
+            mockHttpClient.Object,
+            mockRssParser.Object,
+            mockLogger.Object,
+            mockAggregator.Object,
+            mockFilter.Object,
+            mockStore.Object);
+
+        await manager.InitializeUrlsAsync();
+
+        var state = manager.GetAllFeedData()[rssUrl];
+        Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    }
+
     #endregion
 }

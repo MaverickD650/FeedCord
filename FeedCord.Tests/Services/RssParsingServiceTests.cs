@@ -417,4 +417,48 @@ public class RssParsingServiceTests
         // Assert
         Assert.Equal(string.Empty, result as string);
     }
+
+      [Fact]
+      public void GetRawXmlForItem_WithRssSpecificItemWithoutElement_ReturnsEmptyString()
+      {
+        var service = new RssParsingService(
+          _mockLogger.Object,
+          _mockYoutubeParser.Object,
+          _mockImageParser.Object
+        );
+
+        var method = typeof(RssParsingService).GetMethod("GetRawXmlForItem", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        var feedItem = new FeedItem
+        {
+          SpecificItem = new CodeHollow.FeedReader.Feeds.Rss20FeedItem()
+        };
+
+        var result = method!.Invoke(service, new object[] { feedItem });
+
+        Assert.Equal(string.Empty, result as string);
+      }
+
+      [Fact]
+      public void GetRawXmlForItem_WithAtomSpecificItemWithoutElement_ReturnsEmptyString()
+      {
+        var service = new RssParsingService(
+          _mockLogger.Object,
+          _mockYoutubeParser.Object,
+          _mockImageParser.Object
+        );
+
+        var method = typeof(RssParsingService).GetMethod("GetRawXmlForItem", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        var feedItem = new FeedItem
+        {
+          SpecificItem = new CodeHollow.FeedReader.Feeds.AtomFeedItem()
+        };
+
+        var result = method!.Invoke(service, new object[] { feedItem });
+
+        Assert.Equal(string.Empty, result as string);
+      }
 }

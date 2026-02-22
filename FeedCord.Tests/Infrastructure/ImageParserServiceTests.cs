@@ -915,6 +915,132 @@ namespace FeedCord.Tests.Infrastructure
             Assert.Empty(result);
         }
 
+        [Fact]
+        public async Task TryExtractImageLink_WithEnclosureEmptyUrl_FallsBackToDescription()
+        {
+            // Arrange - enclosure exists with type but url is empty (line 46 false branch)
+            var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <enclosure type='image/jpeg' url='' />
+            <description><![CDATA[<img src='https://example.com/fallback.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/fallback.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithEnclosureWhitespaceUrl_FallsBackToDescription()
+        {
+            // Arrange - enclosure exists with type but url is whitespace (line 46 false branch)
+            var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <enclosure type='image/jpeg' url='   ' />
+            <description><![CDATA[<img src='https://example.com/fallback2.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/fallback2.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithMediaContentEmptyUrl_FallsBackToDescription()
+        {
+            // Arrange - media:content exists but url is empty (line 58 false branch)
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:media='http://search.yahoo.com/mrss/'>
+    <channel>
+        <item>
+            <media:content type='image/png' url='' />
+            <description><![CDATA[<img src='https://example.com/media-fallback.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/media-fallback.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithMediaThumbnailWhitespaceUrl_FallsBackToDescription()
+        {
+            // Arrange - media:thumbnail exists but url is whitespace (line 58 false branch)
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:media='http://search.yahoo.com/mrss/'>
+    <channel>
+        <item>
+            <media:thumbnail url='  ' />
+            <description><![CDATA[<img src='https://example.com/thumb-fallback.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/thumb-fallback.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithItunesImageEmptyHref_FallsBackToDescription()
+        {
+            // Arrange - itunes:image exists but href is empty (line 67 false branch)
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:itunes='http://www.itunes.com/dtds/podcast-1.0.dtd'>
+    <channel>
+        <item>
+            <itunes:image href='' />
+            <description><![CDATA[<img src='https://example.com/itunes-fallback.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/itunes-fallback.jpg", result);
+        }
+
+        [Fact]
+        public async Task TryExtractImageLink_WithItunesImageWhitespaceHref_FallsBackToDescription()
+        {
+            // Arrange - itunes:image exists but href is whitespace (line 67 false branch)
+            var xml = @"<?xml version='1.0'?>
+<rss xmlns:itunes='http://www.itunes.com/dtds/podcast-1.0.dtd'>
+    <channel>
+        <item>
+            <itunes:image href='   ' />
+            <description><![CDATA[<img src='https://example.com/itunes-fallback2.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+            // Act
+            var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+
+            // Assert
+            Assert.Equal("https://example.com/itunes-fallback2.jpg", result);
+        }
+
         #endregion
     }
 }

@@ -1005,6 +1005,20 @@ namespace FeedCord.Tests.Services
             Assert.Equal("Rss Creator", result.Author);
         }
 
+        [Fact]
+        public void TryGetAuthor_WithNullFeedItem_ReturnsEmptyStringViaCatch()
+        {
+            // Arrange - Use reflection to access private TryGetAuthor method
+            var method = typeof(PostBuilder).GetMethod("TryGetAuthor", BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.NotNull(method);
+
+            // Act - Pass null to trigger exception in try-catch block (lines 58-64)
+            var result = method!.Invoke(null, new object?[] { null });
+
+            // Assert - Catch block returns empty string for defensive safety
+            Assert.Equal(string.Empty, result);
+        }
+
         #endregion
     }
 }

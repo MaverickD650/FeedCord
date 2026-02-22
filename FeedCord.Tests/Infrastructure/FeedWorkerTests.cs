@@ -215,6 +215,53 @@ public class FeedWorkerTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WhenCanceledDuringDelay_StopsGracefully()
+    {
+        var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+        var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
+        var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
+        var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
+        var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+
+        using var cts = new CancellationTokenSource();
+
+        mockFeedManager.Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        mockFeedManager.Setup(x => x.CheckForNewPostsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<Post>());
+        mockLogAggregator
+            .Setup(x => x.SendToBatchAsync())
+            .Callback(() => cts.Cancel())
+            .Returns(Task.CompletedTask);
+
+        var config = new Config
+        {
+            Id = "TestFeed",
+            RssUrls = new string[] { },
+            YoutubeUrls = new string[] { },
+            DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
+            RssCheckIntervalMinutes = 0,
+            PersistenceOnShutdown = false
+        };
+
+        var worker = new FeedWorker(
+            mockLifetime.Object,
+            mockLogger.Object,
+            mockFeedManager.Object,
+            mockNotifier.Object,
+            config,
+            mockLogAggregator.Object
+        );
+
+        var executeAsync = typeof(FeedWorker).GetMethod("ExecuteAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(executeAsync);
+
+        var task = (Task)executeAsync!.Invoke(worker, new object[] { cts.Token })!;
+        await task;
+
+        mockLogAggregator.Verify(x => x.SetEndTime(It.IsAny<DateTime>()), Times.AtLeastOnce);
+        mockLogAggregator.Verify(x => x.SendToBatchAsync(), Times.AtLeastOnce);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WhenRoutineThrowsOperationCanceledWithCanceledToken_BreaksLoopGracefully()
     {
         // Arrange
@@ -662,6 +709,125 @@ public class FeedWorkerTests
         mockLogAggregator.Verify(x => x.SetStartTime(It.IsAny<DateTime>()), Times.AtLeastOnce);
         mockLogAggregator.Verify(x => x.SetEndTime(It.IsAny<DateTime>()), Times.AtLeastOnce);
         mockLogAggregator.Verify(x => x.SendToBatchAsync(), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenTaskDelayCanceled_LogsStoppedGracefully()
+    {
+        // Arrange - Test for FeedWorker.cs line 74 coverage (outer catch block)
+        var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+        var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
+        var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
+        var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
+        var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+
+        using var cts = new CancellationTokenSource();
+
+        mockFeedManager.Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        mockFeedManager.Setup(x => x.CheckForNewPostsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<Post>());
+        mockLogAggregator.Setup(x => x.SetStartTime(It.IsAny<DateTime>()));
+        mockLogAggregator.Setup(x => x.SetEndTime(It.IsAny<DateTime>()));
+        mockLogAggregator
+            .Setup(x => x.SendToBatchAsync())
+            .Callback(() => cts.Cancel()) // Cancel after SendToBatchAsync completes
+            .Returns(Task.CompletedTask);
+
+        var config = new Config
+        {
+            Id = "StopTest",
+            RssUrls = new string[] { },
+            YoutubeUrls = new string[] { },
+            DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
+            RssCheckIntervalMinutes = 1,
+            PersistenceOnShutdown = false
+        };
+
+        var worker = new FeedWorker(
+            mockLifetime.Object,
+            mockLogger.Object,
+            mockFeedManager.Object,
+            mockNotifier.Object,
+            config,
+            mockLogAggregator.Object
+        );
+
+        var executeAsync = typeof(FeedWorker).GetMethod("ExecuteAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(executeAsync);
+
+        // Act - Invoke ExecuteAsync; Task.Delay will throw OperationCanceledException after cancellation
+        var task = (Task)executeAsync!.Invoke(worker, new object[] { cts.Token })!;
+        await task;
+
+        // Assert - Verify the outer catch block logged "stopped gracefully"
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Information,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("stopped gracefully")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+            ),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_MultipleIterations_TaskDelayCompletesAtLeastOnce()
+    {
+        // Arrange - Test that Task.Delay line (line 74) is actually executed
+        var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+        var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
+        var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
+        var mockNotifier = new Mock<INotifier>(MockBehavior.Loose);
+        var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+
+        using var cts = new CancellationTokenSource();
+
+        int iterationCount = 0;
+        mockFeedManager.Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
+        mockFeedManager.Setup(x => x.CheckForNewPostsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<Post>());
+        mockLogAggregator.Setup(x => x.SetStartTime(It.IsAny<DateTime>()));
+        mockLogAggregator.Setup(x => x.SetEndTime(It.IsAny<DateTime>()));
+        mockLogAggregator
+            .Setup(x => x.SendToBatchAsync())
+            .Callback(() =>
+            {
+                iterationCount++;
+                if (iterationCount >= 2)
+                {
+                    cts.Cancel(); // Cancel after 2nd iteration starts
+                }
+            })
+            .Returns(Task.CompletedTask);
+
+        var config = new Config
+        {
+            Id = "DelayTest",
+            RssUrls = new string[] { },
+            YoutubeUrls = new string[] { },
+            DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
+            RssCheckIntervalMinutes = 0, // Zero delay to make test fast
+            PersistenceOnShutdown = false
+        };
+
+        var worker = new FeedWorker(
+            mockLifetime.Object,
+            mockLogger.Object,
+            mockFeedManager.Object,
+            mockNotifier.Object,
+            config,
+            mockLogAggregator.Object
+        );
+
+        var executeAsync = typeof(FeedWorker).GetMethod("ExecuteAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(executeAsync);
+
+        // Act - First iteration completes Task.Delay, second iteration triggers cancellation
+        var task = (Task)executeAsync!.Invoke(worker, new object[] { cts.Token })!;
+        await task;
+
+        // Assert - At least 2 iterations occurred, meaning Task.Delay completed at least once
+        Assert.True(iterationCount >= 2);
     }
 
     #endregion
