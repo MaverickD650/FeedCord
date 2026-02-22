@@ -104,6 +104,26 @@ namespace FeedCord.Tests.Infrastructure
         }
 
         [Fact]
+        public async Task GetXmlUrlAndFeed_WithHtmlRssLinkButEmptyHref_ReturnsNullWithoutHttpCall()
+        {
+            // Arrange
+            var html = @"<html>
+<head>
+    <link rel='alternate' type='application/rss+xml' href=''/>
+</head>
+</html>";
+
+            // Act
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(html);
+
+            // Assert
+            Assert.Null(result);
+            _mockHttpClient.Verify(
+                x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
+        [Fact]
         public async Task GetXmlUrlAndFeed_WithEmptyInput_ReturnsNull()
         {
             // Arrange
@@ -191,6 +211,38 @@ namespace FeedCord.Tests.Infrastructure
             Assert.Equal("Video Without Author", result.Title);
             // Tag might be empty if not parsed
             Assert.NotNull(result);
+        }
+
+        [Fact]
+        public async Task GetRecentPost_WithMissingTitleLinkThumbnailAndAuthorName_UsesEmptyFallbacks()
+        {
+            // Arrange
+            var xmlUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxxx";
+            var sparseFeed = @"<?xml version='1.0'?>
+<feed xmlns='http://www.w3.org/2005/Atom' xmlns:media='http://search.yahoo.com/mrss/'>
+    <entry>
+        <published>2024-01-15T10:30:00Z</published>
+        <author></author>
+    </entry>
+</feed>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(sparseFeed)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(string.Empty, result.Tag);
+            Assert.Equal(string.Empty, result.Title);
+            Assert.Equal(string.Empty, result.Link);
+            Assert.Equal(string.Empty, result.ImageUrl);
+            Assert.Equal(string.Empty, result.Author);
         }
 
         [Fact]
@@ -319,6 +371,27 @@ namespace FeedCord.Tests.Infrastructure
             var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(emptyXml)
+            };
+            _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
+
+            // Act
+            var result = await _youtubeParsingService.GetXmlUrlAndFeed(xmlUrl);
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task GetXmlUrlAndFeed_WithXmlDeclarationOnly_ReturnsNull()
+        {
+            // Arrange
+            var xmlUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxxx";
+            var declarationOnlyXml = "<?xml version='1.0' encoding='utf-8'?>";
+
+            var mockResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(declarationOnlyXml)
             };
             _mockHttpClient.Setup(x => x.GetAsyncWithFallback(xmlUrl, It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
