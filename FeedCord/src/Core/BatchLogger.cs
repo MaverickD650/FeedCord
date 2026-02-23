@@ -1,5 +1,4 @@
 using System.Text;
-using System.Threading.Tasks.Dataflow;
 using FeedCord.Core.Interfaces;
 
 namespace FeedCord.Core;
@@ -7,26 +6,21 @@ namespace FeedCord.Core;
 public class BatchLogger : IBatchLogger
 {
   private readonly ILogger<BatchLogger> _logger;
-  private BufferBlock<LogAggregator> _bufferBlock;
-  private ActionBlock<LogAggregator> _processingBlock;
+  private readonly object _logLock = new();
 
   public BatchLogger(ILogger<BatchLogger> logger)
   {
     _logger = logger;
-
-    _bufferBlock = new BufferBlock<LogAggregator>();
-
-    _processingBlock = new ActionBlock<LogAggregator>(ProcessLogItem, new ExecutionDataflowBlockOptions
-    {
-      MaxDegreeOfParallelism = 1 // Ensures logs print sequentially
-    });
-
-    _bufferBlock.LinkTo(_processingBlock, new DataflowLinkOptions { PropagateCompletion = true });
   }
 
-  public async Task ConsumeLogData(LogAggregator logItem)
+  public Task ConsumeLogData(LogAggregator logItem)
   {
-    await _bufferBlock.SendAsync(logItem);
+    lock (_logLock)
+    {
+      ProcessLogItem(logItem);
+    }
+
+    return Task.CompletedTask;
   }
 
   private void ProcessLogItem(LogAggregator logItem)
@@ -38,13 +32,23 @@ public class BatchLogger : IBatchLogger
     if (!logItem.UrlStatuses.IsEmpty)
     {
       int totalUrls = logItem.UrlStatuses.Count;
-      int failedCount = logItem.UrlStatuses.Count(kvp => kvp.Value != 200);
+      List<KeyValuePair<string, int>> failedResponses = new();
+
+      foreach (var entry in logItem.UrlStatuses)
+      {
+        if (entry.Value != 200)
+        {
+          failedResponses.Add(entry);
+        }
+      }
+
+      int failedCount = failedResponses.Count;
       batchSummary.AppendLine($"> {totalUrls} URLs tested with {failedCount} failed responses.");
 
       if (failedCount > 0)
       {
         batchSummary.AppendLine("> The following URLs had bad responses:");
-        foreach (var issue in logItem.UrlStatuses.Where(kvp => kvp.Value != 200))
+        foreach (var issue in failedResponses)
         {
           var statusText = issue.Value == -99 ? "Request Timed Out" : issue.Value.ToString();
           batchSummary.AppendLine($"> Url: {issue.Key}, Response Status: {statusText}");

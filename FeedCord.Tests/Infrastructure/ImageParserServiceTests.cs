@@ -1,4 +1,5 @@
 using FeedCord.Infrastructure.Parsers;
+using FeedCord.Common;
 using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -36,7 +37,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/image.jpg", result);
@@ -57,7 +58,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/desc.jpg", result);
@@ -77,7 +78,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert - May extract or fallback to webpage scrape
       Assert.NotNull(result);
@@ -98,7 +99,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/encoded.jpg", result);
@@ -119,7 +120,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/itunes.jpg", result);
@@ -139,7 +140,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/itunes-image.jpg", result);
@@ -160,7 +161,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/desc-image.jpg", result);
@@ -181,7 +182,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/desc-image.jpg", result);
@@ -201,7 +202,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/desc-image.jpg", result);
@@ -222,7 +223,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/content.jpg", result);
@@ -243,7 +244,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/content.jpg", result);
@@ -271,7 +272,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/fallback.jpg", result);
@@ -289,7 +290,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/webpage-image.jpg", result);
@@ -308,7 +309,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", null!);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", null!, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.NotNull(result);
@@ -335,7 +336,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/fallback.jpg", result);
@@ -362,7 +363,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/fallback.jpg", result);
@@ -389,7 +390,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com/feed", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com/feed", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/fallback.jpg", result);
@@ -409,7 +410,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("", xml);
+      var result = await _imageParserService.TryExtractImageLink("", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.NotNull(result);
@@ -424,7 +425,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>((HttpResponseMessage)null!));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.NotNull(result);
@@ -438,7 +439,7 @@ namespace FeedCord.Tests.Infrastructure
       // When URL is invalid, it should try webpage scrape but URL will be empty
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("", "");
+      var result = await _imageParserService.TryExtractImageLink("", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.NotNull(result);
@@ -478,7 +479,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/og-image.jpg", result);
@@ -503,7 +504,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/twitter.jpg", result);
@@ -527,7 +528,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://cdn.example.com/secure-image.jpg", result);
@@ -551,7 +552,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/twitter-image.jpg", result);
@@ -575,7 +576,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/link-image.jpg", result);
@@ -602,7 +603,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/data-src.jpg", result);
@@ -626,7 +627,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/lazy-image.jpg", result);
@@ -650,7 +651,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/post-image.jpg", result);
@@ -674,7 +675,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/post-data-src.jpg", result);
@@ -698,7 +699,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.NotNull(result);
@@ -724,7 +725,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/first-image.jpg", result);
@@ -744,7 +745,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.NotNull(result);
@@ -769,7 +770,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.NotNull(result);
@@ -797,7 +798,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/fallback.jpg", result);
@@ -821,7 +822,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       // Should fallback to webpage scrape
@@ -837,7 +838,7 @@ namespace FeedCord.Tests.Infrastructure
           .Returns(Task.FromResult<HttpResponseMessage?>(mockResponse));
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", "");
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.NotNull(result);
@@ -867,7 +868,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink(pageUrl, xml);
+      var result = await _imageParserService.TryExtractImageLink(pageUrl, xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.NotNull(result);
@@ -887,7 +888,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("", xml);
+      var result = await _imageParserService.TryExtractImageLink("", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.NotNull(result);
@@ -908,7 +909,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com/feed", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com/feed", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.NotNull(result);
@@ -930,7 +931,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/fallback.jpg", result);
@@ -951,7 +952,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/fallback2.jpg", result);
@@ -972,7 +973,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/media-fallback.jpg", result);
@@ -993,7 +994,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/thumb-fallback.jpg", result);
@@ -1014,7 +1015,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/itunes-fallback.jpg", result);
@@ -1035,7 +1036,7 @@ namespace FeedCord.Tests.Infrastructure
 </rss>";
 
       // Act
-      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml);
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedThenPage);
 
       // Assert
       Assert.Equal("https://example.com/itunes-fallback2.jpg", result);
@@ -1134,6 +1135,25 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal("https://example.com/from-first-img.jpg", firstImg);
       Assert.Equal("https://example.com/from-data-src.jpg", dataSrc);
       Assert.Equal("https://example.com/from-element-data-src.jpg", elementDataSrc);
+    }
+
+    [Fact]
+    public async Task TryExtractImageLink_WithPageOnlyMode_ScrapesFromPageAndSkipsFeedXml()
+    {
+      _mockHttpClient
+          .Setup(x => x.GetAsyncWithFallback("https://example.com/post", It.IsAny<CancellationToken>()))
+          .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+          {
+            Content = new StringContent("<html><head><meta property='og:image' content='https://example.com/page-image.jpg' /></head></html>")
+          });
+
+      var result = await _imageParserService.TryExtractImageLink(
+          "https://example.com/post",
+          "<rss><channel><item><enclosure type='image/jpeg' url='https://example.com/feed-image.jpg' /></item></channel></rss>",
+          ImageFetchMode.PageOnly);
+
+      Assert.Equal("https://example.com/page-image.jpg", result);
+      _mockHttpClient.Verify(x => x.GetAsyncWithFallback("https://example.com/post", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion

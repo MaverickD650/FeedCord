@@ -22,7 +22,11 @@ namespace FeedCord.Services
       _imageParserService = imageParserService;
     }
 
-    public async Task<List<Post?>> ParseRssFeedAsync(string xmlContent, int trim, CancellationToken cancellationToken = default)
+    public async Task<List<Post?>> ParseRssFeedAsync(
+      string xmlContent,
+      int trim,
+      ImageFetchMode imageFetchMode,
+      CancellationToken cancellationToken = default)
     {
       var xmlContenter = xmlContent.Replace("<!doctype", "<!DOCTYPE");
 
@@ -30,30 +34,25 @@ namespace FeedCord.Services
       {
         var feed = FeedReader.ReadFromString(xmlContenter);
 
-        var latestPost = feed.Items.FirstOrDefault();
-
-        if (latestPost is null)
-          return new List<Post?>();
-
-        var feedItems = feed.Items.ToList();
-
         List<Post?> posts = new();
 
-        foreach (var post in feedItems)
+        foreach (var post in feed.Items)
         {
           cancellationToken.ThrowIfCancellationRequested();
           var rawXml = GetRawXmlForItem(post);
 
-          // Temporary, don't extract images from post url
-          var imageLink = feed.ImageUrl;
-
-          // var imageLink = await _imageParserService
-          //     .TryExtractImageLink(post.Link, rawXml, cancellationToken)
-          //                 ?? feed.ImageUrl;
+            var imageLink = await _imageParserService
+              .TryExtractImageLink(post.Link ?? string.Empty, rawXml, imageFetchMode)
+              ?? feed.ImageUrl;
 
           var builtPost = PostBuilder.TryBuildPost(post, feed, trim, imageLink);
 
           posts.Add(builtPost);
+        }
+
+        if (posts.Count == 0)
+        {
+          return new List<Post?>();
         }
 
         return posts;
@@ -82,16 +81,12 @@ namespace FeedCord.Services
 
     private string GetRawXmlForItem(FeedItem feedItem)
     {
-      if (feedItem.SpecificItem is CodeHollow.FeedReader.Feeds.Rss20FeedItem rssItem)
+      return feedItem.SpecificItem switch
       {
-        return rssItem.Element?.ToString() ?? "";
-      }
-      else if (feedItem.SpecificItem is CodeHollow.FeedReader.Feeds.AtomFeedItem atomItem)
-      {
-        return atomItem.Element?.ToString() ?? "";
-      }
-
-      return "";
+        CodeHollow.FeedReader.Feeds.Rss20FeedItem rssItem => rssItem.Element?.ToString() ?? string.Empty,
+        CodeHollow.FeedReader.Feeds.AtomFeedItem atomItem => atomItem.Element?.ToString() ?? string.Empty,
+        _ => string.Empty
+      };
     }
 
   }

@@ -4,13 +4,14 @@ using FeedCord.Services.Interfaces;
 using System.Collections.Concurrent;
 using FeedCord.Core.Interfaces;
 using FeedCord.Services.Helpers;
+using System.Net;
+using System.Threading;
 
 namespace FeedCord.Services
 {
   public class FeedManager : IFeedManager
   {
     private readonly Config _config;
-    private readonly SemaphoreSlim _instancedConcurrentRequests;
     private readonly ICustomHttpClient _httpClient;
     private readonly ILogAggregator _logAggregator;
     private readonly ILogger<FeedManager> _logger;
@@ -39,16 +40,23 @@ namespace FeedCord.Services
       _logAggregator = logAggregator;
       _postFilterService = postFilterService;
       _feedStates = new ConcurrentDictionary<string, FeedState>();
-      _instancedConcurrentRequests = new SemaphoreSlim(config.ConcurrentRequests);
     }
     public async Task<List<Post>> CheckForNewPostsAsync(CancellationToken cancellationToken = default)
     {
       ConcurrentBag<Post> allNewPosts = new();
+      var feedSnapshot = _feedStates.ToArray();
 
-      var tasks = _feedStates.Select(async (feed) =>
-          await CheckSingleFeedAsync(feed.Key, feed.Value, allNewPosts, _config.DescriptionLimit, cancellationToken));
-
-      await Task.WhenAll(tasks);
+      await Parallel.ForEachAsync(
+          feedSnapshot,
+          new ParallelOptions
+          {
+            CancellationToken = cancellationToken,
+            MaxDegreeOfParallelism = Math.Max(1, _config.ConcurrentRequests)
+          },
+          async (feed, ct) =>
+          {
+            await CheckSingleFeedAsync(feed.Key, feed.Value, allNewPosts, _config.DescriptionLimit, ct);
+          });
 
       _logAggregator.SetNewPostCount(allNewPosts.Count);
 
@@ -56,6 +64,8 @@ namespace FeedCord.Services
     }
     public async Task InitializeUrlsAsync(CancellationToken cancellationToken = default)
     {
+      cancellationToken.ThrowIfCancellationRequested();
+
       var id = _config.Id;
       var validRssUrls = _config.RssUrls
           .Where(url => !string.IsNullOrWhiteSpace(url))
@@ -65,8 +75,12 @@ namespace FeedCord.Services
           .Where(url => !string.IsNullOrWhiteSpace(url))
           .ToArray();
 
-      var rssCount = await GetSuccessCount(validRssUrls, false, cancellationToken);
-      var youtubeCount = await GetSuccessCount(validYoutubeUrls, true, cancellationToken);
+        var rssCountTask = GetSuccessCount(validRssUrls, false, cancellationToken);
+        var youtubeCountTask = GetSuccessCount(validYoutubeUrls, true, cancellationToken);
+        await Task.WhenAll(rssCountTask, youtubeCountTask);
+
+        var rssCount = await rssCountTask;
+        var youtubeCount = await youtubeCountTask;
       var successCount = rssCount + youtubeCount;
 
       var totalUrls = validRssUrls.Length + validYoutubeUrls.Length;
@@ -87,77 +101,92 @@ namespace FeedCord.Services
         return successCount;
       }
 
-      foreach (var url in urls)
-      {
-        var isSuccess = await TestUrlAsync(url, cancellationToken);
+      var groupedUrls = urls
+          .GroupBy(url => url, StringComparer.Ordinal)
+          .ToArray();
 
-        if (!isSuccess)
-        {
-          continue;
-        }
-
-        if (_lastRunReference.TryGetValue(url, out var value))
-        {
-          _feedStates.TryAdd(url, new FeedState
+      await Parallel.ForEachAsync(
+          groupedUrls,
+          new ParallelOptions
           {
-            IsYoutube = isYoutube,
-            LastPublishDate = value.LastRunDate,
-            ErrorCount = 0
-          });
-
-          successCount++;
-
-          continue;
-        }
-
-        bool successfulAdd;
-        DateTime latestPublishDate;
-
-        if (isYoutube)
-        {
-          var posts = await FetchYoutubeAsync(url, cancellationToken);
-          latestPublishDate = posts.FirstOrDefault()?.PublishDate ?? DateTime.UtcNow;
-          successfulAdd = _feedStates.TryAdd(url, new FeedState
+            CancellationToken = cancellationToken,
+            MaxDegreeOfParallelism = Math.Max(1, _config.ConcurrentRequests)
+          },
+          async (urlGroup, ct) =>
           {
-            IsYoutube = true,
-            LastPublishDate = latestPublishDate,
-            ErrorCount = 0
+            foreach (var url in urlGroup)
+            {
+              var wasInitialized = await InitializeSingleUrlAsync(url, isYoutube, ct);
+              if (wasInitialized)
+              {
+                Interlocked.Increment(ref successCount);
+              }
+            }
           });
-        }
-        else
-        {
-          var posts = await FetchRssAsync(url, _config.DescriptionLimit, cancellationToken);
-          latestPublishDate = posts?.Max(p => p?.PublishDate) ?? DateTime.UtcNow;
-          successfulAdd = _feedStates.TryAdd(url, new FeedState
-          {
-            IsYoutube = false,
-            LastPublishDate = latestPublishDate,
-            ErrorCount = 0
-          });
-        }
-
-        if (successfulAdd)
-        {
-          successCount++;
-          _logger.LogInformation("Successfully initialized URL: {Url}", url);
-        }
-
-        else
-        {
-          _logger.LogWarning("Failed to initialize URL: {Url}", url);
-        }
-      }
 
       return successCount;
     }
+
+    private async Task<bool> InitializeSingleUrlAsync(string url, bool isYoutube, CancellationToken cancellationToken)
+    {
+      var isSuccess = await TestUrlAsync(url, cancellationToken);
+
+      if (!isSuccess)
+      {
+        return false;
+      }
+
+      if (_lastRunReference.TryGetValue(url, out var value))
+      {
+        _feedStates.TryAdd(url, new FeedState
+        {
+          IsYoutube = isYoutube,
+          LastPublishDate = value.LastRunDate,
+          ErrorCount = 0
+        });
+
+        return true;
+      }
+
+      bool successfulAdd;
+      DateTime latestPublishDate;
+
+      if (isYoutube)
+      {
+        var posts = await FetchYoutubeAsync(url, cancellationToken);
+        latestPublishDate = posts.FirstOrDefault()?.PublishDate ?? DateTime.UtcNow;
+        successfulAdd = _feedStates.TryAdd(url, new FeedState
+        {
+          IsYoutube = true,
+          LastPublishDate = latestPublishDate,
+          ErrorCount = 0
+        });
+      }
+      else
+      {
+        var posts = await FetchRssAsync(url, _config.DescriptionLimit, cancellationToken);
+        latestPublishDate = posts?.Max(p => p?.PublishDate) ?? DateTime.UtcNow;
+        successfulAdd = _feedStates.TryAdd(url, new FeedState
+        {
+          IsYoutube = false,
+          LastPublishDate = latestPublishDate,
+          ErrorCount = 0
+        });
+      }
+
+      if (successfulAdd)
+      {
+        _logger.LogInformation("Successfully initialized URL: {Url}", url);
+        return true;
+      }
+
+      _logger.LogWarning("Failed to initialize URL: {Url}", url);
+      return false;
+    }
     private async Task<bool> TestUrlAsync(string url, CancellationToken cancellationToken)
     {
-      var acquired = false;
       try
       {
-        await _instancedConcurrentRequests.WaitAsync(cancellationToken);
-        acquired = true;
-
         var response = await _httpClient.GetAsyncWithFallback(url, cancellationToken);
 
         if (response is null)
@@ -167,6 +196,11 @@ namespace FeedCord.Services
         }
 
         _logAggregator.AddUrlResponse(url, (int)response.StatusCode);
+
+        if (response.StatusCode == HttpStatusCode.NotModified)
+        {
+          return true;
+        }
 
         response.EnsureSuccessStatusCode();
 
@@ -184,26 +218,15 @@ namespace FeedCord.Services
       {
         _logger.LogWarning("Failed to instantiate URL: {Url}", url);
       }
-      finally
-      {
-        if (acquired)
-        {
-          _instancedConcurrentRequests.Release();
-        }
-      }
 
       return false;
     }
     private async Task CheckSingleFeedAsync(string url, FeedState feedState, ConcurrentBag<Post> newPosts, int trim, CancellationToken cancellationToken)
     {
       List<Post?> posts;
-      var acquired = false;
 
       try
       {
-        await _instancedConcurrentRequests.WaitAsync(cancellationToken);
-        acquired = true;
-
         posts = feedState.IsYoutube ?
             await FetchYoutubeAsync(url, cancellationToken) :
             await FetchRssAsync(url, trim, cancellationToken);
@@ -211,13 +234,6 @@ namespace FeedCord.Services
       catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
       {
         throw;
-      }
-      finally
-      {
-        if (acquired)
-        {
-          _instancedConcurrentRequests.Release();
-        }
       }
 
       var freshlyFetched = posts
@@ -261,6 +277,11 @@ namespace FeedCord.Services
         if (response is null)
         {
           _logger.LogWarning("Failed to fetch YouTube feed from {Url}: No response returned.", url);
+          return new List<Post?>();
+        }
+
+        if (response.StatusCode == HttpStatusCode.NotModified)
+        {
           return new List<Post?>();
         }
 
@@ -329,11 +350,16 @@ namespace FeedCord.Services
           return new List<Post?>();
         }
 
+        if (response.StatusCode == HttpStatusCode.NotModified)
+        {
+          return new List<Post?>();
+        }
+
         response.EnsureSuccessStatusCode();
 
         var xmlContent = await GetResponseContentAsync(response, cancellationToken);
 
-        return await _rssParsingService.ParseRssFeedAsync(xmlContent, trim, cancellationToken);
+        return await _rssParsingService.ParseRssFeedAsync(xmlContent, trim, _config.ImageFetchMode, cancellationToken);
 
       }
       catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

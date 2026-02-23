@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using FeedCord.Common;
 using FeedCord.Services.Interfaces;
 using HtmlAgilityPack;
 
@@ -15,16 +16,27 @@ namespace FeedCord.Infrastructure.Parsers
       _logger = logger;
     }
 
-    public async Task<string?> TryExtractImageLink(string pageUrl, string xmlSource)
+    public async Task<string?> TryExtractImageLink(string pageUrl, string xmlSource, ImageFetchMode imageFetchMode)
     {
-      if (string.IsNullOrWhiteSpace(xmlSource))
+      if (imageFetchMode == ImageFetchMode.PageOnly)
+      {
         return await ScrapeImageFromWebpage(pageUrl);
+      }
+
+      if (string.IsNullOrWhiteSpace(xmlSource))
+      {
+        return imageFetchMode == ImageFetchMode.FeedOnly
+            ? string.Empty
+            : await ScrapeImageFromWebpage(pageUrl);
+      }
 
       var feedImageUrl = ExtractImageFromFeedXml(xmlSource);
       var resolvedFeedImageUrl = ResolveAndValidateImageUrl(pageUrl, feedImageUrl);
 
       if (string.IsNullOrWhiteSpace(resolvedFeedImageUrl))
-        return await ScrapeImageFromWebpage(pageUrl);
+        return imageFetchMode == ImageFetchMode.FeedOnly
+            ? string.Empty
+            : await ScrapeImageFromWebpage(pageUrl);
 
       return resolvedFeedImageUrl;
     }
