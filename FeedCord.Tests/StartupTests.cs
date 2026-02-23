@@ -319,7 +319,7 @@ namespace FeedCord.Tests
     #region Configuration Path Selection
 
     [Fact]
-    public void ConfigPath_WithNoArguments_DefaultsToConfigAppsettings()
+    public void ConfigPath_WithNoArguments_UsesDefaultConfigSelection()
     {
       // Arrange
       var args = Array.Empty<string>();
@@ -365,8 +365,81 @@ namespace FeedCord.Tests
       var selectedPath = Startup.SelectConfigPath(args);
 
       // Assert
-      var expected = args.Length >= 1 ? args[0] : "config/appsettings.json";
+      var expected = args.Length >= 1
+        ? args[0]
+        : Startup.SelectDefaultConfigPath(AppDomain.CurrentDomain.BaseDirectory);
       Assert.Equal(expected, selectedPath);
+    }
+
+    [Fact]
+    public void SelectDefaultConfigPath_WhenYamlExists_PrefersYaml()
+    {
+      var baseDirectory = Path.Combine(Path.GetTempPath(), $"feedcord-config-base-{Guid.NewGuid():N}");
+      var configDirectory = Path.Combine(baseDirectory, "config");
+      Directory.CreateDirectory(configDirectory);
+
+      File.WriteAllText(Path.Combine(configDirectory, "appsettings.yaml"), "Instances: []");
+      File.WriteAllText(Path.Combine(configDirectory, "appsettings.json"), "{\"Instances\":[]}");
+
+      try
+      {
+        var selectedPath = Startup.SelectDefaultConfigPath(baseDirectory);
+        Assert.Equal("config/appsettings.yaml", selectedPath);
+      }
+      finally
+      {
+        if (Directory.Exists(baseDirectory))
+        {
+          Directory.Delete(baseDirectory, recursive: true);
+        }
+      }
+    }
+
+    [Fact]
+    public void SelectDefaultConfigPath_WhenYmlExistsWithoutYaml_UsesYml()
+    {
+      var baseDirectory = Path.Combine(Path.GetTempPath(), $"feedcord-config-base-{Guid.NewGuid():N}");
+      var configDirectory = Path.Combine(baseDirectory, "config");
+      Directory.CreateDirectory(configDirectory);
+
+      File.WriteAllText(Path.Combine(configDirectory, "appsettings.yml"), "Instances: []");
+      File.WriteAllText(Path.Combine(configDirectory, "appsettings.json"), "{\"Instances\":[]}");
+
+      try
+      {
+        var selectedPath = Startup.SelectDefaultConfigPath(baseDirectory);
+        Assert.Equal("config/appsettings.yml", selectedPath);
+      }
+      finally
+      {
+        if (Directory.Exists(baseDirectory))
+        {
+          Directory.Delete(baseDirectory, recursive: true);
+        }
+      }
+    }
+
+    [Fact]
+    public void SelectDefaultConfigPath_WhenOnlyJsonExists_UsesJson()
+    {
+      var baseDirectory = Path.Combine(Path.GetTempPath(), $"feedcord-config-base-{Guid.NewGuid():N}");
+      var configDirectory = Path.Combine(baseDirectory, "config");
+      Directory.CreateDirectory(configDirectory);
+
+      File.WriteAllText(Path.Combine(configDirectory, "appsettings.json"), "{\"Instances\":[]}");
+
+      try
+      {
+        var selectedPath = Startup.SelectDefaultConfigPath(baseDirectory);
+        Assert.Equal("config/appsettings.json", selectedPath);
+      }
+      finally
+      {
+        if (Directory.Exists(baseDirectory))
+        {
+          Directory.Delete(baseDirectory, recursive: true);
+        }
+      }
     }
 
     #endregion
