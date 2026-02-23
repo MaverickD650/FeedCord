@@ -16,6 +16,7 @@ namespace FeedCord.Infrastructure.Workers
     private readonly bool _persistent;
     private readonly string _id;
     private readonly int _delayTime;
+    private readonly Random _jitter;
     private bool _isInitialized;
 
 
@@ -36,6 +37,7 @@ namespace FeedCord.Infrastructure.Workers
       _id = config.Id;
       _isInitialized = false;
       _persistent = config.PersistenceOnShutdown;
+      _jitter = new Random();
       _logAggregator = logAggregator;
       _referencePostStore = referencePostStore ?? new NoOpReferencePostStore();
         logger.LogInformation("{id} Created with check interval {Interval} seconds",
@@ -68,7 +70,10 @@ namespace FeedCord.Infrastructure.Workers
 
           _logAggregator.SetEndTime(DateTime.UtcNow);
           await _logAggregator.SendToBatchAsync();
-          await Task.Delay(TimeSpan.FromSeconds(_delayTime), stoppingToken);
+          var baseDelay = TimeSpan.FromSeconds(_delayTime);
+          var jitterMs = (int)Math.Max(1, baseDelay.TotalMilliseconds * 0.1);
+          var delayWithJitter = baseDelay + TimeSpan.FromMilliseconds(_jitter.Next(0, jitterMs));
+          await Task.Delay(delayWithJitter, stoppingToken);
         }
       }
       catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
