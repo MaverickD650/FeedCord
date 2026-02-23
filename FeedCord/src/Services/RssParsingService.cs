@@ -41,13 +41,21 @@ namespace FeedCord.Services
         {
           cancellationToken.ThrowIfCancellationRequested();
           var publishDate = post.PublishingDate;
-          var shouldScrapePage = !minPublishDate.HasValue || publishDate > minPublishDate.Value;
-          var rawXml = GetRawXmlForItem(post);
+          var shouldEvaluateImages = !minPublishDate.HasValue || publishDate > minPublishDate.Value;
 
-          var effectiveMode = shouldScrapePage ? imageFetchMode : ImageFetchMode.FeedOnly;
-          var imageLink = await _imageParserService
-            .TryExtractImageLink(post.Link ?? string.Empty, rawXml, effectiveMode)
-            ?? feed.ImageUrl;
+          string imageLink;
+          if (shouldEvaluateImages)
+          {
+            var rawXml = GetRawXmlForItem(post);
+            imageLink = await _imageParserService
+              .TryExtractImageLink(post.Link ?? string.Empty, rawXml, imageFetchMode)
+              ?? feed.ImageUrl
+              ?? string.Empty;
+          }
+          else
+          {
+            imageLink = feed.ImageUrl ?? string.Empty;
+          }
 
           var builtPost = PostBuilder.TryBuildPost(post, feed, trim, imageLink);
 

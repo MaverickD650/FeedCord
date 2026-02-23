@@ -44,14 +44,18 @@ namespace FeedCord.Services
     public async Task<List<Post>> CheckForNewPostsAsync(CancellationToken cancellationToken = default)
     {
       ConcurrentBag<Post> allNewPosts = new();
-      var feedSnapshot = _feedStates
-          .GroupBy(entry => entry.Key, StringComparer.Ordinal)
-          .Select(group => group.First())
-          .ToArray();
+      var feedSnapshot = _feedStates.ToArray();
 
-      var checkTasks = feedSnapshot
-          .Select(feed => CheckSingleFeedAsync(feed.Key, feed.Value, allNewPosts, _config.DescriptionLimit, cancellationToken));
-      await Task.WhenAll(checkTasks);
+      var parallelOptions = new ParallelOptions
+      {
+        MaxDegreeOfParallelism = Math.Max(1, _config.ConcurrentRequests),
+        CancellationToken = cancellationToken
+      };
+
+      await Parallel.ForEachAsync(
+          feedSnapshot,
+          parallelOptions,
+          async (feed, ct) => await CheckSingleFeedAsync(feed.Key, feed.Value, allNewPosts, _config.DescriptionLimit, ct));
 
       _logAggregator.SetNewPostCount(allNewPosts.Count);
 
@@ -227,27 +231,50 @@ namespace FeedCord.Services
         throw;
       }
 
-      var freshlyFetched = posts
-          .Where(p => p is not null && p.PublishDate > feedState.LastPublishDate)
-          .Cast<Post>()
-          .ToList();
+      var hasFreshPosts = false;
+      var latestFreshPublishDate = feedState.LastPublishDate;
+      Post? latestSeenPost = null;
+      var latestSeenPublishDate = DateTime.MinValue;
 
-      if (freshlyFetched.Any())
+      foreach (var post in posts)
       {
-        feedState.LastPublishDate = freshlyFetched.Max(p => p!.PublishDate);
-        feedState.ErrorCount = 0;
-
-        foreach (var post in freshlyFetched)
+        if (post is null)
         {
-          if (_postFilterService.ShouldIncludePost(post, url))
-          {
-            newPosts.Add(post);
-          }
+          continue;
         }
+
+        if (post.PublishDate > latestSeenPublishDate)
+        {
+          latestSeenPublishDate = post.PublishDate;
+          latestSeenPost = post;
+        }
+
+        if (post.PublishDate <= feedState.LastPublishDate)
+        {
+          continue;
+        }
+
+        hasFreshPosts = true;
+
+        if (post.PublishDate > latestFreshPublishDate)
+        {
+          latestFreshPublishDate = post.PublishDate;
+        }
+
+        if (_postFilterService.ShouldIncludePost(post, url))
+        {
+          newPosts.Add(post);
+        }
+      }
+
+      if (hasFreshPosts)
+      {
+        feedState.LastPublishDate = latestFreshPublishDate;
+        feedState.ErrorCount = 0;
       }
       else
       {
-        _logAggregator.AddLatestUrlPost(url, posts.OrderByDescending(p => p?.PublishDate).FirstOrDefault());
+        _logAggregator.AddLatestUrlPost(url, latestSeenPost);
       }
 
     }
