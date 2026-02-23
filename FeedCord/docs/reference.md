@@ -1,4 +1,4 @@
-﻿# appsettings reference
+# appsettings reference
 
 Your `appsettings.json` is a collection of `Instances`.
 
