@@ -3,18 +3,17 @@ using FeedCord.Helpers;
 using FeedCord.Core;
 using FeedCord.Services;
 using FeedCord.Core.Interfaces;
-using FeedCord.Core.Factories;
 using FeedCord.Infrastructure.Http;
-using FeedCord.Services.Factories;
-using FeedCord.Infrastructure.Factories;
 using FeedCord.Infrastructure.Health;
 using FeedCord.Services.Interfaces;
 using FeedCord.Infrastructure.Parsers;
+using FeedCord.Infrastructure.Notifiers;
+using FeedCord.Infrastructure.Workers;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging.Console;
-using Microsoft.Extensions.Options;
 using OpenTelemetry.Metrics;
 using System.Net;
+using System.ComponentModel.DataAnnotations;
 
 namespace FeedCord
 {
@@ -151,20 +150,17 @@ namespace FeedCord
       using var startupLoggerFactory = LoggerFactory.Create(logging => SetupLogging(ctx, logging));
       var startupLogger = startupLoggerFactory.CreateLogger<Startup>();
 
-      var appOptions = GetValidatedOptions<AppOptions>(
-          services,
+        var appOptions = BindAndValidateOptions<AppOptions>(
           ctx.Configuration,
           AppOptions.SectionName,
           "Invalid app configuration");
 
-      var httpOptions = GetValidatedOptions<HttpOptions>(
-          services,
+        var httpOptions = BindAndValidateOptions<HttpOptions>(
           ctx.Configuration,
           HttpOptions.SectionName,
           "Invalid HTTP configuration");
 
-      _ = GetValidatedOptions<ObservabilityOptions>(
-          services,
+        _ = BindAndValidateOptions<ObservabilityOptions>(
           ctx.Configuration,
           ObservabilityOptions.SectionName,
           "Invalid observability configuration");
@@ -214,11 +210,6 @@ namespace FeedCord
                   httpOptions.PostMinIntervalSeconds);
       });
 
-      services.AddTransient<ILogAggregatorFactory, LogAggregatorFactory>();
-      services.AddTransient<IFeedWorkerFactory, FeedWorkerFactory>();
-      services.AddTransient<IFeedManagerFactory, FeedManagerFactory>();
-      services.AddTransient<INotifierFactory, NotifierFactory>();
-      services.AddTransient<IDiscordPayloadServiceFactory, DiscordPayloadServiceFactory>();
       services.AddTransient<IRssParsingService, RssParsingService>();
       services.AddTransient<IImageParserService, ImageParserService>();
       services.AddTransient<IYoutubeParsingService, YoutubeParsingService>();
@@ -246,58 +237,47 @@ namespace FeedCord
 
         services.AddSingleton<IHostedService>(sp =>
         {
-          var feedManagerFactory = sp.GetRequiredService<IFeedManagerFactory>();
-          var feedWorkerFactory = sp.GetRequiredService<IFeedWorkerFactory>();
-          var notifierFactory = sp.GetRequiredService<INotifierFactory>();
-          var discordPayloadServiceFactory = sp.GetRequiredService<IDiscordPayloadServiceFactory>();
-          var logAggregatorFactory = sp.GetRequiredService<ILogAggregatorFactory>();
+          var logAggregator = ActivatorUtilities.CreateInstance<LogAggregator>(sp, c);
 
-          var logAggregator = logAggregatorFactory.Create(c);
-          var feedManager = feedManagerFactory.Create(c, logAggregator);
-          var discordPayloadService = discordPayloadServiceFactory.Create(c);
-          var notifier = notifierFactory.Create(c, discordPayloadService);
+          var postFilterLogger = sp.GetRequiredService<ILogger<PostFilterService>>();
+          var postFilterService = new PostFilterService(postFilterLogger, c);
+          var feedManager = ActivatorUtilities.CreateInstance<FeedManager>(sp, c, logAggregator, postFilterService);
 
-          return feedWorkerFactory.Create(c, logAggregator, feedManager, notifier);
+          var discordPayloadService = ActivatorUtilities.CreateInstance<DiscordPayloadService>(sp, c);
+          var notifier = ActivatorUtilities.CreateInstance<DiscordNotifier>(sp, c, discordPayloadService);
+
+          return ActivatorUtilities.CreateInstance<FeedWorker>(sp, c, logAggregator, feedManager, notifier);
         });
       }
     }
 
     internal static void ValidateConfiguration(Config config)
     {
-      var validator = new DataAnnotationValidateOptions<Config>(Options.DefaultName);
-      var validationResult = validator.Validate(Options.DefaultName, config);
-
-      if (validationResult.Succeeded)
-      {
-        return;
-      }
-
-      var errors = string.Join("\n", validationResult.Failures!);
-      throw new InvalidOperationException($"Invalid config entry: {errors}");
+      ValidateWithDataAnnotations(config, "Invalid config entry");
     }
 
-    private static TOptions GetValidatedOptions<TOptions>(
-        IServiceCollection services,
+    private static TOptions BindAndValidateOptions<TOptions>(
         IConfiguration configuration,
         string sectionName,
         string validationErrorPrefix)
         where TOptions : class, new()
     {
-      services.AddOptions<TOptions>()
-          .Bind(configuration.GetSection(sectionName))
-          .ValidateDataAnnotations()
-          .ValidateOnStart();
-
       var options = configuration.GetSection(sectionName).Get<TOptions>() ?? new TOptions();
-      var validator = new DataAnnotationValidateOptions<TOptions>(Options.DefaultName);
-      var validationResult = validator.Validate(Options.DefaultName, options);
+      ValidateWithDataAnnotations(options, validationErrorPrefix);
+      return options;
+    }
 
-      if (validationResult.Succeeded)
+    private static void ValidateWithDataAnnotations<TOptions>(TOptions instance, string validationErrorPrefix)
+    {
+      var validationContext = new ValidationContext(instance!);
+      var validationResults = new List<ValidationResult>();
+
+      if (Validator.TryValidateObject(instance!, validationContext, validationResults, validateAllProperties: true))
       {
-        return options;
+        return;
       }
 
-      var errors = string.Join("\n", validationResult.Failures!);
+      var errors = string.Join("\n", validationResults.Select(result => result.ErrorMessage));
       throw new InvalidOperationException($"{validationErrorPrefix}: {errors}");
     }
   }

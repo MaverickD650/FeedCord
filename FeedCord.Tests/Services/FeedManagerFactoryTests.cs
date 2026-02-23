@@ -1,9 +1,9 @@
 using FeedCord.Common;
 using FeedCord.Core.Interfaces;
 using FeedCord.Services;
-using FeedCord.Services.Factories;
 using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -12,7 +12,7 @@ namespace FeedCord.Tests.Services;
 public class FeedManagerFactoryTests
 {
   [Fact]
-  public void Create_ReturnsFeedManagerInstance()
+  public void ActivatorUtilities_Create_ReturnsFeedManagerInstance()
   {
     var services = new ServiceCollection();
     var httpClientMock = new Mock<ICustomHttpClient>(MockBehavior.Loose);
@@ -23,7 +23,6 @@ public class FeedManagerFactoryTests
     services.AddSingleton(rssParserMock.Object);
 
     var provider = services.BuildServiceProvider();
-    var sut = new FeedManagerFactory(provider);
     var config = new Config
     {
       Id = "FactoryFeed",
@@ -36,8 +35,10 @@ public class FeedManagerFactoryTests
     };
 
     var aggregatorMock = new Mock<ILogAggregator>(MockBehavior.Loose);
+    var postFilterLogger = provider.GetRequiredService<ILogger<PostFilterService>>();
+    var postFilterService = new PostFilterService(postFilterLogger, config);
 
-    var feedManager = sut.Create(config, aggregatorMock.Object);
+    var feedManager = ActivatorUtilities.CreateInstance<FeedManager>(provider, config, aggregatorMock.Object, postFilterService);
 
     Assert.IsType<FeedManager>(feedManager);
     Assert.NotNull(feedManager.GetAllFeedData());

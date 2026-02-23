@@ -1,6 +1,5 @@
 using FeedCord.Common;
 using FeedCord.Core.Interfaces;
-using FeedCord.Infrastructure.Factories;
 using FeedCord.Infrastructure.Notifiers;
 using FeedCord.Infrastructure.Workers;
 using FeedCord.Services.Interfaces;
@@ -15,14 +14,13 @@ namespace FeedCord.Tests.Infrastructure;
 public class FactoryTests
 {
   [Fact]
-  public void NotifierFactory_Create_ReturnsDiscordNotifier()
+  public void ActivatorUtilities_CreateNotifier_ReturnsDiscordNotifier()
   {
     var services = new ServiceCollection();
     var httpClientMock = new Mock<ICustomHttpClient>(MockBehavior.Loose);
     services.AddSingleton(httpClientMock.Object);
 
     var provider = services.BuildServiceProvider();
-    var sut = new NotifierFactory(provider);
 
     var config = new Config
     {
@@ -33,13 +31,13 @@ public class FactoryTests
     };
 
     var payloadServiceMock = new Mock<IDiscordPayloadService>(MockBehavior.Loose);
-    var notifier = sut.Create(config, payloadServiceMock.Object);
+    var notifier = ActivatorUtilities.CreateInstance<DiscordNotifier>(provider, config, payloadServiceMock.Object);
 
     Assert.IsType<DiscordNotifier>(notifier);
   }
 
   [Fact]
-  public void FeedWorkerFactory_Create_ReturnsFeedWorkerAndLogsCreation()
+  public void ActivatorUtilities_CreateFeedWorker_ReturnsFeedWorker()
   {
     var services = new ServiceCollection();
     var lifetimeMock = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
@@ -47,8 +45,6 @@ public class FactoryTests
     services.AddLogging();
 
     var provider = services.BuildServiceProvider();
-    var factoryLoggerMock = new Mock<ILogger<FeedWorkerFactory>>(MockBehavior.Loose);
-    var sut = new FeedWorkerFactory(provider, factoryLoggerMock.Object);
 
     var config = new Config
     {
@@ -64,16 +60,8 @@ public class FactoryTests
     var feedManagerMock = new Mock<IFeedManager>(MockBehavior.Loose);
     var notifierMock = new Mock<INotifier>(MockBehavior.Loose);
 
-    var worker = sut.Create(config, aggregatorMock.Object, feedManagerMock.Object, notifierMock.Object);
+    var worker = ActivatorUtilities.CreateInstance<FeedWorker>(provider, config, aggregatorMock.Object, feedManagerMock.Object, notifierMock.Object);
 
     Assert.IsType<FeedWorker>(worker);
-    factoryLoggerMock.Verify(
-        x => x.Log(
-            LogLevel.Information,
-            It.IsAny<EventId>(),
-            It.Is<It.IsAnyType>((value, _) => value.ToString()!.Contains("Creating new RssCheckerBackgroundService instance")),
-            It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
-        Times.Once);
   }
 }

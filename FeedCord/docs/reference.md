@@ -214,6 +214,26 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["feedcord.default.svc.cluster.local:9090"]
+
+## Image Fetch Mode
+
+`ImageFetchMode` controls how images are sourced for posts.
+
+- `FeedOnly`: Only use image data from the feed XML.
+- `FeedThenPage`: Use feed XML first, then scrape the linked page if missing.
+- `PageOnly`: Always scrape the linked page for images.
+
+Example:
+
+```json
+{
+  "Instances": [
+    {
+      "Id": "Gaming News Channel",
+      "ImageFetchMode": "FeedOnly"
+    }
+  ]
+}
 ```
 
 ## Post Filters
@@ -322,6 +342,7 @@ Filter all feeds with `"Url": "all"`:
 - **AuthorUrl**: Link when clicking author name.
 - **FallbackImage**: Backup image if metadata parsing fails.
 - **ConcurrentRequests**: Per-instance request limit.
+- **ImageFetchMode**: Image sourcing mode (`FeedOnly`, `FeedThenPage`, `PageOnly`).
 - **App**: Optional top-level app settings object.
 - **Http**: Optional top-level HTTP settings object.
 - **Observability**: Optional top-level metrics and health probe settings.

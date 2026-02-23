@@ -32,6 +32,8 @@ namespace FeedCord.Common
     [Required(ErrorMessage = "Description Limit Property is required.")]
     [Range(1, 4000, ErrorMessage = "DescriptionLimit must be between 1 and 4000 characters.")]
     public int DescriptionLimit { get; set; }
+    [EnumDataType(typeof(ImageFetchMode), ErrorMessage = "ImageFetchMode must be FeedOnly, FeedThenPage, or PageOnly.")]
+    public ImageFetchMode ImageFetchMode { get; set; } = ImageFetchMode.FeedOnly;
     [Required(ErrorMessage = "Forum Property is required (True for Forum Channels, False for Text Channels)")]
     public bool Forum { get; set; }
     [Required(ErrorMessage = "Markdown Property is required (True for Markdown Posts, False for Embed Posts)")]

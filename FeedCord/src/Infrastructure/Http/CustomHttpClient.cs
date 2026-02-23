@@ -5,6 +5,7 @@ using FeedCord.Services.Interfaces;
 using System.Collections.Concurrent;
 using FeedCord.Helpers;
 using System.Threading.RateLimiting;
+using System.Net.Http.Headers;
 
 namespace FeedCord.Infrastructure.Http
 {
@@ -16,10 +17,14 @@ namespace FeedCord.Infrastructure.Http
             "FeedFetcher-Google"
         };
 
+    private static readonly Regex RobotsUserAgentRegex =
+      new(@"^User-agent:[ \t]*(?<agent>[^\r\n]+)[ \t]*$", RegexOptions.Multiline | RegexOptions.Compiled);
+
     private readonly HttpClient _innerClient;
     private readonly ILogger<CustomHttpClient> _logger;
     private readonly SemaphoreSlim _throttle;
     private readonly ConcurrentDictionary<string, string> _userAgentCache;
+    private readonly ConcurrentDictionary<string, ConditionalRequestState> _conditionalRequestCache;
     private readonly IReadOnlyList<string> _fallbackUserAgents;
     private readonly TokenBucketRateLimiter _postRateLimiter;
     public CustomHttpClient(
@@ -33,6 +38,7 @@ namespace FeedCord.Infrastructure.Http
       _throttle = throttle;
       _innerClient = innerClient;
       _userAgentCache = new ConcurrentDictionary<string, string>();
+      _conditionalRequestCache = new ConcurrentDictionary<string, ConditionalRequestState>();
       _fallbackUserAgents = (fallbackUserAgents ?? DefaultFallbackUserAgents)
           .Where(ua => !string.IsNullOrWhiteSpace(ua))
           .Select(ua => ua.Trim())
@@ -58,18 +64,18 @@ namespace FeedCord.Infrastructure.Http
 
       try
       {
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        var userAgentCacheKey = GetUserAgentCacheKey(url);
 
-        if (_userAgentCache.ContainsKey(url))
-        {
-          request.Headers.UserAgent.ParseAdd(_userAgentCache.GetValueOrDefault(url, ""));
-        }
+        using var request = CreateGetRequest(
+            url,
+            _userAgentCache.TryGetValue(userAgentCacheKey, out var cachedUserAgent) ? cachedUserAgent : null);
 
         response = await SendGetAsync(request, cancellationToken);
+        UpdateConditionalRequestState(url, response);
 
         if (!response.IsSuccessStatusCode && ShouldTryAlternative(response.StatusCode))
         {
-          response = await TryAlternativeAsync(url, response, cancellationToken);
+          response = await TryAlternativeAsync(url, userAgentCacheKey, response, cancellationToken);
         }
 
         return response;
@@ -121,7 +127,11 @@ namespace FeedCord.Infrastructure.Http
       }
     }
 
-    private async Task<HttpResponseMessage> TryAlternativeAsync(string url, HttpResponseMessage oldResponse, CancellationToken cancellationToken)
+    private async Task<HttpResponseMessage> TryAlternativeAsync(
+      string url,
+      string userAgentCacheKey,
+      HttpResponseMessage oldResponse,
+      CancellationToken cancellationToken)
     {
       var uri = new Uri(url);
       var baseUrl = uri.GetLeftPart(UriPartial.Authority);
@@ -133,17 +143,17 @@ namespace FeedCord.Infrastructure.Http
       {
         foreach (var fallbackUserAgent in _fallbackUserAgents)
         {
-          request = new HttpRequestMessage(HttpMethod.Get, url);
-          request.Headers.UserAgent.ParseAdd(fallbackUserAgent);
+          request = CreateGetRequest(url, fallbackUserAgent);
 
           response = await SendGetAsync(request, cancellationToken);
+          UpdateConditionalRequestState(url, response);
 
           if (!response.IsSuccessStatusCode)
           {
             continue;
           }
 
-          _userAgentCache[url] = fallbackUserAgent;
+          _userAgentCache[userAgentCacheKey] = fallbackUserAgent;
           return response;
         }
 
@@ -154,13 +164,13 @@ namespace FeedCord.Infrastructure.Http
         {
           foreach (var userAgent in userAgents)
           {
-            request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.UserAgent.ParseAdd(userAgent);
+            request = CreateGetRequest(url, userAgent);
             request.Headers.Add("Accept", "*/*");
             response = await SendGetAsync(request, cancellationToken);
+            UpdateConditionalRequestState(url, response);
             if (response.IsSuccessStatusCode)
             {
-              _userAgentCache[url] = userAgent;
+              _userAgentCache[userAgentCacheKey] = userAgent;
               return response;
             }
           }
@@ -175,6 +185,60 @@ namespace FeedCord.Infrastructure.Http
         _logger.LogError("Failed to fetch RSS Feed after fallback attempts: {Url} - {E}", url, SensitiveDataMasker.MaskException(e));
       }
       return oldResponse;
+    }
+
+    private HttpRequestMessage CreateGetRequest(string url, string? userAgent)
+    {
+      var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+      if (!string.IsNullOrWhiteSpace(userAgent))
+      {
+        request.Headers.UserAgent.ParseAdd(userAgent);
+      }
+
+      if (_conditionalRequestCache.TryGetValue(url, out var conditionalRequestState))
+      {
+        if (!string.IsNullOrWhiteSpace(conditionalRequestState.ETag) &&
+            EntityTagHeaderValue.TryParse(conditionalRequestState.ETag, out var parsedETag))
+        {
+          request.Headers.IfNoneMatch.Add(parsedETag);
+        }
+
+        if (conditionalRequestState.LastModified.HasValue)
+        {
+          request.Headers.IfModifiedSince = conditionalRequestState.LastModified;
+        }
+      }
+
+      return request;
+    }
+
+    private void UpdateConditionalRequestState(string url, HttpResponseMessage response)
+    {
+      var eTag = response.Headers.ETag?.ToString();
+      var lastModified = response.Content?.Headers.LastModified;
+
+      if (string.IsNullOrWhiteSpace(eTag) && !lastModified.HasValue)
+      {
+        return;
+      }
+
+      _conditionalRequestCache.AddOrUpdate(
+          url,
+          _ => new ConditionalRequestState(eTag, lastModified),
+          (_, existing) => new ConditionalRequestState(
+              string.IsNullOrWhiteSpace(eTag) ? existing.ETag : eTag,
+              lastModified ?? existing.LastModified));
+    }
+
+    private static string GetUserAgentCacheKey(string url)
+    {
+      if (Uri.TryCreate(url, UriKind.Absolute, out var parsedUri))
+      {
+        return parsedUri.GetLeftPart(UriPartial.Authority);
+      }
+
+      return url;
     }
 
     private static bool ShouldTryAlternative(HttpStatusCode statusCode)
@@ -275,28 +339,27 @@ namespace FeedCord.Infrastructure.Http
 
     private async Task<List<string>> GetRobotsUserAgentsAsync(string url, CancellationToken cancellationToken)
     {
-      var userAgents = new List<string>();
+      var userAgents = new HashSet<string>(StringComparer.Ordinal);
 
       var robotsContent = await FetchRobotsContentAsync(url, cancellationToken);
 
       if (robotsContent == string.Empty)
-        return userAgents.OrderByDescending(x => x).Distinct().ToList();
+        return [];
 
-      var pattern = @"^User-agent:[ \t]*(?<agent>[^\r\n]+)[ \t]*$";
-      var regex = new Regex(pattern, RegexOptions.Multiline);
-
-      var matches = regex.Matches(robotsContent);
+      var matches = RobotsUserAgentRegex.Matches(robotsContent);
 
       foreach (Match match in matches)
       {
         var userAgent = match.Groups["agent"].Value.Trim();
         if (!string.IsNullOrEmpty(userAgent))
         {
-          userAgents.Add(userAgent);
+          _ = userAgents.Add(userAgent);
         }
       }
 
-      return userAgents.OrderByDescending(x => x).Distinct().ToList();
+      return userAgents.OrderByDescending(x => x).ToList();
     }
+
+    private sealed record ConditionalRequestState(string? ETag, DateTimeOffset? LastModified);
   }
 }

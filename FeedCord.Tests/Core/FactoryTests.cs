@@ -1,6 +1,5 @@
 using FeedCord.Common;
 using FeedCord.Core;
-using FeedCord.Core.Factories;
 using FeedCord.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -11,11 +10,10 @@ namespace FeedCord.Tests.Core;
 public class FactoryTests
 {
   [Fact]
-  public void DiscordPayloadServiceFactory_Create_ReturnsServiceWithConfig()
+  public void ActivatorUtilities_CreateDiscordPayloadService_ReturnsServiceWithConfig()
   {
     var services = new ServiceCollection();
     var provider = services.BuildServiceProvider();
-    var sut = new DiscordPayloadServiceFactory(provider);
     var config = new Config
     {
       Id = "TestFeed",
@@ -26,7 +24,7 @@ public class FactoryTests
       Forum = false
     };
 
-    var service = sut.Create(config);
+    var service = ActivatorUtilities.CreateInstance<DiscordPayloadService>(provider, config);
     var payload = service.BuildPayloadWithPost(new Post(
         "Title",
         "",
@@ -41,14 +39,13 @@ public class FactoryTests
   }
 
   [Fact]
-  public void LogAggregatorFactory_Create_ReturnsLogAggregatorWithInstanceId()
+  public void ActivatorUtilities_CreateLogAggregator_ReturnsLogAggregatorWithInstanceId()
   {
     var services = new ServiceCollection();
     var batchLogger = new Mock<IBatchLogger>(MockBehavior.Loose);
     services.AddSingleton(batchLogger.Object);
 
     var provider = services.BuildServiceProvider();
-    var sut = new LogAggregatorFactory(provider);
     var config = new Config
     {
       Id = "FactoryId",
@@ -57,7 +54,7 @@ public class FactoryTests
       DiscordWebhookUrl = "https://discord.com/api/webhooks/1/2"
     };
 
-    var aggregator = sut.Create(config);
+    var aggregator = ActivatorUtilities.CreateInstance<LogAggregator>(provider, config);
 
     var concreteAggregator = Assert.IsType<LogAggregator>(aggregator);
     Assert.Equal("FactoryId", concreteAggregator.InstanceId);
