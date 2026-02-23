@@ -26,6 +26,7 @@ namespace FeedCord.Services
       string xmlContent,
       int trim,
       ImageFetchMode imageFetchMode,
+      DateTime? minPublishDate = null,
       CancellationToken cancellationToken = default)
     {
       var xmlContenter = xmlContent.Replace("<!doctype", "<!DOCTYPE");
@@ -39,11 +40,14 @@ namespace FeedCord.Services
         foreach (var post in feed.Items)
         {
           cancellationToken.ThrowIfCancellationRequested();
+          var publishDate = post.PublishingDate;
+          var shouldScrapePage = !minPublishDate.HasValue || publishDate > minPublishDate.Value;
           var rawXml = GetRawXmlForItem(post);
 
-            var imageLink = await _imageParserService
-              .TryExtractImageLink(post.Link ?? string.Empty, rawXml, imageFetchMode)
-              ?? feed.ImageUrl;
+          var effectiveMode = shouldScrapePage ? imageFetchMode : ImageFetchMode.FeedOnly;
+          var imageLink = await _imageParserService
+            .TryExtractImageLink(post.Link ?? string.Empty, rawXml, effectiveMode)
+            ?? feed.ImageUrl;
 
           var builtPost = PostBuilder.TryBuildPost(post, feed, trim, imageLink);
 

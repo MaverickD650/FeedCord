@@ -52,7 +52,7 @@ public class RssParsingServiceTests
     );
 
     // Act
-    var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, ImageFetchMode.FeedOnly, TestContext.Current.CancellationToken);
+    var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, ImageFetchMode.FeedOnly, minPublishDate: null, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert - should parse without error (may have 0 or more posts depending on PostBuilder)
     Assert.NotNull(result);
@@ -84,7 +84,7 @@ public class RssParsingServiceTests
     );
 
     // Act - should handle preprocessing without error
-    var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, ImageFetchMode.FeedOnly, TestContext.Current.CancellationToken);
+    var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, ImageFetchMode.FeedOnly, minPublishDate: null, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert
     Assert.NotNull(result);
@@ -110,7 +110,7 @@ public class RssParsingServiceTests
     );
 
     // Act
-    var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, ImageFetchMode.FeedOnly, TestContext.Current.CancellationToken);
+    var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, ImageFetchMode.FeedOnly, minPublishDate: null, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert
     Assert.Empty(result);
@@ -129,7 +129,7 @@ public class RssParsingServiceTests
     );
 
     // Act - should not throw exception
-    var result = await service.ParseRssFeedAsync(invalidXml, trim: 250, ImageFetchMode.FeedOnly, TestContext.Current.CancellationToken);
+    var result = await service.ParseRssFeedAsync(invalidXml, trim: 250, ImageFetchMode.FeedOnly, minPublishDate: null, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert
     Assert.Empty(result);
@@ -172,7 +172,7 @@ public class RssParsingServiceTests
     );
 
     // Act - trim to 250 characters
-    var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, ImageFetchMode.FeedOnly, TestContext.Current.CancellationToken);
+    var result = await service.ParseRssFeedAsync(xmlContent, trim: 250, ImageFetchMode.FeedOnly, minPublishDate: null, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert - description should be trimmed
     if (result.Count > 0 && result[0] != null)
@@ -204,7 +204,7 @@ public class RssParsingServiceTests
     );
 
     // Act
-    var result = await service.ParseRssFeedAsync(xmlWithoutDescription, trim: 250, ImageFetchMode.FeedOnly, TestContext.Current.CancellationToken);
+    var result = await service.ParseRssFeedAsync(xmlWithoutDescription, trim: 250, ImageFetchMode.FeedOnly, minPublishDate: null, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert
     Assert.NotNull(result);
@@ -313,7 +313,7 @@ public class RssParsingServiceTests
 
     // Act & Assert
     await Assert.ThrowsAsync<OperationCanceledException>(
-        () => service.ParseRssFeedAsync(xmlContent, trim: 250, ImageFetchMode.FeedOnly, cancellationToken: cts.Token)
+        () => service.ParseRssFeedAsync(xmlContent, trim: 250, ImageFetchMode.FeedOnly, minPublishDate: null, cancellationToken: cts.Token)
     );
   }
 
@@ -345,7 +345,7 @@ public class RssParsingServiceTests
     );
 
     // Act
-    var result = await service.ParseRssFeedAsync(atomXml, trim: 250, ImageFetchMode.FeedOnly, TestContext.Current.CancellationToken);
+    var result = await service.ParseRssFeedAsync(atomXml, trim: 250, ImageFetchMode.FeedOnly, minPublishDate: null, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert
     Assert.NotNull(result);
@@ -378,10 +378,58 @@ public class RssParsingServiceTests
     );
 
     // Act
-    var result = await service.ParseRssFeedAsync(jsonFeed, trim: 250, ImageFetchMode.FeedOnly, TestContext.Current.CancellationToken);
+    var result = await service.ParseRssFeedAsync(jsonFeed, trim: 250, ImageFetchMode.FeedOnly, minPublishDate: null, cancellationToken: TestContext.Current.CancellationToken);
 
     // Assert
     Assert.NotNull(result);
+  }
+
+  [Fact]
+  public async Task ParseRssFeedAsync_MinPublishDate_SkipsPageScrapeForOlderItems()
+  {
+    // Arrange
+    var xmlContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<rss version=""2.0"">
+  <channel>
+    <title>Test Feed</title>
+    <item>
+      <title>Old Item</title>
+      <link>http://example.com/old</link>
+      <description>Old item</description>
+      <pubDate>Mon, 06 Sep 2021 00:01:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>";
+
+    var requestedModes = new List<ImageFetchMode>();
+    _mockImageParser
+      .Setup(x => x.TryExtractImageLink(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ImageFetchMode>()))
+      .ReturnsAsync((string _, string _, ImageFetchMode mode) =>
+      {
+        requestedModes.Add(mode);
+        return "http://example.com/image.jpg";
+      });
+
+    var service = new RssParsingService(
+        _mockLogger.Object,
+        _mockYoutubeParser.Object,
+        _mockImageParser.Object
+    );
+
+    var minPublishDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    // Act
+    var result = await service.ParseRssFeedAsync(
+        xmlContent,
+        trim: 250,
+        ImageFetchMode.PageOnly,
+        minPublishDate: minPublishDate,
+        cancellationToken: TestContext.Current.CancellationToken);
+
+    // Assert
+    Assert.NotNull(result);
+    var mode = Assert.Single(requestedModes);
+    Assert.Equal(ImageFetchMode.FeedOnly, mode);
   }
 
   [Fact]
