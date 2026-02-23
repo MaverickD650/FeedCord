@@ -385,7 +385,7 @@ public class RssParsingServiceTests
   }
 
   [Fact]
-  public async Task ParseRssFeedAsync_MinPublishDate_SkipsPageScrapeForOlderItems()
+  public async Task ParseRssFeedAsync_MinPublishDate_SkipsImageExtractionForOlderItems()
   {
     // Arrange
     var xmlContent = @"<?xml version=""1.0"" encoding=""utf-8""?>
@@ -401,14 +401,9 @@ public class RssParsingServiceTests
   </channel>
 </rss>";
 
-    var requestedModes = new List<ImageFetchMode>();
     _mockImageParser
       .Setup(x => x.TryExtractImageLink(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ImageFetchMode>()))
-      .ReturnsAsync((string _, string _, ImageFetchMode mode) =>
-      {
-        requestedModes.Add(mode);
-        return "http://example.com/image.jpg";
-      });
+      .ReturnsAsync("http://example.com/image.jpg");
 
     var service = new RssParsingService(
         _mockLogger.Object,
@@ -428,8 +423,9 @@ public class RssParsingServiceTests
 
     // Assert
     Assert.NotNull(result);
-    var mode = Assert.Single(requestedModes);
-    Assert.Equal(ImageFetchMode.FeedOnly, mode);
+    _mockImageParser.Verify(
+      x => x.TryExtractImageLink(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ImageFetchMode>()),
+      Times.Never);
   }
 
   [Fact]
