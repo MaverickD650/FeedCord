@@ -929,7 +929,7 @@ namespace FeedCord.Tests.Infrastructure
       // Assert - Verify timing enforces rate limit
       Assert.Equal(2, postTimes.Count);
       var timeBetweenPosts = postTimes[1] - postTimes[0];
-      
+
       if (shouldWait)
         Assert.True(timeBetweenPosts >= 800, $"Rate limiting not enforced. Time between posts: {timeBetweenPosts}ms");
       else
