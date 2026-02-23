@@ -116,7 +116,7 @@ namespace FeedCord.Services
         if (isYoutube)
         {
           var posts = await FetchYoutubeAsync(url, cancellationToken);
-          latestPublishDate = posts?.FirstOrDefault()?.PublishDate ?? DateTime.UtcNow;
+          latestPublishDate = posts.FirstOrDefault()?.PublishDate ?? DateTime.UtcNow;
           successfulAdd = _feedStates.TryAdd(url, new FeedState
           {
             IsYoutube = true,

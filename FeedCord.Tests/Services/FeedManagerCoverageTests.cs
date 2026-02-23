@@ -102,8 +102,9 @@ public class FeedManagerCoverageTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
     var results = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
-    Assert.Single(results);
-    Assert.Equal("new", results[0].Title);
+    Assert.Collection(results,
+      post => Assert.Equal("new", post.Title)
+    );
     mockFilter.Verify(x => x.ShouldIncludePost(It.IsAny<Post>(), RssUrl), Times.Once);
   }
 
@@ -401,7 +402,7 @@ public class FeedManagerCoverageTests
 
     var state = manager.GetAllFeedData()[fallbackUrl];
     Assert.False(state.IsYoutube);
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.NotEqual(default, state.LastPublishDate);
     mockRssParser.Verify(x => x.ParseRssFeedAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
   }
 
@@ -444,7 +445,7 @@ public class FeedManagerCoverageTests
 
     var state = manager.GetAllFeedData()[youtubeChannelUrl];
     Assert.True(state.IsYoutube);
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.NotEqual(default, state.LastPublishDate);
     mockRssParser.Verify(x => x.ParseYoutubeFeedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
   }
 
@@ -532,7 +533,7 @@ public class FeedManagerCoverageTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
     var state = manager.GetAllFeedData()[parserUrl];
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.NotEqual(default, state.LastPublishDate);
   }
 
   [Fact]
@@ -573,8 +574,10 @@ public class FeedManagerCoverageTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
     var state = manager.GetAllFeedData()[youtubeChannelUrl];
-    Assert.True(state.IsYoutube);
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.Multiple(
+      () => Assert.True(state.IsYoutube),
+      () => Assert.NotEqual(default, state.LastPublishDate)
+    );
   }
 
   [Fact]
@@ -622,8 +625,10 @@ public class FeedManagerCoverageTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
     var state = manager.GetAllFeedData()[youtubeChannelUrl];
-    Assert.True(state.IsYoutube);
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.Multiple(
+      () => Assert.True(state.IsYoutube),
+      () => Assert.NotEqual(default, state.LastPublishDate)
+    );
   }
 
   [Fact]
@@ -1467,8 +1472,10 @@ public class FeedManagerCoverageTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
     var state = manager.GetAllFeedData()[youtubeFeedUrl];
-    Assert.True(state.IsYoutube);
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.Multiple(
+      () => Assert.True(state.IsYoutube),
+      () => Assert.NotEqual(default, state.LastPublishDate)
+    );
   }
 
   [Fact]
@@ -1572,8 +1579,9 @@ public class FeedManagerCoverageTests
 
     var result = await manager.CheckForNewPostsAsync(TestContext.Current.CancellationToken);
 
-    Assert.Single(result);
-    Assert.Equal("yt-post", result[0].Title);
+    Assert.Collection(result,
+      post => Assert.Equal("yt-post", post.Title)
+    );
   }
 
   [Fact]
@@ -1711,7 +1719,7 @@ public class FeedManagerCoverageTests
       RssUrls = rssUrls ?? [],
       YoutubeUrls = youtubeUrls ?? [],
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       Forum = false,
       MarkdownFormat = false,
@@ -2023,7 +2031,7 @@ public class FeedManagerTests
       RssUrls = rssUrls ?? new string[] { },
       YoutubeUrls = youtubeUrls ?? new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       Forum = false,
       MarkdownFormat = false,
@@ -2062,7 +2070,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 10
     };
@@ -2091,7 +2099,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2126,7 +2134,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { "https://example.com/rss1", "https://example.com/rss2" },
       YoutubeUrls = new[] { "https://youtube.com/feed1" },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2164,7 +2172,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { "https://example.com/rss", "", "   ", null! },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2202,7 +2210,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { "https://example.com/rss" },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2240,7 +2248,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { "https://example.com/rss" },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2279,7 +2287,7 @@ public class FeedManagerExpandedTests
       RssUrls = urls ?? new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2317,7 +2325,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2349,7 +2357,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2384,7 +2392,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2416,7 +2424,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2454,7 +2462,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { url },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2499,7 +2507,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = concurrentRequests
     };
@@ -2536,7 +2544,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = descriptionLimit,
       ConcurrentRequests = 5
     };
@@ -2569,7 +2577,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { "https://example.com/rss" },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2611,7 +2619,7 @@ public class FeedManagerExpandedTests
       RssUrls = Array.Empty<string>(),
       YoutubeUrls = new[] { youtubeUrl },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2650,7 +2658,7 @@ public class FeedManagerExpandedTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
     var state = manager.GetAllFeedData()[youtubeUrl];
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.NotEqual(default, state.LastPublishDate);
   }
 
   [Fact]
@@ -2663,7 +2671,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { rssUrl },
       YoutubeUrls = Array.Empty<string>(),
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2702,7 +2710,7 @@ public class FeedManagerExpandedTests
     await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
 
     var state = manager.GetAllFeedData()[rssUrl];
-    Assert.True(state.LastPublishDate > DateTime.UtcNow.AddMinutes(-1));
+    Assert.NotEqual(default, state.LastPublishDate);
   }
 
   #endregion

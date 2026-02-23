@@ -14,6 +14,12 @@ namespace FeedCord.Tests.Infrastructure;
 /// Comprehensive test suite for FeedWorker functionality.
 /// Consolidates all FeedWorker tests into a single, well-organized file.
 /// </summary>
+[CollectionDefinition("InfrastructureWorkersNonParallel", DisableParallelization = true)]
+public class InfrastructureWorkersNonParallelCollection
+{
+}
+
+[Collection("InfrastructureWorkersNonParallel")]
 public class FeedWorkerTests
 {
   #region Constructor Tests
@@ -34,7 +40,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       PersistenceOnShutdown = false
     };
 
@@ -78,7 +84,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 60,
+      RssCheckIntervalSeconds = 60,
       PersistenceOnShutdown = false
     };
 
@@ -101,7 +107,7 @@ public class FeedWorkerTests
   [InlineData(5)]
   [InlineData(30)]
   [InlineData(60)]
-  public void Constructor_AcceptsVariousIntervals(int minutes)
+  public void Constructor_AcceptsVariousIntervals(int seconds)
   {
     // Arrange
     var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
@@ -116,7 +122,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = minutes,
+      RssCheckIntervalSeconds = seconds,
       PersistenceOnShutdown = false
     };
 
@@ -162,19 +168,18 @@ public class FeedWorkerTests
 
     // Act
     var loaded = store.LoadReferencePosts();
-    var saveException = Record.Exception(() => store.SaveReferencePosts(feedData));
+    store.SaveReferencePosts(feedData);
 
     // Assert
     Assert.NotNull(loaded);
     Assert.Empty(loaded);
-    Assert.Null(saveException);
   }
 
   #endregion
 
   #region ExecuteAsync Tests
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_InitializesUrlsOnFirstRun()
   {
     // Arrange
@@ -189,7 +194,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 1,
+      RssCheckIntervalSeconds = 1,
       PersistenceOnShutdown = false
     };
     mockFeedManager.Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
@@ -208,11 +213,18 @@ public class FeedWorkerTests
     var startTask = worker.StartAsync(cts.Token);
     await Task.Delay(200, TestContext.Current.CancellationToken); // Allow background loop to run
     cts.Cancel();
-    try { await startTask; } catch { /* ignore cancellation */ }
+    try
+    {
+      await startTask;
+    }
+    catch (OperationCanceledException)
+    {
+      // Expected when cancellation is observed by the background loop.
+    }
     mockFeedManager.Verify(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_WhenCanceledDuringDelay_StopsGracefully()
   {
     var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
@@ -236,7 +248,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 0,
+      RssCheckIntervalSeconds = 0,
       PersistenceOnShutdown = false
     };
 
@@ -259,7 +271,7 @@ public class FeedWorkerTests
     mockLogAggregator.Verify(x => x.SendToBatchAsync(), Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_WhenRoutineThrowsOperationCanceledWithCanceledToken_BreaksLoopGracefully()
   {
     // Arrange
@@ -282,7 +294,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 1,
+      RssCheckIntervalSeconds = 1,
       PersistenceOnShutdown = false
     };
 
@@ -307,7 +319,7 @@ public class FeedWorkerTests
     mockLogAggregator.Verify(x => x.SetEndTime(It.IsAny<DateTime>()), Times.Never);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_WhenRoutineThrowsUnexpectedException_LogsCriticalAndRethrows()
   {
     // Arrange
@@ -327,7 +339,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 1,
+      RssCheckIntervalSeconds = 1,
       PersistenceOnShutdown = false
     };
 
@@ -344,10 +356,10 @@ public class FeedWorkerTests
     var executeAsync = typeof(FeedWorker).GetMethod("ExecuteAsync", BindingFlags.Instance | BindingFlags.NonPublic);
     Assert.NotNull(executeAsync);
 
-    var task = (Task)executeAsync!.Invoke(worker, new object[] { CancellationToken.None })!;
+    var task = (Task)executeAsync!.Invoke(worker, new object[] { TestContext.Current.CancellationToken })!;
 
     // Assert
-    await Assert.ThrowsAsync<InvalidOperationException>(async () => await task);
+    await Assert.ThrowsAsync<InvalidOperationException>(() => task);
     mockLogger.Verify(
         x => x.Log(
             LogLevel.Critical,
@@ -360,7 +372,7 @@ public class FeedWorkerTests
     );
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_ChecksForNewPostsAndNotifies()
   {
     // Arrange
@@ -376,7 +388,7 @@ public class FeedWorkerTests
         Description: "Test description",
         Link: "https://example.com/article",
         Tag: "Test Feed",
-        PublishDate: DateTime.Now,
+        PublishDate: new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         Author: "Test Author"
     );
 
@@ -393,7 +405,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 1,
+      RssCheckIntervalSeconds = 1,
       PersistenceOnShutdown = false
     };
 
@@ -422,7 +434,7 @@ public class FeedWorkerTests
     mockFeedManager.Verify(x => x.CheckForNewPostsAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_NotifiesWhenPostsFound()
   {
     // Arrange
@@ -434,8 +446,8 @@ public class FeedWorkerTests
 
     var posts = new List<Post>
         {
-            new Post("Post 1", "", "Desc 1", "link1", "tag1", DateTime.Now, "author1"),
-            new Post("Post 2", "", "Desc 2", "link2", "tag2", DateTime.Now, "author2")
+            new Post("Post 1", "", "Desc 1", "link1", "tag1", new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), "author1"),
+            new Post("Post 2", "", "Desc 2", "link2", "tag2", new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc), "author2")
         };
 
     mockFeedManager.Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>()))
@@ -451,7 +463,7 @@ public class FeedWorkerTests
       RssUrls = new[] { "https://example.com/feed" },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 1,
+      RssCheckIntervalSeconds = 1,
       PersistenceOnShutdown = false
     };
 
@@ -480,7 +492,7 @@ public class FeedWorkerTests
     mockNotifier.Verify(x => x.SendNotificationsAsync(It.IsAny<List<Post>>(), It.IsAny<CancellationToken>()), Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_DoesNotNotifyWhenNoPostsFound()
   {
     // Arrange
@@ -501,7 +513,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 1,
+      RssCheckIntervalSeconds = 1,
       PersistenceOnShutdown = false
     };
 
@@ -534,7 +546,7 @@ public class FeedWorkerTests
 
   #region Shutdown and Persistence Tests
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task OnShutdown_WithPersistenceEnabled_SavesThroughReferencePostStore()
   {
     // Arrange
@@ -568,7 +580,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 1,
+      RssCheckIntervalSeconds = 1,
       PersistenceOnShutdown = true // Enable persistence
     };
 
@@ -600,7 +612,7 @@ public class FeedWorkerTests
     mockReferencePostStore.Verify(x => x.SaveReferencePosts(It.IsAny<IReadOnlyDictionary<string, FeedState>>()), Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task OnShutdown_WhenPersistenceDisabled_DoesNotSaveThroughReferencePostStore()
   {
     // Arrange
@@ -620,7 +632,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 1,
+      RssCheckIntervalSeconds = 1,
       PersistenceOnShutdown = false // Disable persistence
     };
 
@@ -656,7 +668,7 @@ public class FeedWorkerTests
 
   #region LogAggregator Tests
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_SetsBatchLoggerStartAndEndTime()
   {
     // Arrange
@@ -678,7 +690,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 1,
+      RssCheckIntervalSeconds = 1,
       PersistenceOnShutdown = false
     };
 
@@ -709,7 +721,7 @@ public class FeedWorkerTests
     mockLogAggregator.Verify(x => x.SendToBatchAsync(), Times.AtLeastOnce);
   }
 
-  [Fact]
+  [Fact(Timeout = 10000)]
   public async Task ExecuteAsync_WhenTaskDelayCanceled_LogsStoppedGracefully()
   {
     // Arrange - Test for FeedWorker.cs line 74 coverage (outer catch block)
@@ -736,7 +748,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 1,
+      RssCheckIntervalSeconds = 1,
       PersistenceOnShutdown = false
     };
 
@@ -769,10 +781,10 @@ public class FeedWorkerTests
     );
   }
 
-  [Fact]
-  public async Task ExecuteAsync_MultipleIterations_TaskDelayCompletesAtLeastOnce()
+  [Fact(Timeout = 10000)]
+  public async Task ExecuteAsync_DelayCompletesOnce_LogsStoppedGracefully()
   {
-    // Arrange - Test that Task.Delay line (line 74) is actually executed
+    // Arrange - allow one delay cycle to complete before cancellation
     var mockLifetime = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
     var mockLogger = new Mock<ILogger<FeedWorker>>(MockBehavior.Loose);
     var mockFeedManager = new Mock<IFeedManager>(MockBehavior.Loose);
@@ -780,8 +792,7 @@ public class FeedWorkerTests
     var mockLogAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
 
     using var cts = new CancellationTokenSource();
-
-    int iterationCount = 0;
+    var iterationCount = 0;
     mockFeedManager.Setup(x => x.InitializeUrlsAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
     mockFeedManager.Setup(x => x.CheckForNewPostsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new List<Post>());
     mockLogAggregator.Setup(x => x.SetStartTime(It.IsAny<DateTime>()));
@@ -791,10 +802,6 @@ public class FeedWorkerTests
         .Callback(() =>
         {
           iterationCount++;
-          if (iterationCount >= 2)
-          {
-            cts.Cancel(); // Cancel after 2nd iteration starts
-          }
         })
         .Returns(Task.CompletedTask);
 
@@ -804,7 +811,7 @@ public class FeedWorkerTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 0, // Zero delay to make test fast
+      RssCheckIntervalSeconds = 1,
       PersistenceOnShutdown = false
     };
 
@@ -820,12 +827,24 @@ public class FeedWorkerTests
     var executeAsync = typeof(FeedWorker).GetMethod("ExecuteAsync", BindingFlags.Instance | BindingFlags.NonPublic);
     Assert.NotNull(executeAsync);
 
-    // Act - First iteration completes Task.Delay, second iteration triggers cancellation
+    cts.CancelAfter(1500);
+
+    // Act - Task.Delay completes once before cancellation
     var task = (Task)executeAsync!.Invoke(worker, new object[] { cts.Token })!;
     await task;
 
-    // Assert - At least 2 iterations occurred, meaning Task.Delay completed at least once
+    // Assert - At least two iterations ran, meaning Task.Delay completed once
     Assert.True(iterationCount >= 2);
+    mockLogger.Verify(
+      x => x.Log(
+        LogLevel.Information,
+        It.IsAny<EventId>(),
+        It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("stopped gracefully")),
+        It.IsAny<Exception>(),
+        It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+      ),
+      Times.Once
+    );
   }
 
   #endregion

@@ -16,6 +16,36 @@ namespace FeedCord.Tests
 {
   public class StartupConfigurationValidationTests
   {
+    public static TheoryData<int> InvalidCheckIntervals => new()
+    {
+      0,
+      -1,
+      -60,
+    };
+
+    public static TheoryData<int> InvalidDescriptionLimits => new()
+    {
+      0,
+      -1,
+      -100,
+      4001,
+      5000,
+    };
+
+    public static TheoryData<int> ValidIntervals => new()
+    {
+      1,
+      60,
+      86400,
+    };
+
+    public static TheoryData<int> ValidDescriptionLimits => new()
+    {
+      1,
+      250,
+      4000,
+    };
+
     #region Config Validation - Valid Configurations
 
     [Fact]
@@ -28,7 +58,7 @@ namespace FeedCord.Tests
         RssUrls = new[] { "https://example.com/rss" },
         YoutubeUrls = new string[] { },
         DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-        RssCheckIntervalMinutes = 30,
+        RssCheckIntervalSeconds = 30,
         DescriptionLimit = 250,
         Forum = false,
         MarkdownFormat = false,
@@ -49,7 +79,7 @@ namespace FeedCord.Tests
         RssUrls = new[] { "https://example.com/feed" },
         YoutubeUrls = new string[] { },
         DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-        RssCheckIntervalMinutes = 1,
+        RssCheckIntervalSeconds = 1,
         DescriptionLimit = 1,
         Forum = false,
         MarkdownFormat = false,
@@ -74,7 +104,7 @@ namespace FeedCord.Tests
         RssUrls = new[] { "https://example.com/rss" },
         YoutubeUrls = new string[] { },
         DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-        RssCheckIntervalMinutes = 30,
+        RssCheckIntervalSeconds = 30,
         DescriptionLimit = 250,
         Forum = false,
         MarkdownFormat = false,
@@ -95,7 +125,7 @@ namespace FeedCord.Tests
         RssUrls = new[] { "https://example.com/rss" },
         YoutubeUrls = new string[] { },
         DiscordWebhookUrl = null!,
-        RssCheckIntervalMinutes = 30,
+        RssCheckIntervalSeconds = 30,
         DescriptionLimit = 250,
         Forum = false,
         MarkdownFormat = false,
@@ -111,9 +141,7 @@ namespace FeedCord.Tests
     #region Config Validation - Invalid Field Values
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(-60)]
+    [MemberData(nameof(InvalidCheckIntervals))]
     public void ValidateConfiguration_WithInvalidCheckInterval_Throws(int invalidInterval)
     {
       // Arrange
@@ -123,7 +151,7 @@ namespace FeedCord.Tests
         RssUrls = new[] { "https://example.com/rss" },
         YoutubeUrls = new string[] { },
         DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-        RssCheckIntervalMinutes = invalidInterval,
+        RssCheckIntervalSeconds = invalidInterval,
         DescriptionLimit = 250,
         Forum = false,
         MarkdownFormat = false,
@@ -135,11 +163,7 @@ namespace FeedCord.Tests
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(-100)]
-    [InlineData(4001)]
-    [InlineData(5000)]
+    [MemberData(nameof(InvalidDescriptionLimits))]
     public void ValidateConfiguration_WithInvalidDescriptionLimit_Throws(int invalidLimit)
     {
       // Arrange
@@ -149,7 +173,7 @@ namespace FeedCord.Tests
         RssUrls = new[] { "https://example.com/rss" },
         YoutubeUrls = new string[] { },
         DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-        RssCheckIntervalMinutes = 30,
+        RssCheckIntervalSeconds = 30,
         DescriptionLimit = invalidLimit,
         Forum = false,
         MarkdownFormat = false,
@@ -174,7 +198,7 @@ namespace FeedCord.Tests
         RssUrls = new[] { "https://example.com/rss" },
         YoutubeUrls = new string[] { },
         DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-        RssCheckIntervalMinutes = 30,
+        RssCheckIntervalSeconds = 30,
         DescriptionLimit = 250,
         Forum = false,
         MarkdownFormat = false,
@@ -195,7 +219,7 @@ namespace FeedCord.Tests
         RssUrls = new string[] { },
         YoutubeUrls = new[] { "https://youtube.com/channel/123" },
         DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-        RssCheckIntervalMinutes = 30,
+        RssCheckIntervalSeconds = 30,
         DescriptionLimit = 250,
         Forum = false,
         MarkdownFormat = false,
@@ -216,7 +240,7 @@ namespace FeedCord.Tests
         RssUrls = new[] { "https://example.com/rss" },
         YoutubeUrls = new string[] { },
         DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-        RssCheckIntervalMinutes = 30,
+        RssCheckIntervalSeconds = 30,
         DescriptionLimit = 250,
         Forum = false,
         MarkdownFormat = false,
@@ -228,10 +252,8 @@ namespace FeedCord.Tests
     }
 
     [Theory]
-    [InlineData(1)]
-    [InlineData(60)]
-    [InlineData(1440)]
-    public void ValidateConfiguration_WithVariousValidIntervals_Succeeds(int minutes)
+    [MemberData(nameof(ValidIntervals))]
+    public void ValidateConfiguration_WithVariousValidIntervals_Succeeds(int seconds)
     {
       // Arrange
       var config = new Config
@@ -240,7 +262,7 @@ namespace FeedCord.Tests
         RssUrls = new[] { "https://example.com/rss" },
         YoutubeUrls = new string[] { },
         DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-        RssCheckIntervalMinutes = minutes,
+        RssCheckIntervalSeconds = seconds,
         DescriptionLimit = 250,
         Forum = false,
         MarkdownFormat = false,
@@ -252,9 +274,7 @@ namespace FeedCord.Tests
     }
 
     [Theory]
-    [InlineData(1)]
-    [InlineData(250)]
-    [InlineData(4000)]
+    [MemberData(nameof(ValidDescriptionLimits))]
     public void ValidateConfiguration_WithVariousDescriptionLimits_Succeeds(int limit)
     {
       // Arrange
@@ -264,7 +284,7 @@ namespace FeedCord.Tests
         RssUrls = new[] { "https://example.com/rss" },
         YoutubeUrls = new string[] { },
         DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-        RssCheckIntervalMinutes = 30,
+        RssCheckIntervalSeconds = 30,
         DescriptionLimit = limit,
         Forum = false,
         MarkdownFormat = false,
@@ -438,6 +458,34 @@ namespace FeedCord.Tests
 
   public class StartupPrivateMethodCoverageTests
   {
+    public static TheoryData<int> InvalidConcurrentRequestsValues => new()
+    {
+      0,
+      201,
+    };
+
+    public static TheoryData<int> InvalidTimeoutSecondsValues => new()
+    {
+      0,
+      301,
+    };
+
+    public static TheoryData<int> InvalidPostMinIntervalSecondsValues => new()
+    {
+      0,
+      121,
+    };
+
+    public static TheoryData<int> NonDefaultConcurrentRequestsValues => new()
+    {
+      1,
+      10,
+      25,
+      50,
+      100,
+      200,
+    };
+
     [Fact]
     public void CreateApplication_WithArgs_ReturnsHost()
     {
@@ -573,8 +621,7 @@ namespace FeedCord.Tests
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(201)]
+    [MemberData(nameof(InvalidConcurrentRequestsValues))]
     public void SetupServices_WithInvalidConcurrentRequests_Throws(int concurrentRequests)
     {
       var context = CreateHostBuilderContext(new Dictionary<string, string?>
@@ -637,7 +684,7 @@ namespace FeedCord.Tests
         ["Instances:0:RssUrls:0"] = "https://example.com/rss",
         ["Instances:0:YoutubeUrls:0"] = "https://youtube.com/channel/example",
         ["Instances:0:DiscordWebhookUrl"] = "https://discord.com/api/webhooks/123/abc",
-        ["Instances:0:RssCheckIntervalMinutes"] = "30",
+        ["Instances:0:RssCheckIntervalSeconds"] = "30",
         ["Instances:0:DescriptionLimit"] = "250",
         ["Instances:0:Forum"] = "false",
         ["Instances:0:MarkdownFormat"] = "false",
@@ -660,7 +707,7 @@ namespace FeedCord.Tests
         ["Instances:0:RssUrls:0"] = "https://example.com/rss",
         ["Instances:0:YoutubeUrls:0"] = "https://youtube.com/channel/example",
         ["Instances:0:DiscordWebhookUrl"] = "https://discord.com/api/webhooks/123/abc",
-        ["Instances:0:RssCheckIntervalMinutes"] = "30",
+        ["Instances:0:RssCheckIntervalSeconds"] = "30",
         ["Instances:0:DescriptionLimit"] = "250",
         ["Instances:0:Forum"] = "false",
         ["Instances:0:MarkdownFormat"] = "false",
@@ -689,7 +736,7 @@ namespace FeedCord.Tests
         RssUrls = Array.Empty<string>(),
         YoutubeUrls = Array.Empty<string>(),
         DiscordWebhookUrl = null!,
-        RssCheckIntervalMinutes = 0,
+        RssCheckIntervalSeconds = 0,
         DescriptionLimit = 0,
         Forum = false,
         MarkdownFormat = false,
@@ -703,8 +750,7 @@ namespace FeedCord.Tests
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(301)]
+    [MemberData(nameof(InvalidTimeoutSecondsValues))]
     public void SetupServices_WithInvalidTimeoutSeconds_Throws(int timeoutSeconds)
     {
       var context = CreateHostBuilderContext(new Dictionary<string, string?>
@@ -723,8 +769,7 @@ namespace FeedCord.Tests
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(121)]
+    [MemberData(nameof(InvalidPostMinIntervalSecondsValues))]
     public void SetupServices_WithInvalidPostMinIntervalSeconds_Throws(int postMinInterval)
     {
       var context = CreateHostBuilderContext(new Dictionary<string, string?>
@@ -783,12 +828,7 @@ namespace FeedCord.Tests
     }
 
     [Theory]
-    [InlineData(1)]
-    [InlineData(10)]
-    [InlineData(25)]
-    [InlineData(50)]
-    [InlineData(100)]
-    [InlineData(200)]
+    [MemberData(nameof(NonDefaultConcurrentRequestsValues))]
     public void SetupServices_WithNonDefaultConcurrentRequests_LogsInformation(int concurrentRequests)
     {
       var context = CreateHostBuilderContext(new Dictionary<string, string?>

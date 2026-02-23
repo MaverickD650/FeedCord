@@ -32,14 +32,14 @@ namespace FeedCord.Infrastructure.Workers
       _logger = logger;
       _feedManager = feedManager;
       _notifier = notifier;
-      _delayTime = config.RssCheckIntervalMinutes;
+      _delayTime = config.RssCheckIntervalSeconds;
       _id = config.Id;
       _isInitialized = false;
       _persistent = config.PersistenceOnShutdown;
       _logAggregator = logAggregator;
       _referencePostStore = referencePostStore ?? new NoOpReferencePostStore();
-      logger.LogInformation("{id} Created with check interval {Interval} minutes",
-          _id, config.RssCheckIntervalMinutes);
+        logger.LogInformation("{id} Created with check interval {Interval} seconds",
+          _id, config.RssCheckIntervalSeconds);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -68,7 +68,7 @@ namespace FeedCord.Infrastructure.Workers
 
           _logAggregator.SetEndTime(DateTime.UtcNow);
           await _logAggregator.SendToBatchAsync();
-          await Task.Delay(TimeSpan.FromMinutes(_delayTime), stoppingToken);
+          await Task.Delay(TimeSpan.FromSeconds(_delayTime), stoppingToken);
         }
       }
       catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

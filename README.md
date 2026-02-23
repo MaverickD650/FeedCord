@@ -46,7 +46,7 @@ Provided below is a quick guide to get up and running.
       ],
       "Forum": false,
       "DiscordWebhookUrl": "...",
-      "RssCheckIntervalMinutes": 25,
+      "RssCheckIntervalSeconds": 1500,
       "EnableAutoRemove": false,
       "Color": 8411391,
       "DescriptionLimit": 250,
@@ -85,7 +85,7 @@ Instances:
       - ""
     Forum: false
     DiscordWebhookUrl: "..."
-    RssCheckIntervalMinutes: 25
+    RssCheckIntervalSeconds: 1500
     EnableAutoRemove: false
     Color: 8411391
     DescriptionLimit: 250
@@ -112,7 +112,7 @@ There are currently 17 properties you can configure. You can read more in depth 
 
 - Top-level `ConcurrentRequests` must be between `1` and `200`.
 - Instance `ConcurrentRequests` must be between `1` and `200`.
-- `RssCheckIntervalMinutes` must be between `1` and `1440`.
+- `RssCheckIntervalSeconds` must be between `1` and `86400`.
 - `DescriptionLimit` must be between `1` and `4000`.
 
 ### Persistence Notes

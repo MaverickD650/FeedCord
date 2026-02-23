@@ -1,4 +1,4 @@
-﻿# appsettings reference
+# appsettings reference
 
 Your `appsettings.json` is a collection of `Instances`.
 
@@ -26,7 +26,7 @@ Each Discord channel is one instance and has one webhook.
   ],
   "YoutubeUrls": [""],
   "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-  "RssCheckIntervalMinutes": 3,
+  "RssCheckIntervalSeconds": 180,
   "EnableAutoRemove": true,
   "Color": 8411391,
   "DescriptionLimit": 200,
@@ -51,7 +51,7 @@ Example with two configured channels:
       ],
       "YoutubeUrls": [""],
       "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-      "RssCheckIntervalMinutes": 3,
+      "RssCheckIntervalSeconds": 180,
       "EnableAutoRemove": true,
       "Color": 8411391,
       "DescriptionLimit": 200,
@@ -69,7 +69,7 @@ Example with two configured channels:
       ],
       "YoutubeUrls": [""],
       "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-      "RssCheckIntervalMinutes": 3,
+      "RssCheckIntervalSeconds": 180,
       "EnableAutoRemove": true,
       "Color": 8411391,
       "DescriptionLimit": 200,
@@ -94,7 +94,7 @@ A minimal working file:
         "https://github.com/qolors/FeedCord/releases.atom"
       ],
       "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-      "RssCheckIntervalMinutes": 15,
+      "RssCheckIntervalSeconds": 900,
       "Color": 8411391,
       "DescriptionLimit": 500,
       "Forum": true,
@@ -233,7 +233,7 @@ Per-URL filters:
         "https://github.com/qolors/Clam-Shell/releases.atom"
       ],
       "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-      "RssCheckIntervalMinutes": 15,
+      "RssCheckIntervalSeconds": 900,
       "Color": 8411391,
       "DescriptionLimit": 500,
       "Forum": true,
@@ -269,7 +269,7 @@ Filter all feeds with `"Url": "all"`:
         "https://github.com/qolors/Clam-Shell/releases.atom"
       ],
       "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-      "RssCheckIntervalMinutes": 15,
+      "RssCheckIntervalSeconds": 900,
       "Color": 8411391,
       "DescriptionLimit": 500,
       "Forum": true,
@@ -298,7 +298,7 @@ Filter all feeds with `"Url": "all"`:
 - **RssUrls**: RSS feeds to read.
 - **YoutubeUrls**: YouTube feeds/channels to read.
 - **DiscordWebhookUrl**: Discord webhook URL for posting.
-- **RssCheckIntervalMinutes**: Poll interval in minutes.
+- **RssCheckIntervalSeconds**: Poll interval in seconds.
 - **Color**: Embed color.
 - **DescriptionLimit**: Maximum description length.
 - **Forum**: `true` for forum channels, `false` for text channels.
@@ -307,7 +307,7 @@ Filter all feeds with `"Url": "all"`:
 
 ### Validation Ranges
 
-- **RssCheckIntervalMinutes**: `1` to `1440`.
+- **RssCheckIntervalSeconds**: `1` to `86400`.
 - **DescriptionLimit**: `1` to `4000`.
 - **ConcurrentRequests (App.ConcurrentRequests)**: `1` to `200`.
 - **ConcurrentRequests (Instance)**: `1` to `200`.

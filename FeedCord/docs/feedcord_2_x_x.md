@@ -1,4 +1,4 @@
-﻿# Release Summary: FeedCord 2.0.0 (OBSOLETE)
+# Release Summary: FeedCord 2.0.0 (OBSOLETE)
 
 ## What's New in 2.0.0
 
@@ -48,7 +48,7 @@ With each Instance containing the following properties like before:
     "HERE",
   ],
   "DiscordWebhookUrl": "https://discordapp.com/api/webhooks/...",
-  "RssCheckIntervalMinutes": 3,
+  "RssCheckIntervalSeconds": 180,
   "EnableAutoRemove": true,
   "Username": "FeedCord", <--------------------------------- * Now Optional
   "AvatarUrl": "https://i.imgur.com/1asmEAA.png", <--------- * Now Optional
@@ -79,7 +79,7 @@ With each Instance containing the following properties like before:
       ],
       "YoutubeUrls": [ "" ],
       "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-      "RssCheckIntervalMinutes": 3,
+      "RssCheckIntervalSeconds": 180,
       "EnableAutoRemove": true,
       "Color": 8411391,
       "DescriptionLimit": 200,
@@ -94,7 +94,7 @@ With each Instance containing the following properties like before:
       ],
       "YoutubeUrls": [ "" ],
       "DiscordWebhookUrl": "https://discord.com/api/webhooks/...",
-      "RssCheckIntervalMinutes": 3,
+      "RssCheckIntervalSeconds": 180,
       "EnableAutoRemove": true,
       "Color": 8411391,
       "DescriptionLimit": 200,

@@ -21,8 +21,10 @@ public class CoreInterfacesTests
 
     foreach (var interfaceType in coreInterfaceTypes)
     {
-      Assert.True(interfaceType.IsInterface);
-      Assert.True(interfaceType.IsPublic);
+      Assert.Multiple(
+          () => Assert.True(interfaceType.IsInterface),
+          () => Assert.True(interfaceType.IsPublic)
+      );
     }
   }
 

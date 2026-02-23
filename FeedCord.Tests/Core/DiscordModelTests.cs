@@ -5,6 +5,16 @@ namespace FeedCord.Tests.Core
 {
   public class DiscordAuthorTests
   {
+    public static TheoryData<string?, string?, string?> AuthorPropertyCombinations => new()
+    {
+      { null, null, null },
+      { "Test Author", null, null },
+      { null, "https://example.com", null },
+      { null, null, "https://example.com/icon.png" },
+      { "Test Author", "https://example.com", "https://example.com/icon.png" },
+      { "", "", "" },
+    };
+
     [Fact]
     public void Constructor_Initialize_AllPropertiesNull()
     {
@@ -18,12 +28,7 @@ namespace FeedCord.Tests.Core
     }
 
     [Theory]
-    [InlineData(null, null, null)]
-    [InlineData("Test Author", null, null)]
-    [InlineData(null, "https://example.com", null)]
-    [InlineData(null, null, "https://example.com/icon.png")]
-    [InlineData("Test Author", "https://example.com", "https://example.com/icon.png")]
-    [InlineData("", "", "")]
+    [MemberData(nameof(AuthorPropertyCombinations))]
     public void Properties_SetVariousCombinations_CanBeRetrieved(
         string? name, string? url, string? iconUrl)
     {
@@ -70,6 +75,14 @@ namespace FeedCord.Tests.Core
 
   public class DiscordImageTests
   {
+    public static IEnumerable<object?[]> ImageUrls => new List<object?[]>
+    {
+      new object?[] { (string?)null },
+      new object?[] { "" },
+      new object?[] { "https://example.com/image.png" },
+      new object?[] { "https://cdn.discord.com/attachments/123456/image.jpg" },
+    };
+
     [Fact]
     public void Constructor_Initialize_PropertyNull()
     {
@@ -81,10 +94,7 @@ namespace FeedCord.Tests.Core
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("https://example.com/image.png")]
-    [InlineData("https://cdn.discord.com/attachments/123456/image.jpg")]
+    [MemberData(nameof(ImageUrls))]
     public void Url_SetVariousValues_CanBeRetrieved(string? url)
     {
       // Arrange & Act
@@ -110,6 +120,15 @@ namespace FeedCord.Tests.Core
 
   public class DiscordFooterTests
   {
+    public static TheoryData<string?, string?> FooterPropertyCombinations => new()
+    {
+      { null, null },
+      { "Footer Text", null },
+      { null, "https://example.com/icon.png" },
+      { "Footer Text", "https://example.com/icon.png" },
+      { "", "" },
+    };
+
     [Fact]
     public void Constructor_Initialize_AllPropertiesNull()
     {
@@ -122,11 +141,7 @@ namespace FeedCord.Tests.Core
     }
 
     [Theory]
-    [InlineData(null, null)]
-    [InlineData("Footer Text", null)]
-    [InlineData(null, "https://example.com/icon.png")]
-    [InlineData("Footer Text", "https://example.com/icon.png")]
-    [InlineData("", "")]
+    [MemberData(nameof(FooterPropertyCombinations))]
     public void Properties_SetVariousCombinations_CanBeRetrieved(
         string? text, string? iconUrl)
     {
@@ -159,6 +174,26 @@ namespace FeedCord.Tests.Core
 
   public class DiscordEmbedTests
   {
+    public static IEnumerable<object?[]> EmbedDescriptions => new List<object?[]>
+    {
+      new object?[] { (string?)null },
+      new object?[] { "" },
+      new object?[] { "Short" },
+      new object?[] { "A very long description that might be truncated by Discord" },
+      new object?[] { "Description with special chars: !@#$%^&*()" },
+    };
+
+    public static TheoryData<int> EmbedColors => new()
+    {
+      0,
+      16711680,
+      65280,
+      255,
+      16776960,
+      16711935,
+      int.MaxValue,
+    };
+
     [Fact]
     public void Constructor_Initialize_DefaultProperties()
     {
@@ -237,11 +272,7 @@ namespace FeedCord.Tests.Core
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("Short")]
-    [InlineData("A very long description that might be truncated by Discord")]
-    [InlineData("Description with special chars: !@#$%^&*()")]
+    [MemberData(nameof(EmbedDescriptions))]
     public void Description_SetVariousLengths_IsPreserved(string? description)
     {
       // Arrange & Act
@@ -252,13 +283,7 @@ namespace FeedCord.Tests.Core
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(16711680)] // Red
-    [InlineData(65280)] // Green
-    [InlineData(255)] // Blue
-    [InlineData(16776960)] // Yellow
-    [InlineData(16711935)] // Magenta
-    [InlineData(int.MaxValue)]
+    [MemberData(nameof(EmbedColors))]
     public void Color_SetVariousValues_CanBeRetrieved(int color)
     {
       // Arrange & Act
@@ -301,6 +326,15 @@ namespace FeedCord.Tests.Core
 
   public class DiscordPayloadTests
   {
+    public static TheoryData<string?, string?> PayloadPropertyCombinations => new()
+    {
+      { null, null },
+      { "FeedBot", null },
+      { null, "https://example.com/avatar.png" },
+      { "FeedBot", "https://example.com/avatar.png" },
+      { "", "" },
+    };
+
     [Fact]
     public void Constructor_Initialize_AllPropertiesNull()
     {
@@ -314,11 +348,7 @@ namespace FeedCord.Tests.Core
     }
 
     [Theory]
-    [InlineData(null, null)]
-    [InlineData("FeedBot", null)]
-    [InlineData(null, "https://example.com/avatar.png")]
-    [InlineData("FeedBot", "https://example.com/avatar.png")]
-    [InlineData("", "")]
+    [MemberData(nameof(PayloadPropertyCombinations))]
     public void BasicProperties_SetVariousCombinations_CanBeRetrieved(
         string? username, string? avatarUrl)
     {
@@ -428,6 +458,33 @@ namespace FeedCord.Tests.Core
 
   public class DiscordForumPayloadTests
   {
+    public static TheoryData<string?, string?> ForumPayloadCombinations => new()
+    {
+      { null, null },
+      { "Post content", null },
+      { null, "Thread Title" },
+      { "Post content", "Thread Title" },
+      { "", "" },
+    };
+
+    public static IEnumerable<object?[]> ForumThreadNames => new List<object?[]>
+    {
+      new object?[] { (string?)null },
+      new object?[] { "" },
+      new object?[] { "Simple thread name" },
+      new object?[] { "Thread with special chars: !@#$%^&*()" },
+      new object?[] { "Very long thread name that might be constrained by Discord length limits" },
+    };
+
+    public static IEnumerable<object?[]> ForumContentValues => new List<object?[]>
+    {
+      new object?[] { (string?)null },
+      new object?[] { "" },
+      new object?[] { "Simple content" },
+      new object?[] { "Content with line breaks\nand multiple\nlines" },
+      new object?[] { "Content with special markdown: **bold** *italic* `code`" },
+    };
+
     [Fact]
     public void Constructor_Initialize_AllPropertiesNull()
     {
@@ -441,11 +498,7 @@ namespace FeedCord.Tests.Core
     }
 
     [Theory]
-    [InlineData(null, null)]
-    [InlineData("Post content", null)]
-    [InlineData(null, "Thread Title")]
-    [InlineData("Post content", "Thread Title")]
-    [InlineData("", "")]
+    [MemberData(nameof(ForumPayloadCombinations))]
     public void Properties_SetVariousCombinations_CanBeRetrieved(
         string? content, string? threadName)
     {
@@ -493,11 +546,7 @@ namespace FeedCord.Tests.Core
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("Simple thread name")]
-    [InlineData("Thread with special chars: !@#$%^&*()")]
-    [InlineData("Very long thread name that might be constrained by Discord length limits")]
+    [MemberData(nameof(ForumThreadNames))]
     public void ThreadName_SetVariousValues_IsPreserved(string? threadName)
     {
       // Arrange & Act
@@ -508,11 +557,7 @@ namespace FeedCord.Tests.Core
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("Simple content")]
-    [InlineData("Content with line breaks\nand multiple\nlines")]
-    [InlineData("Content with special markdown: **bold** *italic* `code`")]
+    [MemberData(nameof(ForumContentValues))]
     public void Content_SetVariousValues_IsPreserved(string? content)
     {
       // Arrange & Act
@@ -546,6 +591,37 @@ namespace FeedCord.Tests.Core
 
   public class DiscordMarkdownPayloadTests
   {
+    public static TheoryData<string?, string?> MarkdownPayloadCombinations => new()
+    {
+      { null, null },
+      { "Markdown content", null },
+      { null, "Thread Name" },
+      { "Markdown content", "Thread Name" },
+      { "", "" },
+    };
+
+    public static IEnumerable<object?[]> MarkdownContentValues => new List<object?[]>
+    {
+      new object?[] { (string?)null },
+      new object?[] { "" },
+      new object?[] { "Simple markdown" },
+      new object?[] { "**bold** text" },
+      new object?[] { "*italic* text" },
+      new object?[] { "`code block`" },
+      new object?[] { "# Heading\n\n## Subheading\n\nContent" },
+      new object?[] { "[link](https://example.com)" },
+      new object?[] { "- List item 1\n- List item 2" },
+    };
+
+    public static IEnumerable<object?[]> MarkdownThreadNameValues => new List<object?[]>
+    {
+      new object?[] { (string?)null },
+      new object?[] { "" },
+      new object?[] { "Simple name" },
+      new object?[] { "Thread with spaces" },
+      new object?[] { "Thread-with-dashes" },
+    };
+
     [Fact]
     public void Constructor_Initialize_AllPropertiesNull()
     {
@@ -558,11 +634,7 @@ namespace FeedCord.Tests.Core
     }
 
     [Theory]
-    [InlineData(null, null)]
-    [InlineData("Markdown content", null)]
-    [InlineData(null, "Thread Name")]
-    [InlineData("Markdown content", "Thread Name")]
-    [InlineData("", "")]
+    [MemberData(nameof(MarkdownPayloadCombinations))]
     public void Properties_SetVariousCombinations_CanBeRetrieved(
         string? content, string? threadName)
     {
@@ -579,15 +651,7 @@ namespace FeedCord.Tests.Core
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("Simple markdown")]
-    [InlineData("**bold** text")]
-    [InlineData("*italic* text")]
-    [InlineData("`code block`")]
-    [InlineData("# Heading\n\n## Subheading\n\nContent")]
-    [InlineData("[link](https://example.com)")]
-    [InlineData("- List item 1\n- List item 2")]
+    [MemberData(nameof(MarkdownContentValues))]
     public void Content_WithMarkdownFormatting_IsPreserved(string? content)
     {
       // Arrange & Act
@@ -598,11 +662,7 @@ namespace FeedCord.Tests.Core
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("Simple name")]
-    [InlineData("Thread with spaces")]
-    [InlineData("Thread-with-dashes")]
+    [MemberData(nameof(MarkdownThreadNameValues))]
     public void ThreadName_SetVariousValues_IsPreserved(string? threadName)
     {
       // Arrange & Act

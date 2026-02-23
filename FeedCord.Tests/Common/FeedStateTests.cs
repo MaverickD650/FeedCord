@@ -33,7 +33,7 @@ public class FeedStateTests
     var feedState = new FeedState
     {
       IsYoutube = false,
-      LastPublishDate = DateTime.Now,
+      LastPublishDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
       ErrorCount = 0
     };
 
@@ -48,7 +48,7 @@ public class FeedStateTests
     var feedState = new FeedState
     {
       IsYoutube = true,
-      LastPublishDate = DateTime.Now,
+      LastPublishDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
       ErrorCount = 0
     };
 
@@ -83,7 +83,7 @@ public class FeedStateTests
     var feedState = new FeedState
     {
       IsYoutube = false,
-      LastPublishDate = DateTime.Now,
+      LastPublishDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
       ErrorCount = 0
     };
 
@@ -102,7 +102,7 @@ public class FeedStateTests
     var feedState = new FeedState
     {
       IsYoutube = false,
-      LastPublishDate = DateTime.Now,
+      LastPublishDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
       ErrorCount = 5
     };
 
@@ -120,7 +120,7 @@ public class FeedStateTests
     var feedState = new FeedState
     {
       IsYoutube = false,
-      LastPublishDate = DateTime.Now,
+      LastPublishDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
       ErrorCount = 10
     };
 
@@ -167,7 +167,7 @@ public class FeedStateTests
     var feedState = new FeedState
     {
       IsYoutube = true,
-      LastPublishDate = DateTime.Now,
+      LastPublishDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
       ErrorCount = 0
     };
 
@@ -195,7 +195,7 @@ public class FeedStateTests
     var feedState = new FeedState
     {
       IsYoutube = false,
-      LastPublishDate = DateTime.Now,
+      LastPublishDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
       ErrorCount = 100
     };
 

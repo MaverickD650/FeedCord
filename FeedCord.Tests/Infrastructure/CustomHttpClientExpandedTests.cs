@@ -8,11 +8,29 @@ using System.Net.Http.Headers;
 
 namespace FeedCord.Tests.Infrastructure
 {
-  public class CustomHttpClientExpandedTests
+  [CollectionDefinition("InfrastructureHttpNonParallel", DisableParallelization = true)]
+  public class InfrastructureHttpNonParallelCollection
   {
+  }
+
+  public sealed class CustomHttpClientExpandedTestsFixture
+  {
+    public Mock<ILogger<CustomHttpClient>> CreateLogger() => new(MockBehavior.Loose);
+
+    public SemaphoreSlim CreateThrottle(int count = 1) => new(count, count);
+  }
+
+  [Collection("InfrastructureHttpNonParallel")]
+  public class CustomHttpClientExpandedTests : IClassFixture<CustomHttpClientExpandedTestsFixture>
+  {
+    public CustomHttpClientExpandedTests(CustomHttpClientExpandedTestsFixture fixture)
+    {
+      _ = fixture;
+    }
+
     #region GetAsyncWithFallback Tests
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WithCachedUserAgent_UsesCachedValue()
     {
       // Arrange
@@ -48,7 +66,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.NotEmpty(requestedUserAgents);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_AfterSuccessfulFallback_UsesCachedUserAgentOnNextRequest()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -84,7 +102,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Contains(observedUserAgents.Skip(2), ua => ua.Contains("Cached-UA"));
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WhenConfiguredFallbackSucceeds_CachesConfiguredUserAgent()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -122,7 +140,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Contains(seenUserAgents, ua => ua.Contains("Primary-Fallback-UA"));
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WhenCachedUserAgentLaterFails_UpdatesCacheEntryViaFallback()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -161,7 +179,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.True(callCount >= 4);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WhenRobotsUserAgentSucceeds_CachesRobotsUserAgent()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -215,7 +233,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Contains(seenUserAgents, ua => ua.Contains("Robots-UA"));
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WhenRobotsUserAgentsAllFail_ReturnsOriginalResponse()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -259,7 +277,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.True(attemptedRobotUas.Count >= 2);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WhenCanceledDuringTryAlternative_RethrowsOperationCanceledException()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -290,7 +308,7 @@ namespace FeedCord.Tests.Infrastructure
           client.GetAsyncWithFallback("https://example.com/feed", cts.Token));
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WhenOperationCanceledButTokenNotCanceled_ReturnsOriginalResponse()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -315,13 +333,13 @@ namespace FeedCord.Tests.Infrastructure
       var throttle = new SemaphoreSlim(5, 5);
       var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "UA-1" });
 
-      var response = await client.GetAsyncWithFallback("https://example.com/feed", CancellationToken.None);
+      var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
 
       Assert.NotNull(response);
       Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WhenTryAlternativeThrowsHttpRequestException_ReturnsOriginalResponse()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -346,13 +364,13 @@ namespace FeedCord.Tests.Infrastructure
       var throttle = new SemaphoreSlim(5, 5);
       var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "UA-1" });
 
-      var response = await client.GetAsyncWithFallback("https://example.com/feed", CancellationToken.None);
+      var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
 
       Assert.NotNull(response);
       Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WhenCanceledDuringRobotsFetch_RethrowsOperationCanceledException()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -384,7 +402,7 @@ namespace FeedCord.Tests.Infrastructure
           client.GetAsyncWithFallback("https://example.com/feed", cts.Token));
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WhenRobotsFetchOperationCanceledWithoutTokenCancel_ReturnsOriginalResponse()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -408,13 +426,13 @@ namespace FeedCord.Tests.Infrastructure
       var throttle = new SemaphoreSlim(5, 5);
       var client = new CustomHttpClient(mockLogger.Object, httpClient, throttle, new[] { "Bad-UA-1", "Bad-UA-2" });
 
-      var response = await client.GetAsyncWithFallback("https://example.com/feed", CancellationToken.None);
+      var response = await client.GetAsyncWithFallback("https://example.com/feed", TestContext.Current.CancellationToken);
 
       Assert.NotNull(response);
       Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WithTaskCanceledException_LogsWarningAndReturnsNull()
     {
       // Arrange
@@ -439,7 +457,7 @@ namespace FeedCord.Tests.Infrastructure
           Times.Once);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WithOperationCancelledException_LogsWarningAndReturnsNull()
     {
       // Arrange
@@ -464,7 +482,7 @@ namespace FeedCord.Tests.Infrastructure
           Times.Once);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WithCanceledToken_RethrowsOperationCanceledException()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -484,7 +502,7 @@ namespace FeedCord.Tests.Infrastructure
           client.GetAsyncWithFallback("https://example.com", cts.Token));
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WithGeneralException_LogsErrorAndReturnsNull()
     {
       // Arrange
@@ -509,7 +527,7 @@ namespace FeedCord.Tests.Infrastructure
           Times.Once);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_TriesFallbackUserAgentsOnFailure()
     {
       // Arrange
@@ -568,7 +586,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.True(callCount >= 2, $"Expected fallback calls for {initialStatus}, got {callCount}");
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_WithInternalServerError_DoesNotTryUserAgentFallback()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -598,7 +616,7 @@ namespace FeedCord.Tests.Infrastructure
 
     #region PostAsyncWithFallback Tests
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_WithSuccessResponse_DoesNotRetry()
     {
       // Arrange
@@ -627,7 +645,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal(1, callCount);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_WithForumFlag_UsesForumPayloadOnFirstAttempt()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -654,7 +672,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal("{\"kind\":\"forum\"}", sentBody);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_WithFailureResponse_RetriesWithAltChannelType()
     {
       // Arrange
@@ -684,7 +702,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal(2, callCount);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_WithForumFlagAndInitialFailure_RetriesWithTextPayload()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -720,7 +738,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal("{\"kind\":\"text\"}", sentBodies[1]);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_OnRetry_UsesNewRequestContentInstance()
     {
       // Arrange
@@ -756,7 +774,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.NotSame(sentContents[0], sentContents[1]);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_WithInvalidCharset_ClonesPayloadUsingUtf8Fallback()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -787,7 +805,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal("utf-8", observedCharset);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_ClonedContentPreservesNonContentTypeHeaders()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -819,7 +837,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal("abc-123", requestIdHeader);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_WhenSourceContentTypeIsNull_UsesJsonUtf8Fallback()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -850,7 +868,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal("utf-8", observedCharset);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_WithNonPositiveConfiguredInterval_UsesOneSecondMinimum()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -879,7 +897,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.True(timeBetweenPosts >= 900, $"Expected at least ~1s spacing, got {timeBetweenPosts}ms");
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_EnforcesRateLimiting()
     {
       // Arrange
@@ -914,7 +932,7 @@ namespace FeedCord.Tests.Infrastructure
 
     #region Throttling Tests
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task Throttle_LimitsSimultaneousRequests()
     {
       // Arrange
@@ -925,16 +943,16 @@ namespace FeedCord.Tests.Infrastructure
 
       handler.Protected()
           .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
-          .Returns<HttpRequestMessage, CancellationToken>((request, _) =>
+          .Returns<HttpRequestMessage, CancellationToken>(async (request, _) =>
           {
             Interlocked.Increment(ref activeRequests);
             var currentMax = Math.Max(maxConcurrentRequests, activeRequests);
             Interlocked.Exchange(ref maxConcurrentRequests, currentMax);
 
-            Thread.Sleep(50);
+            await Task.Delay(50, TestContext.Current.CancellationToken);
 
             Interlocked.Decrement(ref activeRequests);
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+            return new HttpResponseMessage(HttpStatusCode.OK);
           });
 
       var httpClient = new HttpClient(handler.Object);
@@ -992,7 +1010,7 @@ namespace FeedCord.Tests.Infrastructure
 
   public class CustomHttpClientTests
   {
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_ReturnsResponseOnSuccess()
     {
       // Arrange
@@ -1013,7 +1031,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_UsesConfiguredFallbackUserAgent()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -1044,7 +1062,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Contains("My-Custom-UA", observedUserAgents);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_UsesDefaultFallbackUserAgentsWhenConfigMissing()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -1081,7 +1099,7 @@ namespace FeedCord.Tests.Infrastructure
   {
     #region Robots.txt Parsing Edge Cases
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_ParsesRobotsTxtWithMultipleUserAgents()
     {
       // Arrange
@@ -1121,7 +1139,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal(System.Net.HttpStatusCode.OK, response.StatusCode);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_RobotsParsing_DeduplicatesAndUsesDescendingOrder()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -1172,7 +1190,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Contains("Robot-UA-2", attemptedRobotUas[0]);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_RobotsParsing_IgnoresLowercaseDirectiveAndReturnsOriginalResponse()
     {
       var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
@@ -1216,7 +1234,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Empty(attemptedRobotUas);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_HandlesRobotsTxtFetchFailureGracefully()
     {
       // Arrange
@@ -1245,7 +1263,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal(System.Net.HttpStatusCode.Forbidden, response.StatusCode); // Original response
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_SkipsEmptyRobotsTxtContent()
     {
       // Arrange
@@ -1293,7 +1311,7 @@ namespace FeedCord.Tests.Infrastructure
 
     #region User Agent Caching
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_CachesSuccessfulUserAgentForURL()
     {
       // Arrange
@@ -1339,7 +1357,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.True(callCountForUrl <= 3, "Should use cached user agent on second request");
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_UsesCachedUserAgentOnSubsequentRequests()
     {
       // Arrange
@@ -1372,14 +1390,15 @@ namespace FeedCord.Tests.Infrastructure
       await client.GetAsyncWithFallback(url, TestContext.Current.CancellationToken);
 
       // Assert - Should have used user agent at least once
-      Assert.True(userAgentAttempts.Count >= 0, "User agent tracking completed");
+      Assert.True(userAgentAttempts.Count <= 2, "Unexpected number of user-agent attempts recorded");
+      Assert.All(userAgentAttempts, ua => Assert.False(string.IsNullOrWhiteSpace(ua)));
     }
 
     #endregion
 
     #region Rate Limiting Precision
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_EnforcesMinimumTimeIntervalPrecisely()
     {
       // Arrange
@@ -1415,7 +1434,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.True(totalElapsed >= 1900, $"Rate limiting not enforced. Total: {totalElapsed}ms"); // Allow 100ms tolerance for system variance
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_RateLimitAppliesPerChannel()
     {
       // Arrange
@@ -1447,7 +1466,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.True(timeBetweenPosts >= 1900, $"Rate limit not enforced. Time between posts: {timeBetweenPosts}ms");
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_HandlesRateLimitWithCancellation()
     {
       // Arrange
@@ -1477,7 +1496,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.NotNull(ex);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_WhenCanceledDuringSend_ReleasesThrottleForNextRequest()
     {
       // Arrange
@@ -1492,7 +1511,10 @@ namespace FeedCord.Tests.Infrastructure
             callCount++;
             if (callCount == 1)
             {
-              await Task.Delay(200, token);
+              using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                  token,
+                  TestContext.Current.CancellationToken);
+              await Task.Delay(200, linkedCts.Token);
               return new HttpResponseMessage(HttpStatusCode.NoContent);
             }
 
@@ -1520,7 +1542,7 @@ namespace FeedCord.Tests.Infrastructure
 
     #region Post Fallback Scenarios
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_BothAttemptsFailLogsAllFailures()
     {
       // Arrange
@@ -1562,7 +1584,7 @@ namespace FeedCord.Tests.Infrastructure
           Times.AtLeastOnce);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_FallbackSucceedsAfterInitialFailure()
     {
       // Arrange
@@ -1610,7 +1632,7 @@ namespace FeedCord.Tests.Infrastructure
 
     #region Exception Handling in Post
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task PostAsyncWithFallback_ReleasesRateLimiterOnException()
     {
       // Arrange
@@ -1659,7 +1681,7 @@ namespace FeedCord.Tests.Infrastructure
 
     #region URL Edge Cases
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_HandlesSpecialCharactersInURL()
     {
       // Arrange
@@ -1689,7 +1711,7 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Contains(urlWithSpecialChars, requestedUrls);
     }
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_HandlesDifferentDomainSuffixes()
     {
       // Arrange
@@ -1723,7 +1745,7 @@ namespace FeedCord.Tests.Infrastructure
 
     #region Concurrent Request Handling
 
-    [Fact]
+    [Fact(Timeout = 20000)]
     public async Task GetAsyncWithFallback_HandlesConcurrentRequestsWithThrottle()
     {
       // Arrange
@@ -1752,7 +1774,7 @@ namespace FeedCord.Tests.Infrastructure
 
       // Act - Fire 5 concurrent requests
       var tasks = Enumerable.Range(0, 5)
-          .Select(i => client.GetAsyncWithFallback($"https://example.com/feed{i}"))
+          .Select(i => client.GetAsyncWithFallback($"https://example.com/feed{i}", TestContext.Current.CancellationToken))
           .ToList();
 
       await Task.WhenAll(tasks);
