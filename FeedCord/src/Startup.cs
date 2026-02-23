@@ -19,6 +19,13 @@ namespace FeedCord
 {
   public class Startup
   {
+    private static readonly string[] DefaultConfigCandidates =
+    {
+      "config/appsettings.yaml",
+      "config/appsettings.yml",
+      "config/appsettings.json"
+    };
+
     internal static Func<string[], IHost> BuildHost { get; set; } = CreateApplication;
     internal static Action<IHost> RunHost { get; set; } = host => host.Run();
 
@@ -130,7 +137,26 @@ namespace FeedCord
 
     internal static string SelectConfigPath(string[] args)
     {
-      return args.Length >= 1 ? args[0] : "config/appsettings.json";
+      return args.Length >= 1
+        ? args[0]
+        : SelectDefaultConfigPath(AppDomain.CurrentDomain.BaseDirectory);
+    }
+
+    internal static string SelectDefaultConfigPath(string baseDirectory)
+    {
+      foreach (var candidate in DefaultConfigCandidates)
+      {
+        var candidatePath = Path.Combine(
+          baseDirectory,
+          candidate.Replace('/', Path.DirectorySeparatorChar));
+
+        if (File.Exists(candidatePath))
+        {
+          return candidate;
+        }
+      }
+
+      return "config/appsettings.json";
     }
 
     internal static void SetupLogging(HostBuilderContext ctx, ILoggingBuilder logging)
