@@ -70,6 +70,19 @@ jobs:
           use_oidc: true
           files: './coverage/coverage.cobertura.xml'
           disable_search: true
+          report_type: coverage
+          flags: unittests
+          fail_ci_if_error: true
+          verbose: true
+
+      - name: Upload test results to Codecov
+        if: always()
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
+        with:
+          use_oidc: true
+          files: './TestResults/**/*.trx'
+          disable_search: true
+          report_type: test_results
           flags: unittests
           fail_ci_if_error: true
           verbose: true
