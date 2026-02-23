@@ -164,7 +164,7 @@ namespace FeedCord.Services
       }
       else
       {
-        var posts = await FetchRssAsync(url, _config.DescriptionLimit, cancellationToken);
+        var posts = await FetchRssAsync(url, _config.DescriptionLimit, null, cancellationToken);
         latestPublishDate = posts?.Max(p => p?.PublishDate) ?? DateTime.UtcNow;
         successfulAdd = _feedStates.TryAdd(url, new FeedState
         {
@@ -229,7 +229,7 @@ namespace FeedCord.Services
       {
         posts = feedState.IsYoutube ?
             await FetchYoutubeAsync(url, cancellationToken) :
-            await FetchRssAsync(url, trim, cancellationToken);
+            await FetchRssAsync(url, trim, feedState.LastPublishDate, cancellationToken);
       }
       catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
       {
@@ -337,7 +337,7 @@ namespace FeedCord.Services
           || query.Contains("user=", StringComparison.OrdinalIgnoreCase);
     }
 
-    private async Task<List<Post?>> FetchRssAsync(string url, int trim, CancellationToken cancellationToken)
+    private async Task<List<Post?>> FetchRssAsync(string url, int trim, DateTime? minPublishDate, CancellationToken cancellationToken)
     {
       try
       {
@@ -359,7 +359,7 @@ namespace FeedCord.Services
 
         var xmlContent = await GetResponseContentAsync(response, cancellationToken);
 
-        return await _rssParsingService.ParseRssFeedAsync(xmlContent, trim, _config.ImageFetchMode, cancellationToken);
+        return await _rssParsingService.ParseRssFeedAsync(xmlContent, trim, _config.ImageFetchMode, minPublishDate, cancellationToken);
 
       }
       catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

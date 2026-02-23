@@ -100,6 +100,7 @@ public class ServiceInterfacesTests
       typeof(string),
       typeof(int),
       typeof(ImageFetchMode),
+      typeof(DateTime?),
       typeof(CancellationToken));
     Assert.Equal(typeof(Task<List<Post?>>), parseRssMethod.ReturnType);
 
