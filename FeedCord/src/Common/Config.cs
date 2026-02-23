@@ -16,9 +16,9 @@ namespace FeedCord.Common
     [Required(ErrorMessage = "DiscordWebhookUrl Property is required.")]
     public required string DiscordWebhookUrl { get; set; }
 
-    [Required(ErrorMessage = "RssCheckIntervalMinutes Property is required.")]
-    [Range(1, 1440, ErrorMessage = "RssCheckIntervalMinutes must be between 1 and 1440 minutes.")]
-    public int RssCheckIntervalMinutes { get; set; }
+    [Required(ErrorMessage = "RssCheckIntervalSeconds Property is required.")]
+    [Range(1, 86400, ErrorMessage = "RssCheckIntervalSeconds must be between 1 and 86400 seconds.")]
+    public int RssCheckIntervalSeconds { get; set; }
     public string? Username { get; set; }
     public string? AvatarUrl { get; set; }
     public string? AuthorIcon { get; set; }

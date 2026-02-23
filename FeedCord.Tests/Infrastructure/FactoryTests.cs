@@ -56,7 +56,7 @@ public class FactoryTests
       RssUrls = [],
       YoutubeUrls = [],
       DiscordWebhookUrl = "https://discord.com/api/webhooks/1/2",
-      RssCheckIntervalMinutes = 1,
+      RssCheckIntervalSeconds = 1,
       PersistenceOnShutdown = false
     };
 

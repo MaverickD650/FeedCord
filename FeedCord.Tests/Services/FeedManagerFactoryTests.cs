@@ -32,7 +32,7 @@ public class FeedManagerFactoryTests
       DiscordWebhookUrl = "https://discord.com/api/webhooks/1/2",
       DescriptionLimit = 250,
       ConcurrentRequests = 2,
-      RssCheckIntervalMinutes = 10
+      RssCheckIntervalSeconds = 10
     };
 
     var aggregatorMock = new Mock<ILogAggregator>(MockBehavior.Loose);

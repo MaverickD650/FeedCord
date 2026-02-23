@@ -1719,7 +1719,7 @@ public class FeedManagerCoverageTests
       RssUrls = rssUrls ?? [],
       YoutubeUrls = youtubeUrls ?? [],
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       Forum = false,
       MarkdownFormat = false,
@@ -2031,7 +2031,7 @@ public class FeedManagerTests
       RssUrls = rssUrls ?? new string[] { },
       YoutubeUrls = youtubeUrls ?? new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       Forum = false,
       MarkdownFormat = false,
@@ -2070,7 +2070,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 10
     };
@@ -2099,7 +2099,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2134,7 +2134,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { "https://example.com/rss1", "https://example.com/rss2" },
       YoutubeUrls = new[] { "https://youtube.com/feed1" },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2172,7 +2172,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { "https://example.com/rss", "", "   ", null! },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2210,7 +2210,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { "https://example.com/rss" },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2248,7 +2248,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { "https://example.com/rss" },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2287,7 +2287,7 @@ public class FeedManagerExpandedTests
       RssUrls = urls ?? new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2325,7 +2325,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2357,7 +2357,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2392,7 +2392,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2424,7 +2424,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2462,7 +2462,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { url },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2507,7 +2507,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = concurrentRequests
     };
@@ -2544,7 +2544,7 @@ public class FeedManagerExpandedTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = descriptionLimit,
       ConcurrentRequests = 5
     };
@@ -2577,7 +2577,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { "https://example.com/rss" },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2619,7 +2619,7 @@ public class FeedManagerExpandedTests
       RssUrls = Array.Empty<string>(),
       YoutubeUrls = new[] { youtubeUrl },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };
@@ -2671,7 +2671,7 @@ public class FeedManagerExpandedTests
       RssUrls = new[] { rssUrl },
       YoutubeUrls = Array.Empty<string>(),
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       ConcurrentRequests = 5
     };

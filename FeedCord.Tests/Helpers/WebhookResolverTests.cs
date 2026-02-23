@@ -189,7 +189,7 @@ public class WebhookResolverTests
       DiscordWebhookUrl = webhookUrl,
       RssUrls = Array.Empty<string>(),
       YoutubeUrls = Array.Empty<string>(),
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       Forum = false,
       MarkdownFormat = false,

@@ -25,7 +25,7 @@ public class DiscordPayloadServiceTests
       RssUrls = new string[] { },
       YoutubeUrls = new string[] { },
       DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
-      RssCheckIntervalMinutes = 30,
+      RssCheckIntervalSeconds = 30,
       DescriptionLimit = 250,
       Forum = isForum,
       MarkdownFormat = isMarkdownFormat,

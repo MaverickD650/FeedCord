@@ -1511,7 +1511,10 @@ namespace FeedCord.Tests.Infrastructure
             callCount++;
             if (callCount == 1)
             {
-              await Task.Delay(200, token);
+              using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                  token,
+                  TestContext.Current.CancellationToken);
+              await Task.Delay(200, linkedCts.Token);
               return new HttpResponseMessage(HttpStatusCode.NoContent);
             }
 
