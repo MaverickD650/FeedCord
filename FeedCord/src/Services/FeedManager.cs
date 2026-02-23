@@ -44,19 +44,14 @@ namespace FeedCord.Services
     public async Task<List<Post>> CheckForNewPostsAsync(CancellationToken cancellationToken = default)
     {
       ConcurrentBag<Post> allNewPosts = new();
-      var feedSnapshot = _feedStates.ToArray();
+      var feedSnapshot = _feedStates
+          .GroupBy(entry => entry.Key, StringComparer.Ordinal)
+          .Select(group => group.First())
+          .ToArray();
 
-      await Parallel.ForEachAsync(
-          feedSnapshot,
-          new ParallelOptions
-          {
-            CancellationToken = cancellationToken,
-            MaxDegreeOfParallelism = Math.Max(1, _config.ConcurrentRequests)
-          },
-          async (feed, ct) =>
-          {
-            await CheckSingleFeedAsync(feed.Key, feed.Value, allNewPosts, _config.DescriptionLimit, ct);
-          });
+      var checkTasks = feedSnapshot
+          .Select(feed => CheckSingleFeedAsync(feed.Key, feed.Value, allNewPosts, _config.DescriptionLimit, cancellationToken));
+      await Task.WhenAll(checkTasks);
 
       _logAggregator.SetNewPostCount(allNewPosts.Count);
 
@@ -105,24 +100,20 @@ namespace FeedCord.Services
           .GroupBy(url => url, StringComparer.Ordinal)
           .ToArray();
 
-      await Parallel.ForEachAsync(
-          groupedUrls,
-          new ParallelOptions
-          {
-            CancellationToken = cancellationToken,
-            MaxDegreeOfParallelism = Math.Max(1, _config.ConcurrentRequests)
-          },
-          async (urlGroup, ct) =>
+      var initializationTasks = groupedUrls
+          .Select(async urlGroup =>
           {
             foreach (var url in urlGroup)
             {
-              var wasInitialized = await InitializeSingleUrlAsync(url, isYoutube, ct);
+              var wasInitialized = await InitializeSingleUrlAsync(url, isYoutube, cancellationToken);
               if (wasInitialized)
               {
                 Interlocked.Increment(ref successCount);
               }
             }
           });
+
+      await Task.WhenAll(initializationTasks);
 
       return successCount;
     }

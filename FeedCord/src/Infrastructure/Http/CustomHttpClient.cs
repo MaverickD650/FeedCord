@@ -105,14 +105,17 @@ namespace FeedCord.Infrastructure.Http
     {
       using var lease = await _postRateLimiter.AcquireAsync(1, cancellationToken);
 
-      var response = await PostWithThrottleAsync(url, isForum ? forumChannelContent : textChannelContent, cancellationToken);
+      var forumPayload = await ContentTemplate.FromAsync(forumChannelContent, cancellationToken);
+      var textPayload = await ContentTemplate.FromAsync(textChannelContent, cancellationToken);
+
+      var response = await PostWithThrottleAsync(url, isForum ? forumPayload : textPayload, cancellationToken);
 
       if (response.StatusCode != HttpStatusCode.NoContent)
       {
         var responseBody = await response.Content.ReadAsStringAsync();
         _logger.LogError("Discord POST failed. Status: {StatusCode}, Body: {Body}", response.StatusCode, responseBody);
 
-        response = await PostWithThrottleAsync(url, !isForum ? forumChannelContent : textChannelContent, cancellationToken);
+        response = await PostWithThrottleAsync(url, !isForum ? forumPayload : textPayload, cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NoContent)
         {
@@ -283,14 +286,14 @@ namespace FeedCord.Infrastructure.Http
       }
     }
 
-    private async Task<HttpResponseMessage> PostWithThrottleAsync(string url, StringContent content, CancellationToken cancellationToken)
+    private async Task<HttpResponseMessage> PostWithThrottleAsync(string url, ContentTemplate contentTemplate, CancellationToken cancellationToken)
     {
       await _throttle.WaitAsync(cancellationToken);
       try
       {
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
-          Content = await CloneStringContentAsync(content, cancellationToken)
+          Content = contentTemplate.CreateHttpContent()
         };
 
         return await _innerClient.SendAsync(request, cancellationToken);
@@ -299,42 +302,6 @@ namespace FeedCord.Infrastructure.Http
       {
         _throttle.Release();
       }
-    }
-
-    private static async Task<StringContent> CloneStringContentAsync(StringContent content, CancellationToken cancellationToken)
-    {
-      var mediaType = content.Headers.ContentType?.MediaType ?? "application/json";
-      var payloadBytes = await content.ReadAsByteArrayAsync(cancellationToken);
-
-      var charset = content.Headers.ContentType?.CharSet;
-      Encoding encoding;
-
-      try
-      {
-        encoding = string.IsNullOrWhiteSpace(charset)
-            ? Encoding.UTF8
-            : Encoding.GetEncoding(charset);
-      }
-      catch
-      {
-        encoding = Encoding.UTF8;
-      }
-
-      var payload = encoding.GetString(payloadBytes);
-
-      var clone = new StringContent(payload, encoding, mediaType);
-
-      foreach (var header in content.Headers)
-      {
-        if (header.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
-        {
-          continue;
-        }
-
-        clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
-      }
-
-      return clone;
     }
 
     private async Task<List<string>> GetRobotsUserAgentsAsync(string url, CancellationToken cancellationToken)
@@ -361,5 +328,50 @@ namespace FeedCord.Infrastructure.Http
     }
 
     private sealed record ConditionalRequestState(string? ETag, DateTimeOffset? LastModified);
+
+    private sealed record ContentTemplate(
+        string Payload,
+        Encoding Encoding,
+        string MediaType,
+        IReadOnlyDictionary<string, string[]> Headers)
+    {
+      public static async Task<ContentTemplate> FromAsync(StringContent content, CancellationToken cancellationToken)
+      {
+        var mediaType = content.Headers.ContentType?.MediaType ?? "application/json";
+        var charset = content.Headers.ContentType?.CharSet;
+
+        Encoding encoding;
+        try
+        {
+          encoding = string.IsNullOrWhiteSpace(charset)
+              ? Encoding.UTF8
+              : Encoding.GetEncoding(charset);
+        }
+        catch
+        {
+          encoding = Encoding.UTF8;
+        }
+
+        var payloadBytes = await content.ReadAsByteArrayAsync(cancellationToken);
+        var payload = encoding.GetString(payloadBytes);
+        var headers = content.Headers
+            .Where(h => !h.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase))
+            .ToDictionary(h => h.Key, h => h.Value.ToArray(), StringComparer.OrdinalIgnoreCase);
+
+        return new ContentTemplate(payload, encoding, mediaType, headers);
+      }
+
+      public StringContent CreateHttpContent()
+      {
+        var content = new StringContent(Payload, Encoding, MediaType);
+
+        foreach (var header in Headers)
+        {
+          content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        }
+
+        return content;
+      }
+    }
   }
 }

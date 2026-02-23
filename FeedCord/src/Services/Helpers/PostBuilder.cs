@@ -16,6 +16,11 @@ namespace FeedCord.Services.Helpers
       if (string.IsNullOrEmpty(source))
         return string.Empty;
 
+      if (source.IndexOf('<') < 0 && source.IndexOf('&') < 0)
+      {
+        return source;
+      }
+
       var decoded = WebUtility.HtmlDecode(source);
 
       //WebUtility Decode apparently parses this inconsistently, so manually converting it here
@@ -23,6 +28,11 @@ namespace FeedCord.Services.Helpers
 
       //Respects line break encoding
       decoded = LineBreakRegex().Replace(decoded, Environment.NewLine);
+
+      if (decoded.IndexOf('<') < 0)
+      {
+        return decoded;
+      }
 
       var doc = new HtmlDocument();
       doc.LoadHtml(decoded);
