@@ -63,6 +63,27 @@ jobs:
           path: './TestResults/**/*.trx'
           if-no-files-found: warn
 
+      - name: Convert TRX to JUnit XML
+        if: always()
+        run: |
+          dotnet tool update --global trx2junit --version 2.1.0 || dotnet tool install --global trx2junit --version 2.1.0
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          mkdir -p ./TestResults/junit
+          trx_files=$(find ./TestResults -type f -name '*.trx')
+          if [ -z "$trx_files" ]; then
+            echo "No .trx files found in ./TestResults"
+            exit 0
+          fi
+          find ./TestResults -type f -name '*.trx' -exec trx2junit --output ./TestResults/junit {} +
+
+      - name: Upload JUnit results
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: junit-results-10.0
+          path: './TestResults/junit/*.xml'
+          if-no-files-found: warn
+
       - name: Upload coverage to Codecov
         if: always()
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
@@ -80,7 +101,7 @@ jobs:
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
           use_oidc: true
-          directory: './TestResults'
+          directory: './TestResults/junit'
           report_type: test_results
           flags: unittests
           fail_ci_if_error: true
