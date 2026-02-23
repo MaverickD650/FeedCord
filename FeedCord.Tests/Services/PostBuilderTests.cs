@@ -1019,6 +1019,152 @@ namespace FeedCord.Tests.Services
       Assert.Equal(string.Empty, result);
     }
 
+    [Fact]
+    public void TryBuildPost_WithGitLabAtomMissingTitle_UsesFeedItemTitleFallbackAndUpdatedDate()
+    {
+      var gitlabXml = """
+                <feed xmlns="http://www.w3.org/2005/Atom">
+                  <title>GitLab Feed</title>
+                  <entry>
+                    <id>https://gitlab.com/org/proj/-/issues/777</id>
+                    <updated>2025-02-26T09:15:00Z</updated>
+                    <link href="https://gitlab.com/org/proj/-/issues/777" />
+                    <content type="html"><![CDATA[Body]]></content>
+                  </entry>
+                </feed>
+                """;
+
+      var parsed = FeedReader.ReadFromString(gitlabXml);
+      var feed = new Feed { Title = parsed.Title, Link = "https://gitlab.com/org/proj" };
+      var item = parsed.Items[0];
+      item.Title = "Fallback GitLab Title";
+
+      var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+      Assert.Equal("Fallback GitLab Title", result.Title);
+      Assert.Equal(new DateTime(2025, 2, 26, 9, 15, 0, DateTimeKind.Utc), result.PublishDate.ToUniversalTime());
+    }
+
+    [Fact]
+    public void TryBuildPost_WithRedditNullTitle_UsesEmptyTitleFallback()
+    {
+      var feed = new Feed { Title = "r/test", Link = "https://reddit.com/r/test" };
+      var item = new FeedItem
+      {
+        Title = null,
+        Description = "desc",
+        Link = "https://reddit.com/r/test/comments/1",
+        PublishingDate = DateTime.UtcNow
+      };
+
+      var result = PostBuilder.TryBuildPost(item, feed, 0, "https://fallback.example/image.jpg");
+
+      Assert.Equal(string.Empty, result.Title);
+    }
+
+    [Fact]
+    public void TryBuildPost_WithRedditThumbnailWithoutUrl_KeepsFallbackImage()
+    {
+      var redditXml = """
+                <feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+                  <title>r/test</title>
+                  <entry>
+                    <title>Post with Broken Thumbnail</title>
+                    <id>t3_thumb_missing</id>
+                    <published>2025-02-20T12:00:00Z</published>
+                    <author><name>/u/testuser</name></author>
+                    <media:thumbnail />
+                    <content type="html"><![CDATA[<img src='https://content-image.jpg'/>]]></content>
+                  </entry>
+                </feed>
+                """;
+
+      var parsed = FeedReader.ReadFromString(redditXml);
+      var feed = new Feed { Title = parsed.Title, Link = "https://reddit.com/r/test" };
+      var item = parsed.Items[0];
+
+      var result = PostBuilder.TryBuildPost(item, feed, 0, "https://fallback.example/image.jpg");
+
+      Assert.Equal("https://fallback.example/image.jpg", result.ImageUrl);
+    }
+
+    [Fact]
+    public void TryBuildPost_WithRedditAtomMissingPublished_UsesNowFallbackPublishDate()
+    {
+      var redditXml = """
+                <feed xmlns="http://www.w3.org/2005/Atom">
+                  <title>r/test</title>
+                  <entry>
+                    <title>No Published Date</title>
+                    <id>t3_no_published</id>
+                    <author><name>/u/testuser</name></author>
+                    <content type="html"><![CDATA[Body]]></content>
+                  </entry>
+                </feed>
+                """;
+
+      var parsed = FeedReader.ReadFromString(redditXml);
+      var feed = new Feed { Title = parsed.Title, Link = "https://reddit.com/r/test" };
+      var item = parsed.Items[0];
+      var before = DateTime.UtcNow.AddSeconds(-5);
+
+      var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+      Assert.True(result.PublishDate.ToUniversalTime() >= before);
+    }
+
+    [Fact]
+    public void TryGetRedditAuthor_WithAuthorElementButMissingName_ReturnsEmpty()
+    {
+      var redditXml = """
+                <feed xmlns="http://www.w3.org/2005/Atom">
+                  <title>r/test</title>
+                  <entry>
+                    <title>No Author Name</title>
+                    <id>t3_no_author_name</id>
+                    <author></author>
+                  </entry>
+                </feed>
+                """;
+
+      var parsed = FeedReader.ReadFromString(redditXml);
+      var atomItem = parsed.Items[0].SpecificItem as AtomFeedItem;
+      Assert.NotNull(atomItem);
+
+      var method = typeof(PostBuilder).GetMethod("TryGetRedditAuthor", BindingFlags.Static | BindingFlags.NonPublic);
+      Assert.NotNull(method);
+
+      var result = method!.Invoke(null, [atomItem]);
+
+      Assert.Equal(string.Empty, result);
+    }
+
+    [Fact]
+    public void TryBuildPost_WithGitLabAtomMissingPublishedAndUpdated_UsesFallbackPublishDate()
+    {
+      var fallbackDate = new DateTime(2025, 3, 1, 7, 0, 0, DateTimeKind.Utc);
+      var gitlabXml = """
+                <feed xmlns="http://www.w3.org/2005/Atom">
+                  <title>GitLab Feed</title>
+                  <entry>
+                    <title>No Dates</title>
+                    <id>https://gitlab.com/org/proj/-/issues/778</id>
+                    <link href="https://gitlab.com/org/proj/-/issues/778" />
+                    <content type="html"><![CDATA[Body]]></content>
+                  </entry>
+                </feed>
+                """;
+
+      var parsed = FeedReader.ReadFromString(gitlabXml);
+      var feed = new Feed { Title = parsed.Title, Link = "https://gitlab.com/org/proj" };
+      var item = parsed.Items[0];
+      item.PublishingDate = fallbackDate;
+
+      var result = PostBuilder.TryBuildPost(item, feed, 0, "");
+
+      Assert.Equal(fallbackDate, result.PublishDate);
+    }
+
     #endregion
   }
 }

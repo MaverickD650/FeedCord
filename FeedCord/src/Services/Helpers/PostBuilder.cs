@@ -172,11 +172,14 @@ namespace FeedCord.Services.Helpers
         // Extract other fields from atom item if available
         title = atomItem.Title ?? title;
         author = TryGetAuthor(post);
-        pubDate = DateTime.TryParse(atomItem.PublishedDate?.ToString(), out var tempDate)
-            ? tempDate
-            : DateTime.TryParse(atomItem.UpdatedDate?.ToString(), out tempDate)
-                ? tempDate
-                : pubDate;
+        if (DateTime.TryParse(atomItem.PublishedDate?.ToString(), out var publishedDate))
+        {
+          pubDate = publishedDate;
+        }
+        else if (DateTime.TryParse(atomItem.UpdatedDate?.ToString(), out var updatedDate))
+        {
+          pubDate = updatedDate;
+        }
       }
 
       // trim description
