@@ -52,7 +52,7 @@ namespace FeedCord.Infrastructure.Parsers
             );
         if (mediaContent != null)
         {
-          var url = mediaContent.Attribute("url")?.Value;
+          var url = mediaContent.Attribute("url")!.Value;
           if (!string.IsNullOrWhiteSpace(url)) return url;
         }
 
@@ -61,7 +61,7 @@ namespace FeedCord.Infrastructure.Parsers
                                                                   el.Attribute("href") != null);
         if (itunesImage != null)
         {
-          var url = itunesImage.Attribute("href")?.Value;
+          var url = itunesImage.Attribute("href")!.Value;
           if (!string.IsNullOrWhiteSpace(url)) return url;
         }
 
@@ -95,7 +95,7 @@ namespace FeedCord.Infrastructure.Parsers
       if (imgNode == null)
         return string.Empty;
 
-      var src = imgNode.Attributes["src"]?.Value;
+      var src = imgNode.Attributes["src"]!.Value;
 
       return !string.IsNullOrWhiteSpace(src) ? src : string.Empty;
     }
@@ -214,13 +214,13 @@ namespace FeedCord.Infrastructure.Parsers
     private static string? GetFirstImg(HtmlDocument doc)
     {
       var imgNode = doc.DocumentNode.SelectSingleNode("//img[@src]");
-      return imgNode?.Attributes["src"]?.Value;
+      return imgNode?.Attributes["src"]!.Value;
     }
 
     private static string? GetFirstImageWithAttribute(HtmlDocument doc, string attributeName)
     {
       var imgNode = doc.DocumentNode.SelectSingleNode($"//img[@{attributeName}]");
-      return imgNode?.Attributes[attributeName]?.Value;
+      return imgNode?.Attributes[attributeName]!.Value;
     }
 
     private static string? GetElementById(HtmlDocument doc, string elementId)

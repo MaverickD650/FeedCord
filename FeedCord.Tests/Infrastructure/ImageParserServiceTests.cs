@@ -1041,6 +1041,101 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal("https://example.com/itunes-fallback2.jpg", result);
     }
 
+    [Fact]
+    public void ExtractImageFromFeedXml_WithImageEnclosureMissingUrl_CoversEnclosureTypeAndUrlRead()
+    {
+      var method = typeof(ImageParserService).GetMethod("ExtractImageFromFeedXml", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+      var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <enclosure url='https://example.com/not-used.jpg' />
+            <enclosure type='image/jpeg' />
+            <description><![CDATA[<img src='https://example.com/fallback.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+      var result = (string)method!.Invoke(null, [xml])!;
+
+      Assert.Equal("https://example.com/fallback.jpg", result);
+    }
+
+    [Fact]
+    public void ExtractImageFromFeedXml_WithMediaAndItunesEmptyUrls_CoversMediaAndItunesReads()
+    {
+      var method = typeof(ImageParserService).GetMethod("ExtractImageFromFeedXml", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+      var xml = @"<?xml version='1.0'?>
+<rss xmlns:media='http://search.yahoo.com/mrss/' xmlns:itunes='http://www.itunes.com/dtds/podcast.dtd'>
+    <channel>
+        <item>
+            <media:thumbnail type='image/jpeg' url='' />
+            <itunes:image href='' />
+            <description><![CDATA[<img src='https://example.com/fallback.jpg' />]]></description>
+        </item>
+    </channel>
+</rss>";
+
+      var result = (string)method!.Invoke(null, [xml])!;
+
+      Assert.Equal("https://example.com/fallback.jpg", result);
+    }
+
+    [Fact]
+    public void ExtractImageFromFeedXml_WithMediaThumbnailUrl_ReturnsMediaUrl()
+    {
+      var method = typeof(ImageParserService).GetMethod("ExtractImageFromFeedXml", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+      var xml = @"<?xml version='1.0'?>
+<rss xmlns:media='http://search.yahoo.com/mrss/'>
+    <channel>
+        <item>
+            <media:thumbnail type='image/jpeg' url='https://example.com/media.jpg' />
+        </item>
+    </channel>
+</rss>";
+
+      var result = (string)method!.Invoke(null, [xml])!;
+
+      Assert.Equal("https://example.com/media.jpg", result);
+    }
+
+    [Fact]
+    public void ExtractImgFromHtml_WithImgSrc_CoversSrcRead()
+    {
+      var method = typeof(ImageParserService).GetMethod("ExtractImgFromHtml", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+      var result = (string)method!.Invoke(null, ["<img src='https://example.com/image.jpg' />"])!;
+
+      Assert.Equal("https://example.com/image.jpg", result);
+    }
+
+    [Fact]
+    public void DocumentHelpers_CoverFirstImgDataSrcAndElementDataSrcReads()
+    {
+      var getFirstImg = typeof(ImageParserService).GetMethod("GetFirstImg", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+      var getFirstImageWithAttribute = typeof(ImageParserService).GetMethod("GetFirstImageWithAttribute", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+      var getElementById = typeof(ImageParserService).GetMethod("GetElementById", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+      var docWithSrc = new HtmlAgilityPack.HtmlDocument();
+      docWithSrc.LoadHtml("<html><body><img src='https://example.com/from-first-img.jpg' /></body></html>");
+      var firstImg = (string?)getFirstImg!.Invoke(null, [docWithSrc]);
+
+      var docWithDataSrc = new HtmlAgilityPack.HtmlDocument();
+      docWithDataSrc.LoadHtml("<html><body><img data-src='https://example.com/from-data-src.jpg' /></body></html>");
+      var dataSrc = (string?)getFirstImageWithAttribute!.Invoke(null, [docWithDataSrc, "data-src"]);
+
+      var docWithElementDataSrc = new HtmlAgilityPack.HtmlDocument();
+      docWithElementDataSrc.LoadHtml("<html><body><img id='post-image' data-src='https://example.com/from-element-data-src.jpg' /></body></html>");
+      var elementDataSrc = (string?)getElementById!.Invoke(null, [docWithElementDataSrc, "post-image"]);
+
+      Assert.Equal("https://example.com/from-first-img.jpg", firstImg);
+      Assert.Equal("https://example.com/from-data-src.jpg", dataSrc);
+      Assert.Equal("https://example.com/from-element-data-src.jpg", elementDataSrc);
+    }
+
     #endregion
   }
 }
