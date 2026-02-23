@@ -2,11 +2,16 @@ using System.Xml.Linq;
 using FeedCord.Common;
 using FeedCord.Services.Interfaces;
 using HtmlAgilityPack;
+using System.Collections.Concurrent;
 
 namespace FeedCord.Infrastructure.Parsers
 {
   public class ImageParserService : IImageParserService
   {
+    private const int MaxPageImageCacheEntries = 2000;
+    private static readonly TimeSpan PageImageCacheTtl = TimeSpan.FromMinutes(15);
+    private readonly ConcurrentDictionary<string, CachedImageLookup> _pageImageCache = new(StringComparer.Ordinal);
+
     private readonly ICustomHttpClient _httpClient;
     private readonly ILogger<ImageParserService> _logger;
 
@@ -117,6 +122,11 @@ namespace FeedCord.Infrastructure.Parsers
       if (string.IsNullOrWhiteSpace(pageUrl))
         return string.Empty;
 
+      if (TryGetCachedPageImage(pageUrl, out var cachedImageUrl))
+      {
+        return cachedImageUrl;
+      }
+
       try
       {
         // Download HTML
@@ -136,8 +146,13 @@ namespace FeedCord.Infrastructure.Parsers
         {
           var resolvedImageUrl = ResolveAndValidateImageUrl(pageUrl, imageUrl);
           if (!string.IsNullOrWhiteSpace(resolvedImageUrl))
+          {
+            SetCachedPageImage(pageUrl, resolvedImageUrl);
             return resolvedImageUrl;
+          }
         }
+
+        SetCachedPageImage(pageUrl, string.Empty);
       }
       catch (Exception ex)
       {
@@ -146,6 +161,46 @@ namespace FeedCord.Infrastructure.Parsers
 
       return string.Empty;
     }
+
+    private bool TryGetCachedPageImage(string pageUrl, out string cachedImageUrl)
+    {
+      cachedImageUrl = string.Empty;
+
+      if (!_pageImageCache.TryGetValue(pageUrl, out var cachedLookup))
+      {
+        return false;
+      }
+
+      if (cachedLookup.ExpiresAtUtc < DateTime.UtcNow)
+      {
+        _ = _pageImageCache.TryRemove(pageUrl, out _);
+        return false;
+      }
+
+      cachedImageUrl = cachedLookup.ImageUrl;
+      return true;
+    }
+
+    private void SetCachedPageImage(string pageUrl, string imageUrl)
+    {
+      _pageImageCache[pageUrl] = new CachedImageLookup(imageUrl, DateTime.UtcNow.Add(PageImageCacheTtl));
+
+      if (_pageImageCache.Count <= MaxPageImageCacheEntries)
+      {
+        return;
+      }
+
+      var nowUtc = DateTime.UtcNow;
+      foreach (var cacheItem in _pageImageCache)
+      {
+        if (cacheItem.Value.ExpiresAtUtc < nowUtc)
+        {
+          _ = _pageImageCache.TryRemove(cacheItem.Key, out _);
+        }
+      }
+    }
+
+    private sealed record CachedImageLookup(string ImageUrl, DateTime ExpiresAtUtc);
 
     private static string ResolveAndValidateImageUrl(string pageUrl, string? foundUrl)
     {

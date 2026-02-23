@@ -298,6 +298,18 @@ namespace FeedCord.Tests.Infrastructure
     }
 
     [Fact]
+    public async Task TryExtractImageLink_WithEmptyXmlAndFeedOnly_ReturnsEmptyWithoutWebScrape()
+    {
+      // Act
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", "", ImageFetchMode.FeedOnly);
+
+      // Assert
+      Assert.NotNull(result);
+      Assert.Empty(result);
+      _mockHttpClient.Verify(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task TryExtractImageLink_WithNullXml_FallsBackToWebpageScrape()
     {
       // Arrange
@@ -340,6 +352,28 @@ namespace FeedCord.Tests.Infrastructure
 
       // Assert
       Assert.Equal("https://example.com/fallback.jpg", result);
+    }
+
+    [Fact]
+    public async Task TryExtractImageLink_WithInvalidImageInXmlAndFeedOnly_ReturnsEmptyWithoutWebScrape()
+    {
+      // Arrange
+      var xml = @"<?xml version='1.0'?>
+<rss>
+    <channel>
+        <item>
+            <enclosure type='invalid' url='data:image/jpeg;base64,abc' />
+        </item>
+    </channel>
+</rss>";
+
+      // Act
+      var result = await _imageParserService.TryExtractImageLink("https://example.com", xml, ImageFetchMode.FeedOnly);
+
+      // Assert
+      Assert.NotNull(result);
+      Assert.Empty(result);
+      _mockHttpClient.Verify(x => x.GetAsyncWithFallback(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

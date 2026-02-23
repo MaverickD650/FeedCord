@@ -1768,6 +1768,75 @@ namespace FeedCord.Tests.Infrastructure
     }
 
     [Fact]
+    public void ConditionalRequestHelpers_WithNoConditionalHeaders_DoesNotAddRequestHeaders()
+    {
+      var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+      var httpClient = new HttpClient(new HttpClientHandler());
+      var client = new CustomHttpClient(mockLogger.Object, httpClient, new SemaphoreSlim(1, 1));
+
+      var updateMethod = typeof(CustomHttpClient).GetMethod("UpdateConditionalRequestState", BindingFlags.Instance | BindingFlags.NonPublic);
+      var createMethod = typeof(CustomHttpClient).GetMethod("CreateGetRequest", BindingFlags.Instance | BindingFlags.NonPublic);
+
+      Assert.NotNull(updateMethod);
+      Assert.NotNull(createMethod);
+
+      var url = "https://example.com/no-conditional";
+
+      var response = new HttpResponseMessage(HttpStatusCode.OK)
+      {
+        Content = new StringContent("ok")
+      };
+
+      updateMethod!.Invoke(client, [url, response]);
+
+      using var request = (HttpRequestMessage)createMethod!.Invoke(client, [url, "Test-UA"])!;
+
+      Assert.Empty(request.Headers.IfNoneMatch);
+      Assert.False(request.Headers.IfModifiedSince.HasValue);
+    }
+
+    [Fact]
+    public void ConditionalRequestHelpers_WithNewEtagAndMissingLastModified_UpdatesEtagAndKeepsExistingLastModified()
+    {
+      var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+      var httpClient = new HttpClient(new HttpClientHandler());
+      var client = new CustomHttpClient(mockLogger.Object, httpClient, new SemaphoreSlim(1, 1));
+
+      var updateMethod = typeof(CustomHttpClient).GetMethod("UpdateConditionalRequestState", BindingFlags.Instance | BindingFlags.NonPublic);
+      var createMethod = typeof(CustomHttpClient).GetMethod("CreateGetRequest", BindingFlags.Instance | BindingFlags.NonPublic);
+
+      Assert.NotNull(updateMethod);
+      Assert.NotNull(createMethod);
+
+      var url = "https://example.com/etag-merge";
+      var baselineLastModified = new DateTimeOffset(2025, 01, 01, 12, 00, 00, TimeSpan.Zero);
+
+      var firstResponse = new HttpResponseMessage(HttpStatusCode.OK)
+      {
+        Content = new StringContent("ok")
+      };
+      firstResponse.Headers.ETag = new EntityTagHeaderValue("\"v1\"");
+      firstResponse.Content.Headers.LastModified = baselineLastModified;
+
+      updateMethod!.Invoke(client, [url, firstResponse]);
+
+      var secondResponse = new HttpResponseMessage(HttpStatusCode.OK)
+      {
+        Content = new StringContent("ok")
+      };
+      secondResponse.Headers.ETag = new EntityTagHeaderValue("\"v2\"");
+
+      updateMethod.Invoke(client, [url, secondResponse]);
+
+      using var request = (HttpRequestMessage)createMethod!.Invoke(client, [url, "Test-UA"])!;
+
+      Assert.NotEmpty(request.Headers.IfNoneMatch);
+      Assert.Equal("\"v2\"", request.Headers.IfNoneMatch.Single().Tag);
+      Assert.True(request.Headers.IfModifiedSince.HasValue);
+      Assert.Equal(baselineLastModified, request.Headers.IfModifiedSince!.Value);
+    }
+
+    [Fact]
     public void GetUserAgentCacheKey_WithInvalidAbsoluteUrl_ReturnsOriginalString()
     {
       var method = typeof(CustomHttpClient).GetMethod("GetUserAgentCacheKey", BindingFlags.Static | BindingFlags.NonPublic);
