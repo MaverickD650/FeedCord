@@ -2713,5 +2713,157 @@ public class FeedManagerExpandedTests
     Assert.NotEqual(default, state.LastPublishDate);
   }
 
+  [Fact]
+  public async Task InitializeUrlsAsync_WhenHttpClientThrowsCanceledOperationDuringTestUrl_RethrowsOperationCanceledException()
+  {
+    var url = "https://example.com/rss-cancel-during-test";
+    var config = new Config
+    {
+      Id = "TestFeed",
+      RssUrls = new[] { url },
+      YoutubeUrls = Array.Empty<string>(),
+      DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
+      RssCheckIntervalSeconds = 30,
+      DescriptionLimit = 250,
+      ConcurrentRequests = 5
+    };
+
+    var mockStore = new Mock<IReferencePostStore>(MockBehavior.Loose);
+    mockStore
+        .Setup(s => s.LoadReferencePosts())
+        .Returns(new Dictionary<string, ReferencePost>());
+
+    using var cts = new CancellationTokenSource();
+
+    var mockHttpClient = new Mock<ICustomHttpClient>(MockBehavior.Strict);
+    mockHttpClient
+        .Setup(x => x.GetAsyncWithFallback(url, It.IsAny<CancellationToken>()))
+        .Returns<string, CancellationToken>((_, __) =>
+        {
+          cts.Cancel();
+          throw new OperationCanceledException(cts.Token);
+        });
+
+    var mockRssParser = new Mock<IRssParsingService>(MockBehavior.Loose);
+    var mockFilter = new Mock<IPostFilterService>(MockBehavior.Loose);
+    var mockLogger = new Mock<ILogger<FeedManager>>(MockBehavior.Loose);
+    var mockAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+
+    var manager = new FeedManager(
+        config,
+        mockHttpClient.Object,
+        mockRssParser.Object,
+        mockLogger.Object,
+        mockAggregator.Object,
+        mockFilter.Object,
+        mockStore.Object);
+
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => manager.InitializeUrlsAsync(cts.Token));
+  }
+
+  [Fact]
+  public async Task InitializeUrlsAsync_WhenRssReturnsNotModifiedOnCheckAndFetch_UsesFallbackDateWithoutParsing()
+  {
+    var rssUrl = "https://example.com/rss-not-modified";
+    var config = new Config
+    {
+      Id = "TestFeed",
+      RssUrls = new[] { rssUrl },
+      YoutubeUrls = Array.Empty<string>(),
+      DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
+      RssCheckIntervalSeconds = 30,
+      DescriptionLimit = 250,
+      ConcurrentRequests = 5
+    };
+
+    var mockStore = new Mock<IReferencePostStore>(MockBehavior.Strict);
+    mockStore
+        .Setup(s => s.LoadReferencePosts())
+        .Returns(new Dictionary<string, ReferencePost>());
+
+    var responseSequence = new Queue<HttpResponseMessage?>([
+        new HttpResponseMessage(HttpStatusCode.NotModified),
+        new HttpResponseMessage(HttpStatusCode.NotModified)
+    ]);
+
+    var mockHttpClient = new Mock<ICustomHttpClient>(MockBehavior.Strict);
+    mockHttpClient
+        .Setup(x => x.GetAsyncWithFallback(rssUrl, It.IsAny<CancellationToken>()))
+        .ReturnsAsync(() => responseSequence.Dequeue());
+
+    var mockRssParser = new Mock<IRssParsingService>(MockBehavior.Strict);
+    var mockFilter = new Mock<IPostFilterService>(MockBehavior.Loose);
+    var mockLogger = new Mock<ILogger<FeedManager>>(MockBehavior.Loose);
+    var mockAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+
+    var manager = new FeedManager(
+        config,
+        mockHttpClient.Object,
+        mockRssParser.Object,
+        mockLogger.Object,
+        mockAggregator.Object,
+        mockFilter.Object,
+        mockStore.Object);
+
+    await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
+
+    var state = manager.GetAllFeedData()[rssUrl];
+    Assert.False(state.IsYoutube);
+    Assert.NotEqual(default, state.LastPublishDate);
+    mockRssParser.Verify(x => x.ParseRssFeedAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<ImageFetchMode>(), It.IsAny<CancellationToken>()), Times.Never);
+  }
+
+  [Fact]
+  public async Task InitializeUrlsAsync_WhenYoutubeReturnsNotModifiedOnFetch_UsesFallbackDateWithoutYoutubeParsing()
+  {
+    var youtubeUrl = "https://www.youtube.com/@feedcord-not-modified";
+    var config = new Config
+    {
+      Id = "TestFeed",
+      RssUrls = Array.Empty<string>(),
+      YoutubeUrls = new[] { youtubeUrl },
+      DiscordWebhookUrl = "https://discord.com/api/webhooks/123/abc",
+      RssCheckIntervalSeconds = 30,
+      DescriptionLimit = 250,
+      ConcurrentRequests = 5
+    };
+
+    var mockStore = new Mock<IReferencePostStore>(MockBehavior.Strict);
+    mockStore
+        .Setup(s => s.LoadReferencePosts())
+        .Returns(new Dictionary<string, ReferencePost>());
+
+    var responseSequence = new Queue<HttpResponseMessage?>([
+        new HttpResponseMessage(HttpStatusCode.OK),
+        new HttpResponseMessage(HttpStatusCode.NotModified)
+    ]);
+
+    var mockHttpClient = new Mock<ICustomHttpClient>(MockBehavior.Strict);
+    mockHttpClient
+        .Setup(x => x.GetAsyncWithFallback(youtubeUrl, It.IsAny<CancellationToken>()))
+        .ReturnsAsync(() => responseSequence.Dequeue());
+
+    var mockRssParser = new Mock<IRssParsingService>(MockBehavior.Strict);
+    var mockFilter = new Mock<IPostFilterService>(MockBehavior.Loose);
+    var mockLogger = new Mock<ILogger<FeedManager>>(MockBehavior.Loose);
+    var mockAggregator = new Mock<ILogAggregator>(MockBehavior.Loose);
+
+    var manager = new FeedManager(
+        config,
+        mockHttpClient.Object,
+        mockRssParser.Object,
+        mockLogger.Object,
+        mockAggregator.Object,
+        mockFilter.Object,
+        mockStore.Object);
+
+    await manager.InitializeUrlsAsync(TestContext.Current.CancellationToken);
+
+    var state = manager.GetAllFeedData()[youtubeUrl];
+    Assert.True(state.IsYoutube);
+    Assert.NotEqual(default, state.LastPublishDate);
+    mockRssParser.Verify(x => x.ParseYoutubeFeedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+  }
+
   #endregion
 }

@@ -5,6 +5,7 @@ using FeedCord.Infrastructure.Http;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Reflection;
 
 namespace FeedCord.Tests.Infrastructure
 {
@@ -1724,6 +1725,58 @@ namespace FeedCord.Tests.Infrastructure
       // Assert - With throttle 1, should never exceed 2 concurrent (1 + margin for timing)
       Assert.True(maxConcurrentRequests <= 2,
           $"Throttle not enforced. Max concurrent: {maxConcurrentRequests}");
+    }
+
+    [Fact]
+    public void ConditionalRequestHelpers_WithCachedState_AddsIfNoneMatchAndIfModifiedSinceHeaders()
+    {
+      var mockLogger = new Mock<ILogger<CustomHttpClient>>(MockBehavior.Loose);
+      var httpClient = new HttpClient(new HttpClientHandler());
+      var client = new CustomHttpClient(mockLogger.Object, httpClient, new SemaphoreSlim(1, 1));
+
+      var updateMethod = typeof(CustomHttpClient).GetMethod("UpdateConditionalRequestState", BindingFlags.Instance | BindingFlags.NonPublic);
+      var createMethod = typeof(CustomHttpClient).GetMethod("CreateGetRequest", BindingFlags.Instance | BindingFlags.NonPublic);
+
+      Assert.NotNull(updateMethod);
+      Assert.NotNull(createMethod);
+
+      var url = "https://example.com/feed";
+
+      var firstResponse = new HttpResponseMessage(HttpStatusCode.OK)
+      {
+        Content = new StringContent("ok")
+      };
+      firstResponse.Headers.ETag = new EntityTagHeaderValue("\"v1\"");
+      firstResponse.Content.Headers.LastModified = new DateTimeOffset(2025, 01, 01, 12, 00, 00, TimeSpan.Zero);
+
+      updateMethod!.Invoke(client, [url, firstResponse]);
+
+      var secondResponse = new HttpResponseMessage(HttpStatusCode.OK)
+      {
+        Content = new StringContent("ok")
+      };
+      secondResponse.Content.Headers.LastModified = new DateTimeOffset(2025, 01, 02, 12, 00, 00, TimeSpan.Zero);
+
+      updateMethod.Invoke(client, [url, secondResponse]);
+
+      using var request = (HttpRequestMessage)createMethod!.Invoke(client, [url, "Test-UA"])!;
+
+      Assert.NotEmpty(request.Headers.IfNoneMatch);
+      Assert.Equal("\"v1\"", request.Headers.IfNoneMatch.Single().Tag);
+      Assert.True(request.Headers.IfModifiedSince.HasValue);
+      Assert.Equal(new DateTimeOffset(2025, 01, 02, 12, 00, 00, TimeSpan.Zero), request.Headers.IfModifiedSince!.Value);
+    }
+
+    [Fact]
+    public void GetUserAgentCacheKey_WithInvalidAbsoluteUrl_ReturnsOriginalString()
+    {
+      var method = typeof(CustomHttpClient).GetMethod("GetUserAgentCacheKey", BindingFlags.Static | BindingFlags.NonPublic);
+      Assert.NotNull(method);
+
+      const string invalidUrl = "not-a-valid-absolute-url";
+      var result = (string)method!.Invoke(null, [invalidUrl])!;
+
+      Assert.Equal(invalidUrl, result);
     }
 
     #endregion

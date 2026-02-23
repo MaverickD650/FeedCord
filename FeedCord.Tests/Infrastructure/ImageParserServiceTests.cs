@@ -1137,6 +1137,25 @@ namespace FeedCord.Tests.Infrastructure
       Assert.Equal("https://example.com/from-element-data-src.jpg", elementDataSrc);
     }
 
+    [Fact]
+    public async Task TryExtractImageLink_WithPageOnlyMode_ScrapesFromPageAndSkipsFeedXml()
+    {
+      _mockHttpClient
+          .Setup(x => x.GetAsyncWithFallback("https://example.com/post", It.IsAny<CancellationToken>()))
+          .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK)
+          {
+            Content = new StringContent("<html><head><meta property='og:image' content='https://example.com/page-image.jpg' /></head></html>")
+          });
+
+      var result = await _imageParserService.TryExtractImageLink(
+          "https://example.com/post",
+          "<rss><channel><item><enclosure type='image/jpeg' url='https://example.com/feed-image.jpg' /></item></channel></rss>",
+          ImageFetchMode.PageOnly);
+
+      Assert.Equal("https://example.com/page-image.jpg", result);
+      _mockHttpClient.Verify(x => x.GetAsyncWithFallback("https://example.com/post", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     #endregion
   }
 }
