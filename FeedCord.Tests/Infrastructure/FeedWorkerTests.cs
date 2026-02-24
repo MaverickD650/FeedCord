@@ -6,6 +6,7 @@ using FeedCord.Core.Interfaces;
 using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
 namespace FeedCord.Tests.Infrastructure;
@@ -848,4 +849,36 @@ public class FeedWorkerTests
   }
 
   #endregion
+}
+
+public class FeedWorkerFactoryTests
+{
+  [Fact]
+  public void ActivatorUtilities_CreateFeedWorker_ReturnsFeedWorker()
+  {
+    var services = new ServiceCollection();
+    var lifetimeMock = new Mock<IHostApplicationLifetime>(MockBehavior.Loose);
+    services.AddSingleton(lifetimeMock.Object);
+    services.AddLogging();
+
+    var provider = services.BuildServiceProvider();
+
+    var config = new Config
+    {
+      Id = "WorkerFactory",
+      RssUrls = [],
+      YoutubeUrls = [],
+      DiscordWebhookUrl = "https://discord.com/api/webhooks/1/2",
+      RssCheckIntervalSeconds = 1,
+      PersistenceOnShutdown = false
+    };
+
+    var aggregatorMock = new Mock<ILogAggregator>(MockBehavior.Loose);
+    var feedManagerMock = new Mock<IFeedManager>(MockBehavior.Loose);
+    var notifierMock = new Mock<INotifier>(MockBehavior.Loose);
+
+    var worker = ActivatorUtilities.CreateInstance<FeedWorker>(provider, config, aggregatorMock.Object, feedManagerMock.Object, notifierMock.Object);
+
+    Assert.IsType<FeedWorker>(worker);
+  }
 }

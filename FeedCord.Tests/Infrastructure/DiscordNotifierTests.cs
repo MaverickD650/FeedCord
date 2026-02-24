@@ -5,6 +5,7 @@ using FeedCord.Common;
 using FeedCord.Core.Interfaces;
 using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FeedCord.Tests.Infrastructure;
 
@@ -160,5 +161,31 @@ public class DiscordNotifierTests
             It.IsAny<System.Exception>(),
             It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
         Times.Once);
+  }
+}
+
+public class DiscordNotifierFactoryTests
+{
+  [Fact]
+  public void ActivatorUtilities_CreateNotifier_ReturnsDiscordNotifier()
+  {
+    var services = new ServiceCollection();
+    var httpClientMock = new Mock<ICustomHttpClient>(MockBehavior.Loose);
+    services.AddSingleton(httpClientMock.Object);
+
+    var provider = services.BuildServiceProvider();
+
+    var config = new Config
+    {
+      Id = "NotifierFactory",
+      RssUrls = [],
+      YoutubeUrls = [],
+      DiscordWebhookUrl = "https://discord.com/api/webhooks/1/2"
+    };
+
+    var payloadServiceMock = new Mock<IDiscordPayloadService>(MockBehavior.Loose);
+    var notifier = ActivatorUtilities.CreateInstance<DiscordNotifier>(provider, config, payloadServiceMock.Object);
+
+    Assert.IsType<DiscordNotifier>(notifier);
   }
 }

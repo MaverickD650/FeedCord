@@ -4,6 +4,7 @@ using FeedCord.Core;
 using FeedCord.Core.Interfaces;
 using FeedCord.Common;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FeedCord.Tests.Core;
 
@@ -397,5 +398,30 @@ public class LogAggregatorTests
     // Assert
     Assert.Single(aggregator.LatestPosts);
     Assert.Equal("Second Post", aggregator.LatestPosts[url]?.Title);  // Should reflect the latest value
+  }
+}
+
+public class LogAggregatorFactoryTests
+{
+  [Fact]
+  public void ActivatorUtilities_CreateLogAggregator_ReturnsLogAggregatorWithInstanceId()
+  {
+    var services = new ServiceCollection();
+    var batchLogger = new Mock<IBatchLogger>(MockBehavior.Loose);
+    services.AddSingleton(batchLogger.Object);
+
+    var provider = services.BuildServiceProvider();
+    var config = new Config
+    {
+      Id = "FactoryId",
+      RssUrls = [],
+      YoutubeUrls = [],
+      DiscordWebhookUrl = "https://discord.com/api/webhooks/1/2"
+    };
+
+    var aggregator = ActivatorUtilities.CreateInstance<LogAggregator>(provider, config);
+
+    var concreteAggregator = Assert.IsType<LogAggregator>(aggregator);
+    Assert.Equal("FactoryId", concreteAggregator.InstanceId);
   }
 }
