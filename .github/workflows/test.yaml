@@ -74,7 +74,10 @@ jobs:
             echo "No .trx files found in ./TestResults"
             exit 0
           fi
-          find ./TestResults -type f -name '*.trx' -exec trx2junit --output ./TestResults/junit {} +
+          for trx_file in $trx_files; do
+            filename=$(basename "$trx_file" .trx)
+            trx2junit "$trx_file" --output "./TestResults/junit/${filename}.xml"
+          done
 
       - name: Upload JUnit results
         if: always()
@@ -101,8 +104,8 @@ jobs:
         uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # v5.5.2
         with:
           use_oidc: true
-          directory: './TestResults/junit'
+          files: './TestResults/junit/*.xml'
           report_type: test_results
           flags: unittests
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           verbose: true
