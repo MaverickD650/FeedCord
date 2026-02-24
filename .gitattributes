@@ -1,10 +1,17 @@
-* text=auto
-*.cs linguist-detectable linguist-language=C#
-*.csproj linguist-detectable linguist-language=XML
-*.json linguist-detectable linguist-language=JSON
-*.json5 linguist-detectable linguist-language=JSON5
-*.md linguist-detectable linguist-language=MARKDOWN
-*.sh linguist-detectable linguist-language=SHELL
-*.toml linguist-detectable linguist-language=TOML
-*.yml linguist-detectable linguist-language=YAML
-*.yaml linguist-detectable linguist-language=YAML
+* text=auto eol=lf
+
+# C# and .NET project files
+*.cs linguist-detectable linguist-language=C# text eol=lf
+*.csproj linguist-detectable linguist-language=XML text eol=lf
+*.sln text eol=lf merge=union
+
+# Configuration and data files
+*.json linguist-detectable linguist-language=JSON text eol=lf
+*.json5 linguist-detectable linguist-language=JSON5 text eol=lf
+*.yml linguist-detectable linguist-language=YAML text eol=lf
+*.yaml linguist-detectable linguist-language=YAML text eol=lf
+*.toml linguist-detectable linguist-language=TOML text eol=lf
+
+# Documentation
+*.md linguist-detectable linguist-language=MARKDOWN text eol=lf
+*.sh linguist-detectable linguist-language=SHELL text eol=lf
