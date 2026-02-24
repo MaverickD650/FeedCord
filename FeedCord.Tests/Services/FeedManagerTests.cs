@@ -3,6 +3,7 @@ using FeedCord.Core.Interfaces;
 using FeedCord.Services;
 using FeedCord.Services.Interfaces;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Net;
 using Xunit;
