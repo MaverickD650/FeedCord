@@ -22,8 +22,7 @@ namespace FeedCord
     private static readonly string[] DefaultConfigCandidates =
     {
       "config/appsettings.yaml",
-      "config/appsettings.yml",
-      "config/appsettings.json"
+      "config/appsettings.yml"
     };
 
     internal static Func<string[], IHost> BuildHost { get; set; } = CreateApplication;
@@ -124,15 +123,8 @@ namespace FeedCord
         return;
       }
 
-      if (string.IsNullOrWhiteSpace(extension) ||
-          string.Equals(extension, ".json", StringComparison.OrdinalIgnoreCase))
-      {
-        builder.AddJsonFile(configPath, optional: false, reloadOnChange: true);
-        return;
-      }
-
       throw new InvalidOperationException(
-          $"Unsupported configuration file extension '{extension}'. Supported extensions are: .json, .yaml, .yml.");
+          $"Unsupported configuration file extension '{extension}'. Supported extensions are: .yaml, .yml.");
     }
 
     internal static string SelectConfigPath(string[] args)
@@ -156,7 +148,7 @@ namespace FeedCord
         }
       }
 
-      return "config/appsettings.json";
+      return "config/appsettings.yaml";
     }
 
     internal static void SetupLogging(HostBuilderContext ctx, ILoggingBuilder logging)
@@ -167,6 +159,7 @@ namespace FeedCord
 
       logging.AddFilter("Microsoft", LogLevel.Information);
       logging.AddFilter("Microsoft.Hosting", LogLevel.Warning);
+      logging.AddFilter("Microsoft.AspNetCore.Diagnostics.HealthChecks", LogLevel.Debug);
       logging.AddFilter("System", LogLevel.Information);
       logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
     }

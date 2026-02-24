@@ -5,7 +5,6 @@ using FeedCord.Helpers;
 using FeedCord.Services.Interfaces;
 using FeedCord.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -328,20 +327,20 @@ namespace FeedCord.Tests
       var selectedPath = Startup.SelectConfigPath(args);
 
       // Assert
-      Assert.Equal("config/appsettings.json", selectedPath);
+      Assert.Equal("config/appsettings.yaml", selectedPath);
     }
 
     [Fact]
     public void ConfigPath_WithSingleArgument_UsesProvidedPath()
     {
       // Arrange
-      var args = new[] { "custom/path.json" };
+      var args = new[] { "custom/path.yaml" };
 
       // Act
       var selectedPath = Startup.SelectConfigPath(args);
 
       // Assert
-      Assert.Equal("custom/path.json", selectedPath);
+      Assert.Equal("custom/path.yaml", selectedPath);
     }
 
     [Fact]
@@ -379,7 +378,7 @@ namespace FeedCord.Tests
       Directory.CreateDirectory(configDirectory);
 
       File.WriteAllText(Path.Combine(configDirectory, "appsettings.yaml"), "Instances: []");
-      File.WriteAllText(Path.Combine(configDirectory, "appsettings.json"), "{\"Instances\":[]}");
+      File.WriteAllText(Path.Combine(configDirectory, "appsettings.yml"), "Instances: []");
 
       try
       {
@@ -403,7 +402,6 @@ namespace FeedCord.Tests
       Directory.CreateDirectory(configDirectory);
 
       File.WriteAllText(Path.Combine(configDirectory, "appsettings.yml"), "Instances: []");
-      File.WriteAllText(Path.Combine(configDirectory, "appsettings.json"), "{\"Instances\":[]}");
 
       try
       {
@@ -420,7 +418,7 @@ namespace FeedCord.Tests
     }
 
     [Fact]
-    public void SelectDefaultConfigPath_WhenOnlyJsonExists_UsesJson()
+    public void SelectDefaultConfigPath_WhenOnlyJsonExists_FallsBackToYaml()
     {
       var baseDirectory = Path.Combine(Path.GetTempPath(), $"feedcord-config-base-{Guid.NewGuid():N}");
       var configDirectory = Path.Combine(baseDirectory, "config");
@@ -431,7 +429,7 @@ namespace FeedCord.Tests
       try
       {
         var selectedPath = Startup.SelectDefaultConfigPath(baseDirectory);
-        Assert.Equal("config/appsettings.json", selectedPath);
+        Assert.Equal("config/appsettings.yaml", selectedPath);
       }
       finally
       {
@@ -449,7 +447,7 @@ namespace FeedCord.Tests
     public static IEnumerable<object[]> GetConfigPathVariations()
     {
       yield return new object[] { Array.Empty<string>() };
-      yield return new object[] { new[] { "config.json" } };
+      yield return new object[] { new[] { "config.yaml" } };
       yield return new object[] { new[] { "path/to/config.yaml" } };
     }
 
@@ -562,8 +560,8 @@ namespace FeedCord.Tests
     [Fact]
     public void CreateApplication_WithArgs_ReturnsHost()
     {
-      var tempConfigPath = Path.Combine(Path.GetTempPath(), $"feedcord-startup-create-app-{Guid.NewGuid():N}.json");
-      File.WriteAllText(tempConfigPath, "{\"Instances\":[]}");
+      var tempConfigPath = Path.Combine(Path.GetTempPath(), $"feedcord-startup-create-app-{Guid.NewGuid():N}.yaml");
+      File.WriteAllText(tempConfigPath, "Instances: []");
 
       var result = Startup.CreateApplication(new[] { tempConfigPath });
 
@@ -587,10 +585,13 @@ namespace FeedCord.Tests
       var context = new HostBuilderContext(new Dictionary<object, object>());
       var builder = new ConfigurationBuilder();
 
-      Startup.SetupConfiguration(context, builder, new[] { "custom-config.json" });
+      Startup.SetupConfiguration(context, builder, new[] { "custom-config.yaml" });
 
-      var jsonSource = Assert.IsType<JsonConfigurationSource>(builder.Sources.Last());
-      Assert.Equal("custom-config.json", jsonSource.Path);
+      var source = builder.Sources.Last();
+      Assert.Equal("YamlConfigurationSource", source.GetType().Name);
+
+      var sourcePath = source.GetType().GetProperty("Path")?.GetValue(source) as string;
+      Assert.Equal("custom-config.yaml", sourcePath);
     }
 
     [Theory]
@@ -616,10 +617,13 @@ namespace FeedCord.Tests
       var context = new HostBuilderContext(new Dictionary<object, object>());
       var builder = new ConfigurationBuilder();
 
-      Startup.SetupConfiguration(context, builder, new[] { "one", "two" });
+      Startup.SetupConfiguration(context, builder, new[] { "one.yaml", "two.yml" });
 
-      var jsonSource = Assert.IsType<JsonConfigurationSource>(builder.Sources.Last());
-      Assert.Equal("one", jsonSource.Path);
+      var source = builder.Sources.Last();
+      Assert.Equal("YamlConfigurationSource", source.GetType().Name);
+
+      var sourcePath = source.GetType().GetProperty("Path")?.GetValue(source) as string;
+      Assert.Equal("one.yaml", sourcePath);
     }
 
     [Fact]
@@ -689,6 +693,7 @@ namespace FeedCord.Tests
       Assert.Equal("customlogsformatter", consoleOptions.FormatterName);
       Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft" && r.LogLevel == LogLevel.Information);
       Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft.Hosting" && r.LogLevel == LogLevel.Warning);
+      Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft.AspNetCore.Diagnostics.HealthChecks" && r.LogLevel == LogLevel.Debug);
       Assert.Contains(filterOptions.Rules, r => r.CategoryName == "System" && r.LogLevel == LogLevel.Information);
       Assert.Contains(filterOptions.Rules, r => r.CategoryName == "System.Net.Http.HttpClient" && r.LogLevel == LogLevel.Warning);
     }
@@ -1023,7 +1028,7 @@ namespace FeedCord.Tests
 
         Startup.RunHost = host => capturedHost = host;
 
-        var args = new[] { "config/appsettings.json" };
+        var args = new[] { "config/appsettings.yaml" };
         Startup.Initialize(args);
 
         Assert.Same(args, capturedArgs);

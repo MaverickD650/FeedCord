@@ -1,14 +1,6 @@
 # appsettings reference
 
-Your `appsettings.json` is a collection of `Instances`.
-
-```json
-{
-  "Instances": []
-}
-```
-
-YAML is also supported using `appsettings.yaml` or `appsettings.yml`.
+Your `appsettings.yaml` (or `appsettings.yml`) is a collection of `Instances`.
 
 ```yaml
 Instances: []

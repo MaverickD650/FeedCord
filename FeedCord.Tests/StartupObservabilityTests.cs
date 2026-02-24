@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
@@ -7,8 +6,7 @@ namespace FeedCord.Tests;
 public class StartupObservabilityTests
 {
   [Theory(Timeout = 10000)]
-  [InlineData("default-json", "/health/live", "/health/ready", "/metrics")]
-  [InlineData("custom-json", "/health/live-test", "/health/ready-test", "/metrics-test")]
+  [InlineData("default-yaml", "/health/live", "/health/ready", "/metrics")]
   [InlineData("custom-yaml", "/health/live-yaml", "/health/ready-yaml", "/metrics-yaml")]
   public async Task CreateApplication_ExposesExpectedObservabilityEndpoints(
       string configVariant,
@@ -18,37 +16,17 @@ public class StartupObservabilityTests
   {
     var port = GetFreeTcpPort();
     var observabilityUrls = $"http://127.0.0.1:{port}";
-    var extension = configVariant == "custom-yaml" ? "yaml" : "json";
-    var tempConfigPath = Path.Combine(Path.GetTempPath(), $"feedcord-observability-{configVariant}-{Guid.NewGuid():N}.{extension}");
+    var tempConfigPath = Path.Combine(Path.GetTempPath(), $"feedcord-observability-{configVariant}-{Guid.NewGuid():N}.yaml");
 
-    if (configVariant == "default-json")
+    if (configVariant == "default-yaml")
     {
-      var config = new
-      {
-        Instances = Array.Empty<object>(),
-        Observability = new
-        {
-          Urls = observabilityUrls,
-        }
-      };
+      var yamlConfig = $"""
+Instances: []
+Observability:
+  Urls: {observabilityUrls}
+""";
 
-      await File.WriteAllTextAsync(tempConfigPath, JsonSerializer.Serialize(config), TestContext.Current.CancellationToken);
-    }
-    else if (configVariant == "custom-json")
-    {
-      var config = new
-      {
-        Instances = Array.Empty<object>(),
-        Observability = new
-        {
-          Urls = observabilityUrls,
-          MetricsPath = expectedMetricsPath,
-          LivenessPath = expectedLivenessPath,
-          ReadinessPath = expectedReadinessPath,
-        }
-      };
-
-      await File.WriteAllTextAsync(tempConfigPath, JsonSerializer.Serialize(config), TestContext.Current.CancellationToken);
+      await File.WriteAllTextAsync(tempConfigPath, yamlConfig, TestContext.Current.CancellationToken);
     }
     else
     {
