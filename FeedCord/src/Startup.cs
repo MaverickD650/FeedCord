@@ -159,9 +159,9 @@ namespace FeedCord
 
       logging.AddFilter("Microsoft", LogLevel.Information);
       logging.AddFilter("Microsoft.Hosting", LogLevel.Warning);
-      logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Debug);
-      logging.AddFilter("Microsoft.AspNetCore.Routing.EndpointMiddleware", LogLevel.Debug);
-      logging.AddFilter("Microsoft.AspNetCore.Diagnostics.HealthChecks", LogLevel.Debug);
+      logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
+      logging.AddFilter("Microsoft.AspNetCore.Routing.EndpointMiddleware", LogLevel.Warning);
+      logging.AddFilter("Microsoft.AspNetCore.Diagnostics.HealthChecks", LogLevel.Warning);
       logging.AddFilter("System", LogLevel.Information);
       logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
     }

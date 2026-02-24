@@ -693,9 +693,9 @@ namespace FeedCord.Tests
       Assert.Equal("customlogsformatter", consoleOptions.FormatterName);
       Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft" && r.LogLevel == LogLevel.Information);
       Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft.Hosting" && r.LogLevel == LogLevel.Warning);
-      Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft.AspNetCore.Hosting.Diagnostics" && r.LogLevel == LogLevel.Debug);
-      Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft.AspNetCore.Routing.EndpointMiddleware" && r.LogLevel == LogLevel.Debug);
-      Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft.AspNetCore.Diagnostics.HealthChecks" && r.LogLevel == LogLevel.Debug);
+      Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft.AspNetCore.Hosting.Diagnostics" && r.LogLevel == LogLevel.Warning);
+      Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft.AspNetCore.Routing.EndpointMiddleware" && r.LogLevel == LogLevel.Warning);
+      Assert.Contains(filterOptions.Rules, r => r.CategoryName == "Microsoft.AspNetCore.Diagnostics.HealthChecks" && r.LogLevel == LogLevel.Warning);
       Assert.Contains(filterOptions.Rules, r => r.CategoryName == "System" && r.LogLevel == LogLevel.Information);
       Assert.Contains(filterOptions.Rules, r => r.CategoryName == "System.Net.Http.HttpClient" && r.LogLevel == LogLevel.Warning);
     }
