@@ -2,6 +2,9 @@ using Xunit;
 using FeedCord.Core;
 using FeedCord.Common;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
+using FeedCord.Core.Interfaces;
 
 namespace FeedCord.Tests.Core;
 
@@ -531,5 +534,37 @@ public class DiscordPayloadServiceTests
     Assert.NotNull(jsonDoc);
     var root = jsonDoc.RootElement;
     Assert.True(root.TryGetProperty("content", out _));
+  }
+}
+
+public class DiscordPayloadServiceFactoryTests
+{
+  [Fact]
+  public void ActivatorUtilities_CreateDiscordPayloadService_ReturnsServiceWithConfig()
+  {
+    var services = new ServiceCollection();
+    var provider = services.BuildServiceProvider();
+    var config = new Config
+    {
+      Id = "TestFeed",
+      RssUrls = [],
+      YoutubeUrls = [],
+      DiscordWebhookUrl = "https://discord.com/api/webhooks/1/2",
+      MarkdownFormat = false,
+      Forum = false
+    };
+
+    var service = ActivatorUtilities.CreateInstance<DiscordPayloadService>(provider, config);
+    var payload = service.BuildPayloadWithPost(new Post(
+        "Title",
+        "",
+        "Description",
+        "https://post.example.com",
+        "Tag",
+        DateTime.UtcNow,
+        "Author"));
+
+    Assert.IsType<DiscordPayloadService>(service);
+    Assert.NotNull(payload);
   }
 }
