@@ -222,7 +222,7 @@ namespace FeedCord.Tests
           null
       );
 
-      var configArgs = new[] { "config.json" };
+      var configArgs = new[] { "config.yaml" };
 
       // Note: We don't actually invoke because it would start the application
       // This test just verifies the method signature is correct for invocation
@@ -363,8 +363,8 @@ namespace FeedCord.Tests
     public static IEnumerable<object[]> GetArgumentVariations()
     {
       yield return new object[] { Array.Empty<string>() };
-      yield return new object[] { new[] { "config.json" } };
-      yield return new object[] { new[] { "config/appsettings.json" } };
+      yield return new object[] { new[] { "config.yaml" } };
+      yield return new object[] { new[] { "config/appsettings.yaml" } };
       yield return new object[] { new[] { "custom/config.yaml" } };
     }
 
@@ -391,7 +391,7 @@ namespace FeedCord.Tests
       {
         startupEntryPointProperty.SetValue(null, (Action<string[]>)(args => capturedArgs = args));
 
-        var args = new[] { "config/custom.json" };
+        var args = new[] { "config/custom.yaml" };
         Program.Main(args);
 
         Assert.Same(args, capturedArgs);

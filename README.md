@@ -31,50 +31,7 @@ Provided below is a quick guide to get up and running.
 
 ## Quick Setup
 
-### 1. Create a new folder with a new file named `appsettings.json` inside with the following content
-
-```json
-{
-  "Instances": [
-    {
-      "Id": "My First News Feed",
-      "YoutubeUrls": [
-        ""
-      ],
-      "RssUrls": [
-        ""
-      ],
-      "Forum": false,
-      "DiscordWebhookUrl": "...",
-      "RssCheckIntervalSeconds": 1500,
-      "EnableAutoRemove": false,
-      "Color": 8411391,
-      "DescriptionLimit": 250,
-      "MarkdownFormat": false,
-      "PersistenceOnShutdown": true
-    }
-  ],
-  "App": {
-    "ConcurrentRequests": 40
-  },
-  "Http": {
-    "TimeoutSeconds": 30,
-    "PostMinIntervalSeconds": 2,
-    "FallbackUserAgents": [
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.5112.79 Safari/537.36",
-      "FeedFetcher-Google"
-    ]
-  },
-  "Observability": {
-    "Urls": "http://0.0.0.0:9090",
-    "MetricsPath": "/metrics",
-    "LivenessPath": "/health/live",
-    "ReadinessPath": "/health/ready"
-  }
-}
-```
-
-YAML format is also supported. You can use `appsettings.yaml` (or `appsettings.yml`) with equivalent content:
+### 1. Create a new folder with a new file named `appsettings.yaml` (or `appsettings.yml`) inside with the following content
 
 ```yaml
 Instances:
@@ -148,7 +105,7 @@ readinessProbe:
 
 ### Quick Note
 
-Be sure to populate your `appsettings.json` *"DiscordWebhookUrl"* property with your newly created Webhook
+Be sure to populate your `appsettings.yaml` *"DiscordWebhookUrl"* property with your newly created Webhook
 
 #### Webhook Configuration Options
 
@@ -195,7 +152,7 @@ Then set the environment variables when running:
 
 ```bash
 docker run --name FeedCord \
-  -v "/path/to/your/appsettings.json:/app/config/appsettings.json" \
+  -v "/path/to/your/appsettings.yaml:/app/config/appsettings.yaml" \
   -e FEEDCORD_WEBHOOK_GAMING="https://discord.com/api/webhooks/..." \
   -e FEEDCORD_WEBHOOK_TECH="https://discord.com/api/webhooks/..." \
   qolors/feedcord:latest
@@ -208,7 +165,7 @@ services:
   feedcord:
     image: qolors/feedcord:latest
     volumes:
-      - /path/to/your/appsettings.json:/app/config/appsettings.json
+      - /path/to/your/appsettings.yaml:/app/config/appsettings.yaml
     environment:
       FEEDCORD_WEBHOOK_GAMING: "https://discord.com/api/webhooks/..."
       FEEDCORD_WEBHOOK_TECH: "https://discord.com/api/webhooks/..."
@@ -219,15 +176,15 @@ services:
 ```bash
 export FEEDCORD_WEBHOOK_GAMING="https://discord.com/api/webhooks/..."
 export FEEDCORD_WEBHOOK_TECH="https://discord.com/api/webhooks/..."
-dotnet run -- path/to/your/appsettings.json
+dotnet run -- path/to/your/appsettings.yaml
 ```
 
 ## RSS Feeds
 
-Before you actually run FeedCord, make sure you have populated your `appsettings.json` with RSS and YouTube feeds.
+Before you actually run FeedCord, make sure you have populated your `appsettings.yaml` with RSS and YouTube feeds.
 
 - For new users that aren't bringing their own list check out [awesome-rss-feeds](https://github.com/plenaryapp/awesome-rss-feeds) and add some that interest you
-- Each url is entered by line seperating by comma. It should look like this in your `appsettings.json` file:
+- Each url is entered by line seperating by comma. It should look like this in your `appsettings.yaml` file:
 
 ```json
 "RssUrls": [
@@ -275,10 +232,10 @@ Now that your file is set up, you have two ways to run FeedCord
 docker pull qolors/feedcord:latest
 ```
 
-Be sure to update the volume path to your `appsettings.json`.
+Be sure to update the volume path to your `appsettings.yaml`.
 
 ```bash
-docker run --name FeedCord -v "/path/to/your/appsettings.json:/app/config/appsettings.json" qolors/feedcord:latest
+docker run --name FeedCord -v "/path/to/your/appsettings.yaml:/app/config/appsettings.yaml" qolors/feedcord:latest
 ```
 
 ### Build From Source
@@ -309,13 +266,7 @@ Build
 dotnet build
 ```
 
-Run with your `appsettings.json` (provide your own path)
-
-```bash
-dotnet run -- path/to/your/appsettings.json
-```
-
-Or run with your `appsettings.yaml` (or `.yml`)
+Run with your `appsettings.yaml` (or `.yml`) (provide your own path)
 
 ```bash
 dotnet run -- path/to/your/appsettings.yaml
